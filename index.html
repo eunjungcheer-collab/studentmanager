@@ -70,7 +70,7 @@
         .btn-sm:hover { background-color: #cbd5e1; }
         .btn-reset { background-color: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; cursor: pointer; }
         .btn-reset:hover { background-color: #c0392b; }
-        textarea#result { height: 180px; resize: vertical; background-color: #fafafa; line-height: 1.5; font-size: 0.9rem; font-weight: 500; }
+        textarea#result { height: 160px; resize: vertical; background-color: #fafafa; line-height: 1.5; font-size: 0.9rem; font-weight: 500; }
 
         .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
         @media (min-width: 480px) { .btn-group { flex-direction: row; flex-wrap: wrap; } }
@@ -186,7 +186,7 @@
                     <label for="outProgress">📖 교재 & 진도</label>
                     <button class="btn-sm" onclick="copyInputValue('outProgress', '교재 및 진도')">📋 진도 복사</button>
                 </div>
-                <input type="text" id="outProgress" oninput="updateNoticeFromManualInput(); saveCurrentInput();" placeholder="진도를 선택하거나 직접 입력하세요">
+                <input type="text" id="outProgress" oninput="saveCurrentInput();" placeholder="진도를 선택하거나 직접 입력하세요">
             </div>
 
             <!-- 오늘 과제 -->
@@ -195,7 +195,7 @@
                     <label for="outHomework">✏️ 오늘 과제</label>
                     <button class="btn-sm" onclick="copyInputValue('outHomework', '오늘 과제')">📋 과제 복사</button>
                 </div>
-                <input type="text" id="outHomework" oninput="updateNoticeFromManualInput(); saveCurrentInput();" placeholder="과제를 선택하거나 직접 입력하세요">
+                <input type="text" id="outHomework" oninput="saveCurrentInput();" placeholder="과제를 선택하거나 직접 입력하세요">
             </div>
 
             <!-- 공통 알림장 -->
@@ -209,10 +209,10 @@
 
             <hr style="margin: 12px 0; border: none; border-top: 1px dashed #ddd;">
 
-            <!-- 공유 전송용 알림장 -->
+            <!-- 공유 전송용 알림장 (공통알림장 + 개별문구만 포함) -->
             <div class="form-group">
                 <label for="result">📱 카톡 / 문자 공유 전송용 알림장</label>
-                <textarea id="result" readonly placeholder="학생 및 진도를 선택하거나 수정하면 알림장이 자동 생성됩니다."></textarea>
+                <textarea id="result" readonly placeholder="공통 알림장 내용과 학생 개별 문구만 자연스럽게 이어져 생성됩니다."></textarea>
             </div>
 
             <div class="btn-group">
@@ -263,7 +263,7 @@
             })
             .catch(err => {
                 console.error(err);
-                loading.textContent = "❌ 연동 실패. 앱스 스크립트 배포 URL과 '모든 사용자' 권한 설정을 확인하세요.";
+                loading.textContent = "❌ 연동 실패. Apps Script 배포를 확인하세요.";
             });
         }
 
@@ -415,7 +415,6 @@
         function onLessonChange() {
             const bookName = document.getElementById("bookSelect").value;
             const lessonIdx = document.getElementById("lessonSelect").value;
-            const studentName = document.getElementById("studentInput").value || "학생";
 
             if (bookName && lessonIdx !== "" && curriculum[bookName] && curriculum[bookName][lessonIdx]) {
                 const lessonObj = curriculum[bookName][lessonIdx];
@@ -423,43 +422,32 @@
                 document.getElementById("outProgress").value = `${bookName} [${lessonObj.lesson}]`;
                 document.getElementById("outHomework").value = lessonObj.homework || "없음";
 
-                // 공통 알림장 치환 (%학생% -> 학생 이름 적용)
-                let rawNotice = lessonObj.commonNotice || "";
-                let formattedNotice = rawNotice.replace(/%학생%/g, studentName);
-                document.getElementById("outCommonNotice").value = formattedNotice;
+                // 시트에 적힌 공통알림장 문구 그대로 가져오기 (치환 없이 %%학생 유지)
+                document.getElementById("outCommonNotice").value = lessonObj.commonNotice || "";
             }
             updateNoticeFromManualInput();
         }
 
-        /* --- 알림장 텍스트 생성 (공통알림장 + 개별문구 자연스럽게 연결) --- */
+        /* --- 알림장 텍스트 결합 (공통알림장 + 개별문구) --- */
         function generateNoticeText(includeMemo = true) {
-            const studentId = document.getElementById("selectedStudentId").value;
-            const studentName = document.getElementById("studentInput").value;
-            if (!studentId && !studentName) return "";
+            const commonNoticeText = document.getElementById("outCommonNotice").value.trim();
+            const memoText = document.getElementById("memoInput").value.trim();
 
-            const student = students.find(s => s.id == studentId);
-            const progressText = document.getElementById("outProgress").value || "";
-            const homeworkText = document.getElementById("outHomework").value || "";
-            const commonNoticeText = document.getElementById("outCommonNotice").value || "";
-            const memoText = document.getElementById("memoInput").value || "";
-            const schoolGrade = student ? (student.학교학년 || "") : "";
+            let resultText = "";
 
-            let shareText = `[학원 알림장]\n`;
-            shareText += `👤 학생명: ${studentName}${schoolGrade ? ` (${schoolGrade})` : ''}\n`;
-            shareText += `📖 오늘 진도: ${progressText}\n`;
-            shareText += `✏️ 오늘 과제: ${homeworkText}`;
-
-            // 공통 알림장이 있는 경우 이어붙이기
             if (commonNoticeText) {
-                shareText += `\n\n${commonNoticeText}`;
+                resultText += commonNoticeText;
             }
 
-            // 개별 문구 (선생님 전달사항 문구 없이 자연스럽게 이어쓰기)
             if (includeMemo && memoText) {
-                shareText += commonNoticeText ? `\n${memoText}` : `\n\n${memoText}`;
+                if (resultText) {
+                    resultText += "\n" + memoText;
+                } else {
+                    resultText = memoText;
+                }
             }
 
-            return shareText;
+            return resultText;
         }
 
         function updateNoticeFromManualInput() {
@@ -578,19 +566,18 @@
         function copyNotice() {
             const resultText = document.getElementById("result").value;
             if (!resultText) return alert("생성된 알림장 내용이 없습니다.");
-            navigator.clipboard.writeText(resultText).then(() => showToast("전체 알림장 문구가 복사되었습니다!"));
+            navigator.clipboard.writeText(resultText).then(() => showToast("공통알림장+개별문구가 복사되었습니다!"));
         }
 
-        /* --- 카톡 공유 시 개별 문구 제외 버전 생성 --- */
         function shareNotice() {
-            const shareText = generateNoticeText(false); // includeMemo = false 로 설정하여 개별 문구 제외
+            const shareText = generateNoticeText(false);
             if (!shareText) return alert("생성된 알림장 내용이 없습니다.");
 
             if (navigator.share) {
                 navigator.share({ title: '학원 알림장', text: shareText }).catch(() => {});
             } else {
                 navigator.clipboard.writeText(shareText).then(() => {
-                    alert("카톡 공유용 문구(개별문구 제외)가 복사되었습니다. 카카오톡에 붙여넣으세요.");
+                    alert("카톡 공유용 문구가 복사되었습니다. 카카오톡에 붙여넣으세요.");
                 });
             }
         }

@@ -144,13 +144,13 @@
                     <label for="memoInput">✏️ 학생 개별 문구 (당일 특이사항)</label>
                     <button class="btn-sm" onclick="copyInputValue('memoInput', '학생 개별 문구')">📋 복사</button>
                 </div>
-                <textarea id="memoInput" rows="3" placeholder="예: 오늘 수업 태도가 매우 좋았습니다." oninput="saveCurrentInput();"></textarea>
+                <textarea id="memoInput" rows="3" placeholder="예: 오늘 수업 태도가 매우 좋았습니다." oninput="updateNoticeFromManualInput(); saveCurrentInput();"></textarea>
             </div>
         </div>
 
         <!-- 결과 및 직접 수정 영역 -->
         <div class="card">
-            <h3 style="margin-bottom: 12px; font-size: 1rem; color: #333;">📋 알림장 내용 (직접 수정 가능)</h3>
+            <h3 style="margin-bottom: 12px; font-size: 1rem; color: #333;">📋 아카2000 입력 항목 (수정 가능)</h3>
 
             <!-- 교재 & 진도 (수정 가능) -->
             <div class="copy-box-group">
@@ -175,7 +175,7 @@
             <!-- 공유 전송용 알림장 -->
             <div class="form-group">
                 <label for="result">📱 카톡 / 문자 공유 전송용 알림장</label>
-                <textarea id="result" readonly placeholder="학생 선택 및 진도 입력 시 알림장이 자동 작성됩니다."></textarea>
+                <textarea id="result" readonly placeholder="학생 및 진도를 선택하거나 수정하면 알림장이 자동 생성됩니다."></textarea>
             </div>
 
             <div class="btn-group">
@@ -189,8 +189,7 @@
     <div id="toast" class="toast">안내 메시지</div>
 
     <script>
-        // ⚠️ 아래 URL에 1단계에서 얻은 배포 URL을 정확히 입력해 주세요!
-        const GOOGLE_SCRIPT_URL = "여기에_새로_복사한_배포_URL_붙여넣기";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypEPpo_ah7GwsKXHm7K8gnrWkhHtJcSyafLysb2_-5B5Wq9tf1rdc8NQXmG22YvOUg/exec";
 
         let students = [];
         let curriculum = {};
@@ -199,27 +198,35 @@
             fetchSheetData();
         };
 
+        // 브라우저 차단(CORS) 방지를 위한 redirect: "follow" 처리된 통신 코드
         function fetchSheetData() {
             const loading = document.getElementById("loadingText");
             loading.style.display = "block";
-            loading.textContent = "구글 시트에서 최신 데이터를 불러오는 중...";
+            loading.textContent = "구글 시트에서 데이터를 불러오는 중...";
 
-            fetch(GOOGLE_SCRIPT_URL)
-                .then(res => res.json())
-                .then(data => {
-                    students = data.students || [];
-                    curriculum = data.curriculum || {};
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "GET",
+                redirect: "follow"
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                students = data.students || [];
+                curriculum = data.curriculum || {};
 
-                    refreshStudentSelect(students);
-                    refreshBookSelect();
+                refreshStudentSelect(students);
+                refreshBookSelect();
 
-                    loading.textContent = `✅ 로드 완료! (학생 ${students.length}명 / 교재 ${Object.keys(curriculum).length}개)`;
-                    setTimeout(() => { loading.style.display = "none"; }, 2000);
-                })
-                .catch(err => {
-                    console.error(err);
-                    loading.textContent = "❌ 연동 실패. 앱스 스크립트 배포 URL과 '모든 사용자' 권한 설정을 확인하세요.";
-                });
+                loading.textContent = `✅ 로드 완료! (학생 ${students.length}명 / 교재 ${Object.keys(curriculum).length}개)`;
+                setTimeout(() => { loading.style.display = "none"; }, 2000);
+            })
+            .catch(err => {
+                console.error(err);
+                loading.textContent = "❌ 연동 실패. 아래 [해결방법]을 확인하세요.";
+                alert("구글 앱스 스크립트 연결 중 오류가 발생했습니다.\n\n앱스 스크립트 화면에서 [배포] ➔ [새 배포] ➔ 버전을 '새 버전'으로 지정하여 배포했는지 확인해주세요!");
+            });
         }
 
         function refreshStudentSelect(list) {
@@ -395,7 +402,6 @@
 
             showToast("구글 시트에 기록 전송 중...");
 
-            // form-urlencoded 방식으로 전송하여 CORS 문제 완벽 방지
             const formData = new URLSearchParams();
             Object.keys(payload).forEach(key => formData.append(key, payload[key]));
 
@@ -406,7 +412,7 @@
                 body: formData.toString()
             })
             .then(() => {
-                showToast("☁️ 구글 시트 '수업기록' 탭에 저장되었습니다!");
+                showToast("☁️ 구글 시트 '수업기록' 탭에 추가 업로드되었습니다!");
             })
             .catch(err => {
                 console.error(err);

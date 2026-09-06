@@ -70,7 +70,7 @@
         .btn-sm:hover { background-color: #cbd5e1; }
         .btn-reset { background-color: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; cursor: pointer; }
         .btn-reset:hover { background-color: #c0392b; }
-        textarea#result { height: 160px; resize: vertical; background-color: #fafafa; line-height: 1.5; font-size: 0.9rem; font-weight: 500; }
+        textarea#result { height: 180px; resize: vertical; background-color: #fafafa; line-height: 1.5; font-size: 0.9rem; font-weight: 500; }
 
         .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
         @media (min-width: 480px) { .btn-group { flex-direction: row; flex-wrap: wrap; } }
@@ -102,7 +102,7 @@
                 <button class="btn-reset" onclick="resetForm()">✨ 새로 입력</button>
             </div>
 
-            <!-- 1. 학생 검색 및 선택 (자동완성 기능 적용) -->
+            <!-- 1. 학생 검색 및 선택 -->
             <div class="form-group">
                 <div class="label-header">
                     <label for="studentInput">학생 이름 검색/선택</label>
@@ -180,28 +180,28 @@
         <div class="card">
             <h3 style="margin-bottom: 12px; font-size: 1rem; color: #333;">📋 아카2000 입력 항목 (수정 가능)</h3>
 
-            <!-- 교재 & 진도 (수정 가능) -->
+            <!-- 교재 & 진도 -->
             <div class="copy-box-group">
                 <div class="copy-box-header">
-                    <label for="outProgress">📖 교재 & 진도 (선택 후 직접 수정 가능)</label>
+                    <label for="outProgress">📖 교재 & 진도</label>
                     <button class="btn-sm" onclick="copyInputValue('outProgress', '교재 및 진도')">📋 진도 복사</button>
                 </div>
                 <input type="text" id="outProgress" oninput="updateNoticeFromManualInput(); saveCurrentInput();" placeholder="진도를 선택하거나 직접 입력하세요">
             </div>
 
-            <!-- 오늘 과제 (수정 가능) -->
+            <!-- 오늘 과제 -->
             <div class="copy-box-group">
                 <div class="copy-box-header">
-                    <label for="outHomework">✏️ 오늘 과제 (선택 후 직접 수정 가능)</label>
+                    <label for="outHomework">✏️ 오늘 과제</label>
                     <button class="btn-sm" onclick="copyInputValue('outHomework', '오늘 과제')">📋 과제 복사</button>
                 </div>
                 <input type="text" id="outHomework" oninput="updateNoticeFromManualInput(); saveCurrentInput();" placeholder="과제를 선택하거나 직접 입력하세요">
             </div>
 
-            <!-- 공통 알림장 (자동 연동 및 직접 수정 가능) -->
+            <!-- 공통 알림장 -->
             <div class="copy-box-group">
                 <div class="copy-box-header">
-                    <label for="outCommonNotice">📢 공통 알림장 (자동 불러오기 및 수정 가능)</label>
+                    <label for="outCommonNotice">📢 공통 알림장</label>
                     <button class="btn-sm" onclick="copyInputValue('outCommonNotice', '공통 알림장')">📋 공통알림장 복사</button>
                 </div>
                 <textarea id="outCommonNotice" rows="3" oninput="updateNoticeFromManualInput(); saveCurrentInput();" placeholder="진도 선택 시 시트의 공통알림장이 자동 반영됩니다."></textarea>
@@ -216,8 +216,8 @@
             </div>
 
             <div class="btn-group">
-                <button class="btn-main btn-primary" onclick="copyNotice()">📋 알림장 복사</button>
-                <button class="btn-main btn-share" onclick="shareNotice()">📲 카톡 공유</button>
+                <button class="btn-main btn-primary" onclick="copyNotice()">📋 알림장 전체 복사</button>
+                <button class="btn-main btn-share" onclick="shareNotice()">📲 카톡 공유 (개별문구 제외)</button>
                 <button class="btn-main btn-save-sheet" onclick="uploadToGoogleSheet()">☁️ 구글 시트에 누적 저장</button>
             </div>
         </div>
@@ -234,7 +234,6 @@
 
         window.onload = function() {
             fetchSheetData();
-            // 화면 다른 곳 클릭 시 자동완성 드롭다운 닫기
             document.addEventListener("click", function(e) {
                 if (!e.target.closest(".form-group")) {
                     hideStudentResults();
@@ -268,7 +267,7 @@
             });
         }
 
-        /* --- 실시간 학생 검색 및 자동완성 목록 처리 --- */
+        /* --- 학생 검색 및 선택 --- */
         function onStudentSearchInput() {
             const query = document.getElementById("studentInput").value.toLowerCase().trim();
             const resultsBox = document.getElementById("studentResults");
@@ -288,7 +287,7 @@
                 return;
             }
 
-            filtered.forEach((s, index) => {
+            filtered.forEach((s) => {
                 const item = document.createElement("div");
                 item.className = "autocomplete-item";
                 const schoolInfo = s.학교학년 ? `<span class="school-tag">${s.학교학년}</span>` : '';
@@ -328,7 +327,7 @@
                 if (activeFocusIndex > -1 && items[activeFocusIndex]) {
                     items[activeFocusIndex].click();
                 } else if (items.length > 0) {
-                    items[0].click(); // 엔터 입력 시 첫 번째 학생 자동 선택
+                    items[0].click();
                 }
             }
         }
@@ -350,7 +349,6 @@
 
             updateStudentInfo(student);
 
-            // 해당 학생의 이전 작성 내역 불러오기
             const savedData = localStorage.getItem("last_input_" + student.id);
             if (savedData) {
                 const parsed = JSON.parse(savedData);
@@ -433,13 +431,11 @@
             updateNoticeFromManualInput();
         }
 
-        function updateNoticeFromManualInput() {
+        /* --- 알림장 텍스트 생성 (공통알림장 + 개별문구 자연스럽게 연결) --- */
+        function generateNoticeText(includeMemo = true) {
             const studentId = document.getElementById("selectedStudentId").value;
             const studentName = document.getElementById("studentInput").value;
-            if (!studentId && !studentName) {
-                document.getElementById("result").value = "";
-                return;
-            }
+            if (!studentId && !studentName) return "";
 
             const student = students.find(s => s.id == studentId);
             const progressText = document.getElementById("outProgress").value || "";
@@ -453,15 +449,21 @@
             shareText += `📖 오늘 진도: ${progressText}\n`;
             shareText += `✏️ 오늘 과제: ${homeworkText}`;
 
+            // 공통 알림장이 있는 경우 이어붙이기
             if (commonNoticeText) {
-                shareText += `\n\n📢 오늘 수업 소식:\n${commonNoticeText}`;
+                shareText += `\n\n${commonNoticeText}`;
             }
 
-            if (memoText) {
-                shareText += `\n\n💬 선생님 전달사항:\n${memoText}`;
+            // 개별 문구 (선생님 전달사항 문구 없이 자연스럽게 이어쓰기)
+            if (includeMemo && memoText) {
+                shareText += commonNoticeText ? `\n${memoText}` : `\n\n${memoText}`;
             }
 
-            document.getElementById("result").value = shareText;
+            return shareText;
+        }
+
+        function updateNoticeFromManualInput() {
+            document.getElementById("result").value = generateNoticeText(true);
         }
 
         function saveCurrentInput() {
@@ -576,18 +578,20 @@
         function copyNotice() {
             const resultText = document.getElementById("result").value;
             if (!resultText) return alert("생성된 알림장 내용이 없습니다.");
-            navigator.clipboard.writeText(resultText).then(() => showToast("알림장 문구가 복사되었습니다!"));
+            navigator.clipboard.writeText(resultText).then(() => showToast("전체 알림장 문구가 복사되었습니다!"));
         }
 
+        /* --- 카톡 공유 시 개별 문구 제외 버전 생성 --- */
         function shareNotice() {
-            const resultText = document.getElementById("result").value;
-            if (!resultText) return alert("생성된 알림장 내용이 없습니다.");
+            const shareText = generateNoticeText(false); // includeMemo = false 로 설정하여 개별 문구 제외
+            if (!shareText) return alert("생성된 알림장 내용이 없습니다.");
 
             if (navigator.share) {
-                navigator.share({ title: '학원 알림장', text: resultText }).catch(() => {});
+                navigator.share({ title: '학원 알림장', text: shareText }).catch(() => {});
             } else {
-                copyNotice();
-                alert("알림장 문구가 복사되었습니다. 카카오톡에 붙여넣으세요.");
+                navigator.clipboard.writeText(shareText).then(() => {
+                    alert("카톡 공유용 문구(개별문구 제외)가 복사되었습니다. 카카오톡에 붙여넣으세요.");
+                });
             }
         }
 

@@ -22,7 +22,10 @@
         @media (min-width: 768px) { .container { grid-template-columns: 1fr 1fr; } body { padding: 20px; } }
         .card { background-color: var(--card-bg); padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .form-group { margin-bottom: 12px; }
-        label { display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.85rem; }
+        
+        .label-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        label { font-weight: bold; font-size: 0.85rem; }
+        
         input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.95rem; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary-color); }
         .student-info { background-color: #eef5fc; padding: 8px 10px; border-radius: 6px; font-size: 0.85rem; margin-top: 5px; display: none; line-height: 1.4; }
@@ -33,7 +36,7 @@
         .copy-box-group { margin-bottom: 10px; }
         .copy-box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
         .copy-box-header label { font-size: 0.85rem; color: #555; }
-        .btn-sm { padding: 5px 10px; font-size: 0.8rem; background-color: #e2e8f0; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-sm { padding: 3px 8px; font-size: 0.75rem; background-color: #e2e8f0; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn-sm:hover { background-color: #cbd5e1; }
         .btn-reset { background-color: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; cursor: pointer; }
         .btn-reset:hover { background-color: #c0392b; }
@@ -61,49 +64,77 @@
         <!-- 입력 영역 -->
         <div class="card">
             <div class="card-header-flex">
-                <span class="card-title">학생 및 진도 선택</span>
+                <span class="card-title">학생 및 수업 내용 입력</span>
                 <button class="btn-reset" onclick="resetForm()">✨ 새로 입력</button>
             </div>
 
+            <!-- 1. 학생 선택 -->
             <div class="form-group">
-                <label for="studentSelect">학생 선택</label>
+                <div class="label-header">
+                    <label for="studentSelect">학생 선택</label>
+                    <button class="btn-sm" onclick="copySelectText('studentSelect', '학생 이름')">📋 복사</button>
+                </div>
                 <select id="studentSelect" onchange="onStudentChange()">
                     <option value="">-- 학생을 선택하세요 --</option>
                 </select>
                 <div id="studentInfoBox" class="student-info"></div>
             </div>
 
+            <!-- 2. 교재 선택 -->
             <div class="form-group">
-                <label for="bookSelect">교재 선택</label>
+                <div class="label-header">
+                    <label for="bookSelect">교재 선택</label>
+                    <button class="btn-sm" onclick="copySelectText('bookSelect', '교재명')">📋 복사</button>
+                </div>
                 <select id="bookSelect" onchange="updateLessonOptions(); saveCurrentInput();">
                     <option value="">-- 교재를 선택하세요 --</option>
                 </select>
             </div>
 
+            <!-- 3. 오늘 진도 선택 -->
             <div class="form-group">
-                <label for="lessonSelect">오늘 진도 선택</label>
+                <div class="label-header">
+                    <label for="lessonSelect">오늘 진도 선택</label>
+                    <button class="btn-sm" onclick="copySelectText('lessonSelect', '오늘 진도')">📋 복사</button>
+                </div>
                 <select id="lessonSelect" onchange="generateNotice(); saveCurrentInput();">
                     <option value="">-- 진도를 선택하세요 --</option>
                 </select>
             </div>
 
+            <!-- 4. 오늘 시험 점수 -->
             <div class="form-group">
-                <label for="scoreInput">오늘 시험 점수</label>
+                <div class="label-header">
+                    <label for="scoreInput">오늘 시험 점수</label>
+                    <button class="btn-sm" onclick="copyInputValue('scoreInput', '시험 점수')">📋 복사</button>
+                </div>
                 <input type="text" id="scoreInput" placeholder="예: 95점 / 단원평가" oninput="generateNotice(); saveCurrentInput();">
             </div>
 
+            <!-- 5. 결석 날짜 (선택) -->
             <div class="form-group">
-                <label for="absentDate">결석 날짜 (선택)</label>
+                <div class="label-header">
+                    <label for="absentDate">결석 날짜 (선택)</label>
+                    <button class="btn-sm" onclick="copyInputValue('absentDate', '결석 날짜')">📋 복사</button>
+                </div>
                 <input type="date" id="absentDate" onchange="generateNotice(); saveCurrentInput();">
             </div>
 
+            <!-- 6. 보강 일정 (선택) -->
             <div class="form-group">
-                <label for="makeupDate">보강 일정 (선택)</label>
+                <div class="label-header">
+                    <label for="makeupDate">보강 일정 (선택)</label>
+                    <button class="btn-sm" onclick="copyInputValue('makeupDate', '보강 일정')">📋 복사</button>
+                </div>
                 <input type="text" id="makeupDate" placeholder="예: 9/12(목) 5시 보강" oninput="generateNotice(); saveCurrentInput();">
             </div>
 
+            <!-- 7. 특이사항 메모 (선택) -->
             <div class="form-group">
-                <label for="memoInput">특이사항 메모 (선택)</label>
+                <div class="label-header">
+                    <label for="memoInput">특이사항 메모 (선택)</label>
+                    <button class="btn-sm" onclick="copyInputValue('memoInput', '특이사항 메모')">📋 복사</button>
+                </div>
                 <input type="text" id="memoInput" placeholder="예: 오늘 수업 집중도가 좋았습니다." oninput="generateNotice(); saveCurrentInput();">
             </div>
         </div>
@@ -116,7 +147,7 @@
             <div class="copy-box-group">
                 <div class="copy-box-header">
                     <label>📖 교재 & 진도</label>
-                    <button class="btn-sm" onclick="copySingle('outProgress', '진도')">📋 진도 복사</button>
+                    <button class="btn-sm" onclick="copyInputValue('outProgress', '교재 및 진도')">📋 진도 복사</button>
                 </div>
                 <input type="text" id="outProgress" class="input-readonly" readonly placeholder="선택 시 자동 입력됨">
             </div>
@@ -125,7 +156,7 @@
             <div class="copy-box-group">
                 <div class="copy-box-header">
                     <label>✏️ 오늘 과제</label>
-                    <button class="btn-sm" onclick="copySingle('outHomework', '과제')">📋 과제 복사</button>
+                    <button class="btn-sm" onclick="copyInputValue('outHomework', '오늘 과제')">📋 과제 복사</button>
                 </div>
                 <input type="text" id="outHomework" class="input-readonly" readonly placeholder="선택 시 자동 입력됨">
             </div>
@@ -185,7 +216,6 @@
             select.innerHTML = '<option value="">-- 학생을 선택하세요 --</option>';
             students.forEach((s, idx) => {
                 const opt = document.createElement("option");
-                // id가 없는 경우 인덱스로 대체 처리
                 opt.value = s.id || s.이름 || idx; 
                 const schoolGrade = s.학교학년 || s.학교 || '';
                 opt.textContent = schoolGrade ? `${s.이름} (${schoolGrade})` : s.이름;
@@ -371,11 +401,30 @@
             showToast("입력창이 초기화되었습니다.");
         }
 
-        function copySingle(elementId, labelName) {
+        // input 요소 값 복사 함수
+        function copyInputValue(elementId, labelName) {
             const val = document.getElementById(elementId).value;
-            if (!val) return alert(`${labelName} 내용을 먼저 선택해 주세요.`);
+            if (!val) return alert(`${labelName} 내용을 먼저 입력/선택해 주세요.`);
             navigator.clipboard.writeText(val).then(() => {
-                showToast(`${labelName} 내용이 복사되었습니다!`);
+                showToast(`${labelName} 복사 완료!`);
+            });
+        }
+
+        // select 드롭다운 텍스트 복사 함수
+        function copySelectText(elementId, labelName) {
+            const select = document.getElementById(elementId);
+            if (!select.value) return alert(`${labelName} 항목을 선택해 주세요.`);
+            
+            let selectedText = select.options[select.selectedIndex].text;
+            
+            // 학생 이름 복사 시 괄호 안의 학교/학년 제거하고 순수 이름만 복사하길 원할 때 처리
+            if (elementId === 'studentSelect') {
+                const s = students.find((item, idx) => (item.id || item.이름 || idx) == select.value);
+                if (s) selectedText = s.이름;
+            }
+
+            navigator.clipboard.writeText(selectedText).then(() => {
+                showToast(`${labelName} 복사 완료!`);
             });
         }
 

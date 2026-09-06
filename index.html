@@ -20,7 +20,7 @@
         .container { display: grid; grid-template-columns: 1fr; gap: 15px; }
         @media (min-width: 768px) { .container { grid-template-columns: 1fr 1fr; } body { padding: 20px; } }
         .card { background-color: var(--card-bg); padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .form-group { margin-bottom: 12px; }
+        .form-group { margin-bottom: 12px; position: relative; }
         
         .label-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
         label { font-weight: bold; font-size: 0.85rem; }
@@ -28,7 +28,37 @@
         input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.95rem; }
         input[type="date"] { cursor: pointer; background-color: #fff; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary-color); }
-        .student-info { background-color: #eef5fc; padding: 8px 10px; border-radius: 6px; font-size: 0.85rem; margin-top: 5px; display: none; line-height: 1.4; }
+        
+        /* 학생 자동완성 검색 드롭다운 스타일 */
+        .autocomplete-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid var(--primary-color);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: none;
+        }
+        .autocomplete-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .autocomplete-item:hover, .autocomplete-item.active { background-color: #eef5fc; color: var(--primary-color); font-weight: bold; }
+        .autocomplete-item .school-tag { font-size: 0.8rem; color: #777; font-weight: normal; }
+
+        .student-info { background-color: #eef5fc; padding: 8px 10px; border-radius: 6px; font-size: 0.85rem; margin-top: 5px; display: none; line-height: 1.4; border-left: 3px solid var(--primary-color); }
         
         .card-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .card-title { font-size: 1rem; font-weight: bold; color: #2c3e50; }
@@ -40,7 +70,7 @@
         .btn-sm:hover { background-color: #cbd5e1; }
         .btn-reset { background-color: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; cursor: pointer; }
         .btn-reset:hover { background-color: #c0392b; }
-        textarea#result { height: 120px; resize: vertical; background-color: #fafafa; line-height: 1.5; font-size: 0.9rem; font-weight: 500; }
+        textarea#result { height: 160px; resize: vertical; background-color: #fafafa; line-height: 1.5; font-size: 0.9rem; font-weight: 500; }
 
         .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
         @media (min-width: 480px) { .btn-group { flex-direction: row; flex-wrap: wrap; } }
@@ -56,7 +86,6 @@
         .date-time-flex { display: flex; gap: 6px; }
         .date-time-flex input[type="date"] { flex: 1.2; }
         .date-time-flex input[type="text"] { flex: 1; }
-        .search-box { margin-bottom: 6px; }
     </style>
 </head>
 <body>
@@ -73,16 +102,15 @@
                 <button class="btn-reset" onclick="resetForm()">✨ 새로 입력</button>
             </div>
 
-            <!-- 1. 학생 선택 -->
+            <!-- 1. 학생 검색 및 선택 (자동완성 기능 적용) -->
             <div class="form-group">
                 <div class="label-header">
-                    <label for="studentSelect">학생 선택</label>
-                    <button class="btn-sm" onclick="copySelectText('studentSelect', '학생 이름')">📋 복사</button>
+                    <label for="studentInput">학생 이름 검색/선택</label>
+                    <button class="btn-sm" onclick="copySelectedStudentName()">📋 이름 복사</button>
                 </div>
-                <input type="text" id="studentSearch" class="search-box" placeholder="🔍 학생 이름 검색..." onkeyup="filterStudents()">
-                <select id="studentSelect" onchange="onStudentChange()">
-                    <option value="">-- 학생을 선택하세요 --</option>
-                </select>
+                <input type="text" id="studentInput" placeholder="🔍 학생 이름을 입력하세요..." oninput="onStudentSearchInput()" onfocus="onStudentSearchInput()" onkeydown="handleStudentKeyDown(event)" autocomplete="off">
+                <div id="studentResults" class="autocomplete-results"></div>
+                <input type="hidden" id="selectedStudentId">
                 <div id="studentInfoBox" class="student-info"></div>
             </div>
 
@@ -170,6 +198,15 @@
                 <input type="text" id="outHomework" oninput="updateNoticeFromManualInput(); saveCurrentInput();" placeholder="과제를 선택하거나 직접 입력하세요">
             </div>
 
+            <!-- 공통 알림장 (자동 연동 및 직접 수정 가능) -->
+            <div class="copy-box-group">
+                <div class="copy-box-header">
+                    <label for="outCommonNotice">📢 공통 알림장 (자동 불러오기 및 수정 가능)</label>
+                    <button class="btn-sm" onclick="copyInputValue('outCommonNotice', '공통 알림장')">📋 공통알림장 복사</button>
+                </div>
+                <textarea id="outCommonNotice" rows="3" oninput="updateNoticeFromManualInput(); saveCurrentInput();" placeholder="진도 선택 시 시트의 공통알림장이 자동 반영됩니다."></textarea>
+            </div>
+
             <hr style="margin: 12px 0; border: none; border-top: 1px dashed #ddd;">
 
             <!-- 공유 전송용 알림장 -->
@@ -193,12 +230,18 @@
 
         let students = [];
         let curriculum = {};
+        let activeFocusIndex = -1;
 
         window.onload = function() {
             fetchSheetData();
+            // 화면 다른 곳 클릭 시 자동완성 드롭다운 닫기
+            document.addEventListener("click", function(e) {
+                if (!e.target.closest(".form-group")) {
+                    hideStudentResults();
+                }
+            });
         };
 
-        // 브라우저 차단(CORS) 방지를 위한 redirect: "follow" 처리된 통신 코드
         function fetchSheetData() {
             const loading = document.getElementById("loadingText");
             loading.style.display = "block";
@@ -210,13 +253,10 @@
             })
             .then(res => res.json())
             .then(data => {
-                if (data.error) {
-                    throw new Error(data.error);
-                }
+                if (data.error) throw new Error(data.error);
                 students = data.students || [];
                 curriculum = data.curriculum || {};
 
-                refreshStudentSelect(students);
                 refreshBookSelect();
 
                 loading.textContent = `✅ 로드 완료! (학생 ${students.length}명 / 교재 ${Object.keys(curriculum).length}개)`;
@@ -224,55 +264,94 @@
             })
             .catch(err => {
                 console.error(err);
-                loading.textContent = "❌ 연동 실패. 아래 [해결방법]을 확인하세요.";
-                alert("구글 앱스 스크립트 연결 중 오류가 발생했습니다.\n\n앱스 스크립트 화면에서 [배포] ➔ [새 배포] ➔ 버전을 '새 버전'으로 지정하여 배포했는지 확인해주세요!");
+                loading.textContent = "❌ 연동 실패. 앱스 스크립트 배포 URL과 '모든 사용자' 권한 설정을 확인하세요.";
             });
         }
 
-        function refreshStudentSelect(list) {
-            const select = document.getElementById("studentSelect");
-            select.innerHTML = '<option value="">-- 학생을 선택하세요 --</option>';
-            list.forEach((s, idx) => {
-                const opt = document.createElement("option");
-                const val = s.id || idx;
-                opt.value = val;
-                const schoolGrade = s.학교학년 || '';
-                opt.textContent = schoolGrade ? `${s.이름} (${schoolGrade})` : s.이름;
-                select.appendChild(opt);
-            });
-        }
+        /* --- 실시간 학생 검색 및 자동완성 목록 처리 --- */
+        function onStudentSearchInput() {
+            const query = document.getElementById("studentInput").value.toLowerCase().trim();
+            const resultsBox = document.getElementById("studentResults");
+            resultsBox.innerHTML = "";
+            activeFocusIndex = -1;
 
-        function filterStudents() {
-            const query = document.getElementById("studentSearch").value.toLowerCase().trim();
+            if (students.length === 0) return;
+
             const filtered = students.filter(s => {
                 const name = (s.이름 || '').toLowerCase();
                 const school = (s.학교학년 || '').toLowerCase();
                 return name.includes(query) || school.includes(query);
             });
-            refreshStudentSelect(filtered);
-        }
 
-        function refreshBookSelect() {
-            const select = document.getElementById("bookSelect");
-            select.innerHTML = '<option value="">-- 교재를 선택하세요 --</option>';
-            Object.keys(curriculum).forEach(book => {
-                const opt = document.createElement("option");
-                opt.value = book;
-                opt.textContent = book;
-                select.appendChild(opt);
-            });
-        }
-
-        function onStudentChange() {
-            const studentId = document.getElementById("studentSelect").value;
-            updateStudentInfo();
-
-            if (!studentId) {
-                resetFormFields();
+            if (filtered.length === 0) {
+                resultsBox.style.display = "none";
                 return;
             }
 
-            const savedData = localStorage.getItem("last_input_" + studentId);
+            filtered.forEach((s, index) => {
+                const item = document.createElement("div");
+                item.className = "autocomplete-item";
+                const schoolInfo = s.학교학년 ? `<span class="school-tag">${s.학교학년}</span>` : '';
+                item.innerHTML = `<span>${s.이름}</span> ${schoolInfo}`;
+                
+                item.onclick = function() {
+                    selectStudent(s);
+                };
+                resultsBox.appendChild(item);
+            });
+
+            resultsBox.style.display = "block";
+        }
+
+        function hideStudentResults() {
+            document.getElementById("studentResults").style.display = "none";
+        }
+
+        function handleStudentKeyDown(e) {
+            const resultsBox = document.getElementById("studentResults");
+            const items = resultsBox.getElementsByClassName("autocomplete-item");
+
+            if (resultsBox.style.display === "none" || items.length === 0) return;
+
+            if (e.key === "ArrowDown") {
+                activeFocusIndex++;
+                if (activeFocusIndex >= items.length) activeFocusIndex = 0;
+                updateActiveItem(items);
+                e.preventDefault();
+            } else if (e.key === "ArrowUp") {
+                activeFocusIndex--;
+                if (activeFocusIndex < 0) activeFocusIndex = items.length - 1;
+                updateActiveItem(items);
+                e.preventDefault();
+            } else if (e.key === "Enter") {
+                e.preventDefault();
+                if (activeFocusIndex > -1 && items[activeFocusIndex]) {
+                    items[activeFocusIndex].click();
+                } else if (items.length > 0) {
+                    items[0].click(); // 엔터 입력 시 첫 번째 학생 자동 선택
+                }
+            }
+        }
+
+        function updateActiveItem(items) {
+            for (let i = 0; i < items.length; i++) {
+                items[i].classList.remove("active");
+            }
+            if (activeFocusIndex > -1) {
+                items[activeFocusIndex].classList.add("active");
+                items[activeFocusIndex].scrollIntoView({ block: "nearest" });
+            }
+        }
+
+        function selectStudent(student) {
+            document.getElementById("studentInput").value = student.이름;
+            document.getElementById("selectedStudentId").value = student.id;
+            hideStudentResults();
+
+            updateStudentInfo(student);
+
+            // 해당 학생의 이전 작성 내역 불러오기
+            const savedData = localStorage.getItem("last_input_" + student.id);
             if (savedData) {
                 const parsed = JSON.parse(savedData);
                 document.getElementById("bookSelect").value = parsed.bookName || "";
@@ -285,35 +364,39 @@
                 document.getElementById("memoInput").value = parsed.memo || "";
                 document.getElementById("outProgress").value = parsed.manualProgress || "";
                 document.getElementById("outHomework").value = parsed.manualHomework || "";
-                showToast("이전 작성 내역을 불러왔습니다.");
+                document.getElementById("outCommonNotice").value = parsed.commonNotice || "";
+                showToast(`${student.이름} 학생의 이전 작성 내역을 불러왔습니다.`);
             } else {
-                resetFormFields();
+                resetFormFieldsExceptStudent();
             }
 
             updateNoticeFromManualInput();
         }
 
-        function updateStudentInfo() {
-            const studentId = document.getElementById("studentSelect").value;
+        function updateStudentInfo(student) {
             const infoBox = document.getElementById("studentInfoBox");
-
-            if (!studentId) {
-                infoBox.style.display = "none";
-                return;
-            }
-
-            const s = students.find((item, idx) => (item.id || idx) == studentId);
-            if (!s) {
+            if (!student) {
                 infoBox.style.display = "none";
                 return;
             }
 
             infoBox.innerHTML = `
-                📌 <b>학교/학년:</b> ${s.학교학년 || '-'}<br>
-                📚 <b>교과서:</b> ${s.교과서 || '-'} | <b>시험날짜:</b> ${s.시험날짜 || '-'}<br>
-                🎯 <b>시험범위:</b> ${s.시험범위 || '-'}
+                📌 <b>학교/학년:</b> ${student.학교학년 || '-'}<br>
+                📚 <b>교과서:</b> ${student.교과서 || '-'} | <b>시험날짜:</b> ${student.시험날짜 || '-'}<br>
+                🎯 <b>시험범위:</b> ${student.시험범위 || '-'}
             `;
             infoBox.style.display = "block";
+        }
+
+        function refreshBookSelect() {
+            const select = document.getElementById("bookSelect");
+            select.innerHTML = '<option value="">-- 교재를 선택하세요 --</option>';
+            Object.keys(curriculum).forEach(book => {
+                const opt = document.createElement("option");
+                opt.value = book;
+                opt.textContent = book;
+                select.appendChild(opt);
+            });
         }
 
         function updateLessonOptions() {
@@ -334,39 +417,55 @@
         function onLessonChange() {
             const bookName = document.getElementById("bookSelect").value;
             const lessonIdx = document.getElementById("lessonSelect").value;
+            const studentName = document.getElementById("studentInput").value || "학생";
 
             if (bookName && lessonIdx !== "" && curriculum[bookName] && curriculum[bookName][lessonIdx]) {
                 const lessonObj = curriculum[bookName][lessonIdx];
+
                 document.getElementById("outProgress").value = `${bookName} [${lessonObj.lesson}]`;
                 document.getElementById("outHomework").value = lessonObj.homework || "없음";
+
+                // 공통 알림장 치환 (%학생% -> 학생 이름 적용)
+                let rawNotice = lessonObj.commonNotice || "";
+                let formattedNotice = rawNotice.replace(/%학생%/g, studentName);
+                document.getElementById("outCommonNotice").value = formattedNotice;
             }
             updateNoticeFromManualInput();
         }
 
         function updateNoticeFromManualInput() {
-            const studentId = document.getElementById("studentSelect").value;
-            if (!studentId) {
+            const studentId = document.getElementById("selectedStudentId").value;
+            const studentName = document.getElementById("studentInput").value;
+            if (!studentId && !studentName) {
                 document.getElementById("result").value = "";
                 return;
             }
 
-            const student = students.find((s, idx) => (s.id || idx) == studentId);
+            const student = students.find(s => s.id == studentId);
             const progressText = document.getElementById("outProgress").value || "";
             const homeworkText = document.getElementById("outHomework").value || "";
+            const commonNoticeText = document.getElementById("outCommonNotice").value || "";
             const memoText = document.getElementById("memoInput").value || "";
             const schoolGrade = student ? (student.학교학년 || "") : "";
 
             let shareText = `[학원 알림장]\n`;
-            shareText += `👤 학생명: ${student ? student.이름 : ''}${schoolGrade ? ` (${schoolGrade})` : ''}\n`;
+            shareText += `👤 학생명: ${studentName}${schoolGrade ? ` (${schoolGrade})` : ''}\n`;
             shareText += `📖 오늘 진도: ${progressText}\n`;
             shareText += `✏️ 오늘 과제: ${homeworkText}`;
-            if (memoText) shareText += `\n💬 선생님 메모: ${memoText}`;
+
+            if (commonNoticeText) {
+                shareText += `\n\n📢 오늘 수업 소식:\n${commonNoticeText}`;
+            }
+
+            if (memoText) {
+                shareText += `\n\n💬 선생님 전달사항:\n${memoText}`;
+            }
 
             document.getElementById("result").value = shareText;
         }
 
         function saveCurrentInput() {
-            const studentId = document.getElementById("studentSelect").value;
+            const studentId = document.getElementById("selectedStudentId").value;
             if (!studentId) return;
 
             const inputData = {
@@ -374,6 +473,7 @@
                 lessonIdx: document.getElementById("lessonSelect").value,
                 manualProgress: document.getElementById("outProgress").value,
                 manualHomework: document.getElementById("outHomework").value,
+                commonNotice: document.getElementById("outCommonNotice").value,
                 score: document.getElementById("scoreInput").value,
                 absentDate: document.getElementById("absentDate").value,
                 makeupDate: document.getElementById("makeupDate").value,
@@ -385,12 +485,12 @@
         }
 
         function uploadToGoogleSheet() {
-            const studentId = document.getElementById("studentSelect").value;
-            if (!studentId) return alert("저장할 학생을 먼저 선택해 주세요.");
+            const studentId = document.getElementById("selectedStudentId").value;
+            const studentName = document.getElementById("studentInput").value;
+            if (!studentId && !studentName) return alert("저장할 학생을 먼저 입력/선택해 주세요.");
 
-            const student = students.find((s, idx) => (s.id || idx) == studentId);
             const payload = {
-                studentName: student ? student.이름 : '',
+                studentName: studentName,
                 progress: document.getElementById("outProgress").value,
                 homework: document.getElementById("outHomework").value,
                 score: document.getElementById("scoreInput").value,
@@ -420,7 +520,7 @@
             });
         }
 
-        function resetFormFields() {
+        function resetFormFieldsExceptStudent() {
             document.getElementById("bookSelect").value = "";
             document.getElementById("lessonSelect").innerHTML = '<option value="">-- 진도를 선택하세요 --</option>';
             document.getElementById("scoreInput").value = "";
@@ -430,16 +530,26 @@
             document.getElementById("memoInput").value = "";
             document.getElementById("outProgress").value = "";
             document.getElementById("outHomework").value = "";
+            document.getElementById("outCommonNotice").value = "";
             document.getElementById("result").value = "";
         }
 
         function resetForm() {
-            const studentId = document.getElementById("studentSelect").value;
+            const studentId = document.getElementById("selectedStudentId").value;
             if (studentId) {
                 localStorage.removeItem("last_input_" + studentId);
             }
-            resetFormFields();
+            document.getElementById("studentInput").value = "";
+            document.getElementById("selectedStudentId").value = "";
+            document.getElementById("studentInfoBox").style.display = "none";
+            resetFormFieldsExceptStudent();
             showToast("입력창이 초기화되었습니다.");
+        }
+
+        function copySelectedStudentName() {
+            const val = document.getElementById("studentInput").value;
+            if (!val) return alert("학생 이름을 먼저 입력해 주세요.");
+            navigator.clipboard.writeText(val).then(() => showToast("학생 이름 복사 완료!"));
         }
 
         function copyInputValue(elementId, labelName) {
@@ -459,13 +569,7 @@
         function copySelectText(elementId, labelName) {
             const select = document.getElementById(elementId);
             if (!select.value) return alert(`${labelName} 항목을 선택해 주세요.`);
-            
             let selectedText = select.options[select.selectedIndex].text;
-            if (elementId === 'studentSelect') {
-                const s = students.find((item, idx) => (item.id || idx) == select.value);
-                if (s) selectedText = s.이름;
-            }
-
             navigator.clipboard.writeText(selectedText).then(() => showToast(`${labelName} 복사 완료!`));
         }
 

@@ -57,10 +57,6 @@
         .date-time-flex input[type="date"] { flex: 1.2; }
         .date-time-flex input[type="text"] { flex: 1; }
         .search-box { margin-bottom: 6px; }
-        
-        .history-box { background-color: #f8fafc; border: 1px solid #cbd5e1; padding: 12px; border-radius: 8px; margin-top: 15px; }
-        .history-title { font-size: 0.9rem; font-weight: bold; color: #1e293b; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
-        .history-content { font-size: 0.85rem; line-height: 1.5; color: #334155; white-space: pre-wrap; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; min-height: 60px; }
     </style>
 </head>
 <body>
@@ -68,16 +64,6 @@
     <h1>📝 학생관리 알림장</h1>
     <button class="btn-refresh btn-main" onclick="fetchSheetData()">🔄 구글 시트 데이터 새로고침</button>
     <div id="loadingText" class="loading">구글 시트에서 데이터를 불러오는 중...</div>
-
-    <!-- 이전 기록 검색 창 -->
-    <div class="card" style="margin-bottom: 15px;">
-        <div class="history-title">🔍 학생별 이전 기록 검색 및 확인</div>
-        <input type="text" id="historySearchInput" class="search-box" placeholder="🔎 학생 이름을 입력하면 목록이 필터링됩니다..." onkeyup="searchHistory()">
-        <select id="historyStudentSelect" onchange="displayStudentHistory()" style="margin-bottom: 8px;">
-            <option value="">-- 조회할 학생을 선택하세요 --</option>
-        </select>
-        <div id="historyResultDisplay" class="history-content">학생을 선택하면 이전에 작성된 진도, 과제, 점수 및 메모 기록이 표시됩니다.</div>
-    </div>
 
     <div class="container">
         <!-- 입력 영역 -->
@@ -158,7 +144,7 @@
                     <label for="memoInput">✏️ 학생 개별 문구 (당일 특이사항)</label>
                     <button class="btn-sm" onclick="copyInputValue('memoInput', '학생 개별 문구')">📋 복사</button>
                 </div>
-                <textarea id="memoInput" rows="3" placeholder="예: 오늘 수업 태도가 매우 좋았으며 복습 상태가 우수했습니다." oninput="saveCurrentInput();"></textarea>
+                <textarea id="memoInput" rows="3" placeholder="예: 오늘 수업 태도가 매우 좋았습니다." oninput="saveCurrentInput();"></textarea>
             </div>
         </div>
 
@@ -203,7 +189,8 @@
     <div id="toast" class="toast">안내 메시지</div>
 
     <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypEPpo_ah7GwsKXHm7K8gnrWkhHtJcSyafLysb2_-5B5Wq9tf1rdc8NQXmG22YvOUg/exec";
+        // ⚠️ 아래 URL에 1단계에서 얻은 배포 URL을 정확히 입력해 주세요!
+        const GOOGLE_SCRIPT_URL = "여기에_새로_복사한_배포_URL_붙여넣기";
 
         let students = [];
         let curriculum = {};
@@ -218,21 +205,20 @@
             loading.textContent = "구글 시트에서 최신 데이터를 불러오는 중...";
 
             fetch(GOOGLE_SCRIPT_URL)
-                .then(response => response.json())
+                .then(res => res.json())
                 .then(data => {
                     students = data.students || [];
                     curriculum = data.curriculum || {};
 
                     refreshStudentSelect(students);
-                    refreshHistorySelect(students);
                     refreshBookSelect();
 
-                    loading.textContent = "✅ 최신 데이터 로드 완료!";
+                    loading.textContent = `✅ 로드 완료! (학생 ${students.length}명 / 교재 ${Object.keys(curriculum).length}개)`;
                     setTimeout(() => { loading.style.display = "none"; }, 2000);
                 })
                 .catch(err => {
                     console.error(err);
-                    loading.textContent = "❌ 데이터 불러오기 실패. 배포 설정을 확인해 주세요.";
+                    loading.textContent = "❌ 연동 실패. 앱스 스크립트 배포 URL과 '모든 사용자' 권한 설정을 확인하세요.";
                 });
         }
 
@@ -241,22 +227,9 @@
             select.innerHTML = '<option value="">-- 학생을 선택하세요 --</option>';
             list.forEach((s, idx) => {
                 const opt = document.createElement("option");
-                const val = s.id || s.이름 || idx;
+                const val = s.id || idx;
                 opt.value = val;
-                const schoolGrade = s.학교학년 || s.학교 || '';
-                opt.textContent = schoolGrade ? `${s.이름} (${schoolGrade})` : s.이름;
-                select.appendChild(opt);
-            });
-        }
-
-        function refreshHistorySelect(list) {
-            const select = document.getElementById("historyStudentSelect");
-            select.innerHTML = '<option value="">-- 조회할 학생을 선택하세요 --</option>';
-            list.forEach((s, idx) => {
-                const opt = document.createElement("option");
-                const val = s.id || s.이름 || idx;
-                opt.value = val;
-                const schoolGrade = s.학교학년 || s.학교 || '';
+                const schoolGrade = s.학교학년 || '';
                 opt.textContent = schoolGrade ? `${s.이름} (${schoolGrade})` : s.이름;
                 select.appendChild(opt);
             });
@@ -266,49 +239,10 @@
             const query = document.getElementById("studentSearch").value.toLowerCase().trim();
             const filtered = students.filter(s => {
                 const name = (s.이름 || '').toLowerCase();
-                const school = (s.학교학년 || s.학교 || '').toLowerCase();
+                const school = (s.학교학년 || '').toLowerCase();
                 return name.includes(query) || school.includes(query);
             });
             refreshStudentSelect(filtered);
-        }
-
-        function searchHistory() {
-            const query = document.getElementById("historySearchInput").value.toLowerCase().trim();
-            const filtered = students.filter(s => {
-                const name = (s.이름 || '').toLowerCase();
-                const school = (s.학교학년 || s.학교 || '').toLowerCase();
-                return name.includes(query) || school.includes(query);
-            });
-            refreshHistorySelect(filtered);
-        }
-
-        function displayStudentHistory() {
-            const studentId = document.getElementById("historyStudentSelect").value;
-            const display = document.getElementById("historyResultDisplay");
-
-            if (!studentId) {
-                display.textContent = "학생을 선택하면 이전에 작성된 진도, 과제, 점수 및 메모 기록이 표시됩니다.";
-                return;
-            }
-
-            const student = students.find((s, idx) => (s.id || s.이름 || idx) == studentId);
-            const savedData = localStorage.getItem("last_input_" + studentId);
-
-            if (!savedData) {
-                display.textContent = `📌 ${student ? student.이름 : '학생'}의 저장된 이전 작성 기록이 없습니다.`;
-                return;
-            }
-
-            const parsed = JSON.parse(savedData);
-            let text = `👤 학생명: ${student ? student.이름 : ''} (${student ? (student.학교학년 || student.학교 || '') : ''})\n`;
-            text += `📖 교재 및 진도: ${parsed.manualProgress || '선택 안 됨'}\n`;
-            text += `✏️ 과제: ${parsed.manualHomework || '없음'}\n`;
-            text += `📊 최근 시험 점수: ${parsed.score || '기록 없음'}\n`;
-            text += `🗓️ 결석일: ${parsed.absentDate || '없음'}\n`;
-            text += `⏰ 보강 일정: ${parsed.makeupDate || '없음'} ${parsed.makeupTime || ''}\n`;
-            text += `💬 강사 메모: ${parsed.memo || '없음'}`;
-
-            display.textContent = text;
         }
 
         function refreshBookSelect() {
@@ -344,8 +278,7 @@
                 document.getElementById("memoInput").value = parsed.memo || "";
                 document.getElementById("outProgress").value = parsed.manualProgress || "";
                 document.getElementById("outHomework").value = parsed.manualHomework || "";
-                
-                showToast("이전 작성 기록을 불러왔습니다.");
+                showToast("이전 작성 내역을 불러왔습니다.");
             } else {
                 resetFormFields();
             }
@@ -362,14 +295,14 @@
                 return;
             }
 
-            const s = students.find((item, idx) => (item.id || item.이름 || idx) == studentId);
+            const s = students.find((item, idx) => (item.id || idx) == studentId);
             if (!s) {
                 infoBox.style.display = "none";
                 return;
             }
 
             infoBox.innerHTML = `
-                📌 <b>학교/학년:</b> ${s.학교학년 || s.학교 || '-'}<br>
+                📌 <b>학교/학년:</b> ${s.학교학년 || '-'}<br>
                 📚 <b>교과서:</b> ${s.교과서 || '-'} | <b>시험날짜:</b> ${s.시험날짜 || '-'}<br>
                 🎯 <b>시험범위:</b> ${s.시험범위 || '-'}
             `;
@@ -385,7 +318,7 @@
                 curriculum[bookName].forEach((item, index) => {
                     const opt = document.createElement("option");
                     opt.value = index;
-                    opt.textContent = item.lesson || item.진도;
+                    opt.textContent = item.lesson;
                     lessonSelect.appendChild(opt);
                 });
             }
@@ -397,8 +330,8 @@
 
             if (bookName && lessonIdx !== "" && curriculum[bookName] && curriculum[bookName][lessonIdx]) {
                 const lessonObj = curriculum[bookName][lessonIdx];
-                document.getElementById("outProgress").value = `${bookName} [${lessonObj.lesson || lessonObj.진도}]`;
-                document.getElementById("outHomework").value = lessonObj.homework || lessonObj.과제 || "없음";
+                document.getElementById("outProgress").value = `${bookName} [${lessonObj.lesson}]`;
+                document.getElementById("outHomework").value = lessonObj.homework || "없음";
             }
             updateNoticeFromManualInput();
         }
@@ -410,15 +343,17 @@
                 return;
             }
 
-            const student = students.find((s, idx) => (s.id || s.이름 || idx) == studentId);
+            const student = students.find((s, idx) => (s.id || idx) == studentId);
             const progressText = document.getElementById("outProgress").value || "";
             const homeworkText = document.getElementById("outHomework").value || "";
-            const schoolGrade = student ? (student.학교학년 || student.학교 || "") : "";
+            const memoText = document.getElementById("memoInput").value || "";
+            const schoolGrade = student ? (student.학교학년 || "") : "";
 
             let shareText = `[학원 알림장]\n`;
             shareText += `👤 학생명: ${student ? student.이름 : ''}${schoolGrade ? ` (${schoolGrade})` : ''}\n`;
             shareText += `📖 오늘 진도: ${progressText}\n`;
             shareText += `✏️ 오늘 과제: ${homeworkText}`;
+            if (memoText) shareText += `\n💬 선생님 메모: ${memoText}`;
 
             document.getElementById("result").value = shareText;
         }
@@ -446,7 +381,7 @@
             const studentId = document.getElementById("studentSelect").value;
             if (!studentId) return alert("저장할 학생을 먼저 선택해 주세요.");
 
-            const student = students.find((s, idx) => (s.id || s.이름 || idx) == studentId);
+            const student = students.find((s, idx) => (s.id || idx) == studentId);
             const payload = {
                 studentName: student ? student.이름 : '',
                 progress: document.getElementById("outProgress").value,
@@ -458,20 +393,24 @@
                 memo: document.getElementById("memoInput").value
             };
 
-            showToast("구글 시트에 기록 저장 중...");
+            showToast("구글 시트에 기록 전송 중...");
+
+            // form-urlencoded 방식으로 전송하여 CORS 문제 완벽 방지
+            const formData = new URLSearchParams();
+            Object.keys(payload).forEach(key => formData.append(key, payload[key]));
 
             fetch(GOOGLE_SCRIPT_URL, {
                 method: "POST",
                 mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: formData.toString()
             })
             .then(() => {
-                showToast("☁️ 구글 시트 '수업기록' 탭에 누적 저장 완료!");
+                showToast("☁️ 구글 시트 '수업기록' 탭에 저장되었습니다!");
             })
             .catch(err => {
                 console.error(err);
-                alert("저장 실패: 구글 앱스 스크립트 배포 상태를 확인해 주세요.");
+                alert("저장 실패: 앱스 스크립트 배포 설정 및 URL을 확인하세요.");
             });
         }
 
@@ -500,9 +439,7 @@
         function copyInputValue(elementId, labelName) {
             const val = document.getElementById(elementId).value;
             if (!val) return alert(`${labelName} 내용을 먼저 입력해 주세요.`);
-            navigator.clipboard.writeText(val).then(() => {
-                showToast(`${labelName} 복사 완료!`);
-            });
+            navigator.clipboard.writeText(val).then(() => showToast(`${labelName} 복사 완료!`));
         }
 
         function copyMakeupText() {
@@ -510,9 +447,7 @@
             const time = document.getElementById("makeupTime").value;
             if (!date) return alert("보강 날짜를 먼저 선택해 주세요.");
             const fullText = `${date}${time ? ' ' + time : ''}`;
-            navigator.clipboard.writeText(fullText).then(() => {
-                showToast("보강 일정 복사 완료!");
-            });
+            navigator.clipboard.writeText(fullText).then(() => showToast("보강 일정 복사 완료!"));
         }
 
         function copySelectText(elementId, labelName) {
@@ -521,13 +456,11 @@
             
             let selectedText = select.options[select.selectedIndex].text;
             if (elementId === 'studentSelect') {
-                const s = students.find((item, idx) => (item.id || item.이름 || idx) == select.value);
+                const s = students.find((item, idx) => (item.id || idx) == select.value);
                 if (s) selectedText = s.이름;
             }
 
-            navigator.clipboard.writeText(selectedText).then(() => {
-                showToast(`${labelName} 복사 완료!`);
-            });
+            navigator.clipboard.writeText(selectedText).then(() => showToast(`${labelName} 복사 완료!`));
         }
 
         function copyNotice() {
@@ -541,13 +474,10 @@
             if (!resultText) return alert("생성된 알림장 내용이 없습니다.");
 
             if (navigator.share) {
-                navigator.share({
-                    title: '학원 알림장',
-                    text: resultText
-                }).catch(err => console.log('공유 취소됨'));
+                navigator.share({ title: '학원 알림장', text: resultText }).catch(() => {});
             } else {
                 copyNotice();
-                alert("알림장 문구가 복사되었습니다. 카카오톡이나 문자 앱에 붙여넣으세요.");
+                alert("알림장 문구가 복사되었습니다. 카카오톡에 붙여넣으세요.");
             }
         }
 
@@ -555,7 +485,7 @@
             const toast = document.getElementById("toast");
             toast.textContent = msg;
             toast.style.display = "block";
-            setTimeout(() => { toast.style.display = "none"; }, 2000);
+            setTimeout(() => { toast.style.display = "none"; }, 2500);
         }
     </script>
 </body>

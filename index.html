@@ -236,6 +236,31 @@
   .status-dot.no{background:var(--coral);}
   .record-actions .btn + .btn{ margin-top:10px; }
 
+  .lock-screen{
+    position:fixed; inset:0; z-index:200;
+    background:var(--paper);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .lock-box{
+    width:100%; max-width:320px;
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); padding:28px 24px; text-align:center;
+  }
+  .lock-box h1{font-size:20px; margin-bottom:4px;}
+  .lock-box p{color:var(--ink-soft); font-size:13px; margin:0 0 16px;}
+  .lock-box input{
+    text-align:center; letter-spacing:6px; font-size:20px;
+    margin-bottom:12px;
+  }
+  .lock-box .hint{margin-top:10px;}
+
+  .student-bar{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 14px; background:var(--panel); border:1px solid var(--line);
+    border-radius:6px; margin-bottom:14px; font-size:13.5px; color:var(--ink-soft);
+  }
+
   /* ---- 넓은 화면(PC/태블릿 가로): 옆으로 넓게, 두 칸으로 배치 ---- */
   @media (min-width: 860px){
     :root{ --maxw:1080px; }
@@ -266,6 +291,18 @@
 </head>
 <body>
 
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-box">
+    <h1>수업노트</h1>
+    <p>비밀번호를 입력해주세요</p>
+    <input type="password" id="lockInput" inputmode="numeric" placeholder="••••" autocomplete="off">
+    <button class="btn primary block-w" id="lockSubmit">확인</button>
+    <p class="hint" id="lockError" style="color:var(--coral); display:none;">비밀번호가 올바르지 않습니다</p>
+  </div>
+</div>
+
+<div id="appRoot" style="display:none;">
+
 <header class="top">
   <h1>수업노트</h1>
   <p>오늘 수업 기록을 정리하고, 아카2000에 그대로 옮겨 붙일 수 있게 준비합니다</p>
@@ -282,22 +319,21 @@
 <!-- ============ 오늘 수업기록 ============ -->
 <section class="view active" id="view-record">
 
+  <div class="student-bar" id="studentBar">
+    <span id="studentBarText">학생이 선택되지 않았습니다</span>
+    <button class="btn sm" id="goPickStudent">학생관리에서 선택</button>
+  </div>
+
   <div class="record-grid">
   <div class="record-col">
 
   <div class="block">
-    <div class="block-title"><span class="n c-cobalt">1</span>학생</div>
-    <div id="studentChip"></div>
-    <p class="hint" id="noStudentHint" style="margin-top:0;">아직 선택된 학생이 없습니다. 학생관리 탭에서 학생을 선택하거나 새로 등록해주세요.</p>
-    <button class="btn primary sm" id="goPickStudent" style="margin-top:8px;">학생관리에서 학생 선택</button>
-  </div>
-
-  <div class="block">
-    <div class="block-title"><span class="n c-cobalt">2</span>교재 &amp; 오늘 진도</div>
+    <div class="block-title"><span class="n c-cobalt">1</span>교재 &amp; 오늘 진도</div>
     <label>교재</label>
     <div class="search-wrap">
       <input type="text" id="bookSearch" placeholder="교재명 검색 또는 새 교재명 입력" autocomplete="off">
       <div class="dropdown" id="bookDropdown" style="display:none;"></div>
+
     </div>
     <div id="bookChip"></div>
 
@@ -331,12 +367,12 @@
   </div>
 
   <div class="block">
-    <div class="block-title"><span class="n c-cobalt">3</span>오늘 과제</div>
+    <div class="block-title"><span class="n c-cobalt">2</span>오늘 과제</div>
     <textarea id="homeworkText" placeholder="선택한 진도의 과제가 자동으로 채워집니다. 직접 수정 가능"></textarea>
   </div>
 
   <div class="block">
-    <div class="block-title"><span class="n c-violet">4</span>알림장 내용</div>
+    <div class="block-title"><span class="n c-violet">3</span>알림장 내용</div>
     <label>공통알림장 (교재/진도 선택 시 자동)</label>
     <textarea id="commonNoticeText" placeholder="교재·진도를 선택하면 공통알림장이 채워집니다"></textarea>
     <label>학생 개별 문구 (선택)</label>
@@ -345,7 +381,7 @@
   </div>
 
   <div class="block">
-    <div class="block-title"><span class="n c-cobalt">5</span>오늘 시험 점수</div>
+    <div class="block-title"><span class="n c-cobalt">4</span>오늘 시험 점수</div>
     <label>개념암기</label>
     <div class="toggle-pair">
       <button class="pass" id="concept_pass">PASS</button>
@@ -384,7 +420,7 @@
   </div>
 
   <div class="block">
-    <div class="block-title"><span class="n c-teal">6</span>결석 &amp; 보강</div>
+    <div class="block-title"><span class="n c-teal">5</span>결석 &amp; 보강</div>
     <label>결석일자</label>
     <input type="date" id="absentDate">
     <div class="row">
@@ -465,6 +501,17 @@
     <p class="hint" id="connStatus" style="margin-top:10px;"></p>
   </div>
   <div class="block">
+    <div class="block-title"><span class="n c-coral">🔒</span>비밀번호 변경</div>
+    <label>현재 비밀번호</label>
+    <input type="password" id="pw_current" inputmode="numeric" autocomplete="off">
+    <label>새 비밀번호</label>
+    <input type="password" id="pw_new" inputmode="numeric" autocomplete="off">
+    <label>새 비밀번호 확인</label>
+    <input type="password" id="pw_confirm" inputmode="numeric" autocomplete="off">
+    <button class="btn primary" id="pw_save" style="margin-top:10px;">비밀번호 변경</button>
+    <p class="hint">처음 비밀번호는 1234입니다. 이 기기의 브라우저에만 저장되며, 다른 기기에서 열면 각자 설정해야 합니다.</p>
+  </div>
+  <div class="block">
     <div class="block-title"><span class="n c-violet">i</span>안내</div>
     <p class="hint" style="font-size:12.5px; line-height:1.7;">
       · 학생 추가는 저장 즉시 학생DB에 반영됩니다.<br>
@@ -473,6 +520,8 @@
     </p>
   </div>
 </section>
+
+</div>
 
 </div>
 
@@ -558,22 +607,16 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 });
 
 // ---------------- 현재 선택된 학생 (선택은 학생관리 탭에서만) ----------------
-const studentChip = document.getElementById('studentChip');
-const noStudentHint = document.getElementById('noStudentHint');
+const studentBarText = document.getElementById('studentBarText');
 const goPickStudent = document.getElementById('goPickStudent');
 
 function renderStudentBlock(){
   if(form.student){
-    studentChip.innerHTML = `<div class="selected-chip">${form.student.이름} · ${form.student.학교학년||'학교학년 미입력'} <button id="clearStudent">✕</button></div>`;
-    document.getElementById('clearStudent').addEventListener('click', ()=>{
-      form.student = null; renderStudentBlock(); updateCopyPreview();
-    });
-    noStudentHint.style.display = 'none';
-    goPickStudent.textContent = '다른 학생으로 변경';
+    studentBarText.textContent = `선택된 학생: ${form.student.이름} · ${form.student.학교학년||'학교학년 미입력'}`;
+    goPickStudent.textContent = '변경';
   }else{
-    studentChip.innerHTML = '';
-    noStudentHint.style.display = 'block';
-    goPickStudent.textContent = '학생관리에서 학생 선택';
+    studentBarText.textContent = '학생이 선택되지 않았습니다';
+    goPickStudent.textContent = '학생관리에서 선택';
   }
 }
 goPickStudent.addEventListener('click', ()=>{
@@ -995,6 +1038,47 @@ const localStore = {
   }
 };
 
+// ---------------- 비밀번호 잠금 ----------------
+async function getPassword(){
+  const saved = await localStore.get('appPassword');
+  return (saved && saved.value) ? saved.value : '1234';
+}
+const lockScreen = document.getElementById('lockScreen');
+const appRoot = document.getElementById('appRoot');
+const lockInput = document.getElementById('lockInput');
+const lockError = document.getElementById('lockError');
+
+async function tryUnlock(){
+  const entered = lockInput.value.trim();
+  const correct = await getPassword();
+  if(entered && entered === correct){
+    lockScreen.style.display = 'none';
+    appRoot.style.display = 'block';
+  }else{
+    lockError.style.display = 'block';
+    lockInput.value = '';
+    lockInput.focus();
+  }
+}
+document.getElementById('lockSubmit').addEventListener('click', tryUnlock);
+lockInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); tryUnlock(); } });
+lockInput.addEventListener('input', ()=>{ lockError.style.display = 'none'; });
+
+document.getElementById('pw_save').addEventListener('click', async ()=>{
+  const cur = document.getElementById('pw_current').value.trim();
+  const next = document.getElementById('pw_new').value.trim();
+  const conf = document.getElementById('pw_confirm').value.trim();
+  const correct = await getPassword();
+  if(cur !== correct){ toast('현재 비밀번호가 올바르지 않습니다'); return; }
+  if(!next){ toast('새 비밀번호를 입력해주세요'); return; }
+  if(next !== conf){ toast('새 비밀번호가 서로 다릅니다'); return; }
+  await localStore.set('appPassword', next);
+  toast('비밀번호를 변경했습니다');
+  document.getElementById('pw_current').value = '';
+  document.getElementById('pw_new').value = '';
+  document.getElementById('pw_confirm').value = '';
+});
+
 // ---------------- 설정 ----------------
 document.getElementById('saveUrlBtn').addEventListener('click', async ()=>{
   const url = document.getElementById('webAppUrl').value.trim();
@@ -1016,6 +1100,7 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
   }catch(e){}
   renderConceptToggle();
   renderStudentBlock();
+  lockInput.focus();
   await loadData();
 })();
 </script>

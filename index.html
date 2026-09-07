@@ -411,9 +411,9 @@
   <div class="block">
     <div class="block-title"><span class="n c-violet">4</span>알림장 내용</div>
     <label>공통알림장 (교재/진도 선택 시 자동)</label>
-    <textarea id="commonNoticeText" placeholder="교재·진도를 선택하면 공통알림장이 채워집니다"></textarea>
+    <textarea id="commonNoticeText" style="min-height:110px;" placeholder="교재·진도를 선택하면 공통알림장이 채워집니다"></textarea>
     <label>학생 개별 문구 (선택)</label>
-    <textarea id="personalNoteText" placeholder="이 학생에게만 전달할 내용이 있으면 적어주세요"></textarea>
+    <textarea id="personalNoteText" style="min-height:90px;" placeholder="이 학생에게만 전달할 내용이 있으면 적어주세요"></textarea>
     <p class="hint">%%학생 표기는 그대로 두시면 아카2000에서 학생 이름으로 자동 치환됩니다.</p>
   </div>
 
@@ -436,37 +436,37 @@
 
     <label style="margin-top:0;">교재</label>
     <div class="copy-field">
-      <div class="txt" id="copy_book">교재를 선택하면 여기 채워집니다</div>
+      <textarea class="txt-edit" id="copy_book" placeholder="교재를 선택하면 여기 채워집니다"></textarea>
       <button class="btn sm" data-copy="copy_book">복사</button>
     </div>
 
     <label>진도</label>
     <div class="copy-field">
-      <div class="txt" id="copy_lesson">진도를 선택하면 여기 채워집니다</div>
+      <textarea class="txt-edit" id="copy_lesson" placeholder="진도를 선택하면 여기 채워집니다"></textarea>
       <button class="btn sm" data-copy="copy_lesson">복사</button>
     </div>
 
     <label>과제 제목</label>
     <div class="copy-field">
-      <div class="txt" id="copy_homeworkTitle">교재를 선택하면 여기 채워집니다</div>
+      <textarea class="txt-edit" id="copy_homeworkTitle" placeholder="교재를 선택하면 여기 채워집니다"></textarea>
       <button class="btn sm" data-copy="copy_homeworkTitle">복사</button>
     </div>
 
     <label>오늘 과제</label>
     <div class="copy-field">
-      <div class="txt" id="copy_homework">-</div>
+      <textarea class="txt-edit" id="copy_homework" placeholder="-"></textarea>
       <button class="btn sm" data-copy="copy_homework">복사</button>
     </div>
 
     <label>알림장 머리말</label>
     <div class="copy-field">
-      <div class="txt" id="copy_noticeHeader">%%학생 과학 수업 알림장내용입니다</div>
+      <textarea class="txt-edit" id="copy_noticeHeader">%%학생 과학 수업 알림장내용입니다</textarea>
       <button class="btn sm" data-copy="copy_noticeHeader">복사</button>
     </div>
 
     <label>알림장 내용</label>
     <div class="copy-field">
-      <div class="txt" id="copy_notice">-</div>
+      <textarea class="txt-edit" id="copy_notice" placeholder="-"></textarea>
       <button class="btn sm" data-copy="copy_notice">복사</button>
     </div>
   </div>
@@ -943,20 +943,23 @@ document.getElementById('flushPending').addEventListener('click', async ()=>{
 });
 
 // ---------------- 알림장 미리보기 / 복사 ----------------
+function setIfNotFocused(id, value){
+  const el = document.getElementById(id);
+  if(document.activeElement !== el) el.value = value;
+}
 function updateCopyPreview(){
-  document.getElementById('copy_book').textContent = form.book || '교재를 선택하면 여기 채워집니다';
-  document.getElementById('copy_lesson').textContent = form.lesson ? form.lesson.lesson : '진도를 선택하면 여기 채워집니다';
-  document.getElementById('copy_homeworkTitle').textContent = form.book ? `${form.book} 과제` : '교재를 선택하면 여기 채워집니다';
+  setIfNotFocused('copy_book', form.book || '교재를 선택하면 여기 채워집니다');
+  setIfNotFocused('copy_lesson', form.lesson ? form.lesson.lesson : '진도를 선택하면 여기 채워집니다');
+  setIfNotFocused('copy_homeworkTitle', form.book ? `${form.book} 과제` : '교재를 선택하면 여기 채워집니다');
 
   const hw = document.getElementById('homeworkText').value.trim();
-  document.getElementById('copy_homework').textContent = hw || '-';
+  setIfNotFocused('copy_homework', hw || '-');
 
   const bookHomeworkPanel = document.getElementById('bookHomeworkPanel');
-  const bookHwContentEl = document.getElementById('copy_bookHomeworkContent');
   if(form.book){
     bookHomeworkPanel.style.display = 'block';
     document.getElementById('copy_bookHomework').textContent = `${form.book} 과제`;
-    if(document.activeElement !== bookHwContentEl) bookHwContentEl.value = hw;
+    setIfNotFocused('copy_bookHomeworkContent', hw);
   }else{
     bookHomeworkPanel.style.display = 'none';
   }
@@ -964,9 +967,13 @@ function updateCopyPreview(){
   const common = document.getElementById('commonNoticeText').value.trim();
   const personal = document.getElementById('personalNoteText').value.trim();
   const combined = [common, personal].filter(Boolean).join(' ');
-  document.getElementById('copy_notice').textContent = combined || '-';
+  setIfNotFocused('copy_notice', combined || '-');
 }
 document.getElementById('copy_bookHomeworkContent').addEventListener('input', function(){
+  document.getElementById('homeworkText').value = this.value;
+  updateCopyPreview();
+});
+document.getElementById('copy_homework').addEventListener('input', function(){
   document.getElementById('homeworkText').value = this.value;
   updateCopyPreview();
 });

@@ -915,6 +915,17 @@ function renderPending(){
 }
 document.getElementById('flushPending').addEventListener('click', async ()=>{
   if(form.pendingCurri.length===0) return;
+  // 현재 선택된 진도가 대기 목록에 있다면, 화면에서 이후에 고친 과제/공통알림장 내용을 반영
+  if(form.book && form.lesson){
+    const liveHomework = document.getElementById('homeworkText').value.trim();
+    const liveNotice = document.getElementById('commonNoticeText').value.trim();
+    form.pendingCurri.forEach(item=>{
+      if(item.book === form.book && item.lesson === form.lesson.lesson){
+        item.homework = liveHomework;
+        item.commonNotice = liveNotice;
+      }
+    });
+  }
   try{
     const res = await apiPost('addCurriculumBatch', { items: JSON.stringify(form.pendingCurri) });
     if(res.error){ toast(res.error); return; }

@@ -6,6 +6,7 @@
 <title>수업노트 · 알림장 작성 도우미</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root{
     --ink:#121B3A;
@@ -334,16 +335,20 @@
 <!-- ============ 오늘 수업기록 ============ -->
 <section class="view active" id="view-record">
 
-  <div class="student-bar" id="studentBar">
-    <span id="studentBarText">학생이 선택되지 않았습니다</span>
-    <button class="btn sm" id="goPickStudent">학생관리에서 선택</button>
+  <div class="block">
+    <div class="block-title"><span class="n c-cobalt">1</span>학생</div>
+    <div class="search-wrap">
+      <input type="text" id="studentSearch" placeholder="학생 이름 검색" autocomplete="off">
+      <div class="dropdown" id="studentDropdown" style="display:none;"></div>
+    </div>
+    <div id="studentChip"></div>
   </div>
 
   <div class="record-grid">
   <div class="record-col">
 
   <div class="block">
-    <div class="block-title"><span class="n c-cobalt">1</span>교재 &amp; 오늘 진도</div>
+    <div class="block-title"><span class="n c-cobalt">2</span>교재 &amp; 오늘 진도</div>
     <label>교재</label>
     <div class="search-wrap">
       <input type="text" id="bookSearch" placeholder="교재명 검색 또는 새 교재명 입력" autocomplete="off">
@@ -382,12 +387,12 @@
   </div>
 
   <div class="block">
-    <div class="block-title"><span class="n c-cobalt">2</span>오늘 과제</div>
+    <div class="block-title"><span class="n c-cobalt">3</span>오늘 과제</div>
     <textarea id="homeworkText" placeholder="선택한 진도의 과제가 자동으로 채워집니다. 직접 수정 가능"></textarea>
   </div>
 
   <div class="block">
-    <div class="block-title"><span class="n c-violet">3</span>알림장 내용</div>
+    <div class="block-title"><span class="n c-violet">4</span>알림장 내용</div>
     <label>공통알림장 (교재/진도 선택 시 자동)</label>
     <textarea id="commonNoticeText" placeholder="교재·진도를 선택하면 공통알림장이 채워집니다"></textarea>
     <label>학생 개별 문구 (선택)</label>
@@ -396,7 +401,7 @@
   </div>
 
   <div class="block">
-    <div class="block-title"><span class="n c-cobalt">4</span>오늘 시험 점수</div>
+    <div class="block-title"><span class="n c-cobalt">5</span>오늘 시험 점수</div>
     <label>개념암기</label>
     <div class="toggle-pair">
       <button class="pass" id="concept_pass">PASS</button>
@@ -435,7 +440,7 @@
   </div>
 
   <div class="block">
-    <div class="block-title"><span class="n c-teal">5</span>결석 &amp; 보강</div>
+    <div class="block-title"><span class="n c-teal">6</span>결석 &amp; 보강</div>
     <label>결석일자</label>
     <input type="date" id="absentDate">
     <div class="row">
@@ -448,6 +453,11 @@
         <input type="time" id="makeupTime">
       </div>
     </div>
+    <div class="row" style="margin-top:10px;">
+      <button class="btn sm" id="addToGoogleCal">구글 캘린더에 추가</button>
+      <button class="btn sm" id="downloadIcs">캘린더 파일(.ics) 다운로드</button>
+    </div>
+    <p class="hint">.ics 파일은 삼성캘린더 등 아이콘을 눌러 열면 바로 일정으로 추가됩니다. 보강일자를 입력한 뒤 눌러주세요.</p>
   </div>
 
   <div class="record-actions">
@@ -522,6 +532,16 @@
 <!-- ============ 설정 ============ -->
 <section class="view" id="view-settings">
   <div class="block">
+    <div class="block-title"><span class="n c-teal">📅</span>구글 캘린더 자동 연동</div>
+    <label>구글 OAuth 클라이언트 ID</label>
+    <input type="text" id="gcalClientId" placeholder="xxxxxxxx.apps.googleusercontent.com" value="124712258994-ffgquqflaomcds1p46m72ppic8qlcb9v.apps.googleusercontent.com">
+    <p class="hint">Google Cloud Console에서 발급받은 클라이언트 ID를 붙여넣으세요. 아래 "설정 방법 보기"에 순서를 안내해 두었습니다.</p>
+    <button class="btn primary" id="gcalSaveClientId" style="margin-top:10px;">클라이언트 ID 저장</button>
+    <button class="btn teal" id="gcalConnect" style="margin-top:10px;">구글 계정 연결</button>
+    <p class="hint" id="gcalStatus" style="margin-top:10px;"></p>
+    <p class="hint" style="margin-top:10px;">연결되면 보강일자를 입력하고 "오늘 수업기록 저장"을 누를 때 구글 캘린더에 자동으로 일정이 생성됩니다. 연결 전에는 지금처럼 "구글 캘린더에 추가" 버튼으로 수동 등록하시면 됩니다.</p>
+  </div>
+  <div class="block">
     <div class="block-title"><span class="n c-cobalt">⚙</span>구글 시트 연결</div>
     <label>Apps Script 웹앱 URL</label>
     <input type="text" id="webAppUrl" placeholder="https://script.google.com/macros/s/ .../exec" value="https://script.google.com/macros/s/AKfycbypEPpo_ah7GwsKXHm7K8gnrWkhHtJcSyafLysb2_-5B5Wq9tf1rdc8NQXmG22YvOUg/exec">
@@ -559,7 +579,7 @@
 
 <script>
 // ---------------- 상태 ----------------
-let CONFIG = { webAppUrl: 'https://script.google.com/macros/s/AKfycbypEPpo_ah7GwsKXHm7K8gnrWkhHtJcSyafLysb2_-5B5Wq9tf1rdc8NQXmG22YvOUg/exec' };
+let CONFIG = { webAppUrl: 'https://script.google.com/macros/s/AKfycbypEPpo_ah7GwsKXHm7K8gnrWkhHtJcSyafLysb2_-5B5Wq9tf1rdc8NQXmG22YvOUg/exec', gcalClientId: '124712258994-ffgquqflaomcds1p46m72ppic8qlcb9v.apps.googleusercontent.com' };
 let DATA = { students: [], curriculum: {}, records: [] };
 let form = {
   student: null,
@@ -636,37 +656,56 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>activateTab(btn.dataset.view));
 });
 
-// ---------------- 현재 선택된 학생 (선택은 학생관리 탭에서만) ----------------
-const studentBarText = document.getElementById('studentBarText');
-const goPickStudent = document.getElementById('goPickStudent');
+// ---------------- 학생 검색 (오늘 수업기록 상단) ----------------
+const studentSearchInput = document.getElementById('studentSearch');
+const studentDropdown = document.getElementById('studentDropdown');
+const studentChip = document.getElementById('studentChip');
 
-function renderStudentBlock(){
-  if(form.student){
-    studentBarText.textContent = `선택된 학생: ${form.student.이름} · ${form.student.학교학년||'학교학년 미입력'}`;
-    goPickStudent.textContent = '변경';
+function renderStudentDropdown(){
+  const q = studentSearchInput.value.trim();
+  const results = fuzzySearch(q, DATA.students, s=>s.이름 + ' ' + s.학교학년).slice(0,8);
+  let html = '';
+  if(results.length===0){
+    html = q
+      ? '<div class="empty">일치하는 학생이 없습니다. 학생관리 탭에서 추가해주세요.</div>'
+      : '<div class="empty">이름을 입력해 검색하세요</div>';
   }else{
-    studentBarText.textContent = '학생이 선택되지 않았습니다';
-    goPickStudent.textContent = '학생관리에서 선택';
+    results.forEach(s=>{
+      html += `<div class="opt" data-name="${s.이름}">${s.이름}<div class="sub">${s.학교학년 || ''}${s.교과서 ? ' · ' + s.교과서 : ''}</div></div>`;
+    });
   }
+  studentDropdown.innerHTML = html;
+  studentDropdown.style.display = 'block';
+  studentDropdown.querySelectorAll('.opt').forEach(el=>{
+    el.addEventListener('click', ()=>selectStudent(el.dataset.name));
+  });
 }
-goPickStudent.addEventListener('click', ()=>{
-  activateTab('manage');
-  manageSearch.value = '';
-  document.getElementById('manageResults').innerHTML = '';
-  document.getElementById('manageDetail').style.display = 'none';
-  manageSearch.focus();
-});
+studentSearchInput.addEventListener('input', renderStudentDropdown);
+studentSearchInput.addEventListener('focus', renderStudentDropdown);
 document.addEventListener('click', (e)=>{
   if(!e.target.closest('.search-wrap')) {
     document.querySelectorAll('.dropdown').forEach(d=>d.style.display='none');
   }
 });
 
+function renderStudentChip(){
+  if(form.student){
+    studentChip.innerHTML = `<div class="selected-chip">${form.student.이름} · ${form.student.학교학년||'학교학년 미입력'} <button id="clearStudent">✕</button></div>`;
+    document.getElementById('clearStudent').addEventListener('click', ()=>{
+      form.student = null; renderStudentChip(); updateCopyPreview();
+    });
+  }else{
+    studentChip.innerHTML = '';
+  }
+}
+
 function selectStudent(name){
   const s = DATA.students.find(x=>x.이름===name);
   if(!s) return;
   form.student = s;
-  renderStudentBlock();
+  studentSearchInput.value = '';
+  studentDropdown.style.display = 'none';
+  renderStudentChip();
   // 교재 자동 선택
   if(s.교과서 && DATA.curriculum[s.교과서]){
     bookSearch.value = '';
@@ -896,6 +935,9 @@ document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
     if(res.error){ toast(res.error); return; }
     toast('오늘 수업기록을 저장했습니다');
     await loadData();
+    if(payload.makeupDate){
+      createGcalEventIfConnected(makeupEventInfo());
+    }
   }catch(err){ toast('저장 실패: ' + err.message); }
 });
 
@@ -916,6 +958,133 @@ document.getElementById('shareBtn').addEventListener('click', async ()=>{
     await copyText(text);
     toast('공유 대신 복사했습니다 (붙여넣기 하세요)');
   }
+});
+
+// ---------------- 보강 일정 캘린더 연동 ----------------
+function pad2(n){ return n.toString().padStart(2, '0'); }
+function makeupEventInfo(){
+  const date = document.getElementById('makeupDate').value;
+  if(!date) return null;
+  const time = document.getElementById('makeupTime').value;
+  const name = form.student ? form.student.이름 : '학생';
+  const bl = form.book && form.lesson ? `${form.book} ${form.lesson.lesson}` : (form.book || '');
+  const title = `보강 - ${name}`;
+  const desc = `${name} 보강 수업${bl ? ' · ' + bl : ''}`;
+  if(time){
+    const start = new Date(`${date}T${time}:00`);
+    const end = new Date(start.getTime() + 60*60*1000);
+    const fmt = d => `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}T${pad2(d.getHours())}${pad2(d.getMinutes())}00`;
+    return {
+      title, desc, allDay:false, startStr:fmt(start), endStr:fmt(end),
+      startISO: `${date}T${time}:00`,
+      endISO: `${pad2(end.getFullYear())}-${pad2(end.getMonth()+1)}-${pad2(end.getDate())}T${pad2(end.getHours())}:${pad2(end.getMinutes())}:00`
+    };
+  }else{
+    const d0 = date.replaceAll('-', '');
+    const next = new Date(`${date}T00:00:00`);
+    next.setDate(next.getDate()+1);
+    const d1 = `${next.getFullYear()}${pad2(next.getMonth()+1)}${pad2(next.getDate())}`;
+    const nextDateStr = `${next.getFullYear()}-${pad2(next.getMonth()+1)}-${pad2(next.getDate())}`;
+    return { title, desc, allDay:true, startStr:d0, endStr:d1, startDate:date, endDate:nextDateStr };
+  }
+}
+document.getElementById('addToGoogleCal').addEventListener('click', ()=>{
+  const info = makeupEventInfo();
+  if(!info){ toast('보강일자를 먼저 입력해주세요'); return; }
+  const dates = `${info.startStr}/${info.endStr}`;
+  const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(info.title)}&dates=${dates}&details=${encodeURIComponent(info.desc)}`;
+  window.open(url, '_blank');
+});
+document.getElementById('downloadIcs').addEventListener('click', ()=>{
+  const info = makeupEventInfo();
+  if(!info){ toast('보강일자를 먼저 입력해주세요'); return; }
+  const dtLine = info.allDay
+    ? `DTSTART;VALUE=DATE:${info.startStr}\nDTEND;VALUE=DATE:${info.endStr}`
+    : `DTSTART:${info.startStr}\nDTEND:${info.endStr}`;
+  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:${info.title}\n${dtLine}\nDESCRIPTION:${info.desc}\nEND:VEVENT\nEND:VCALENDAR`;
+  const blob = new Blob([ics], { type: 'text/calendar' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `보강_${form.student ? form.student.이름 : '학생'}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+// ---------------- 구글 캘린더 자동 연동 (OAuth) ----------------
+let gcalTokenClient = null;
+let gcalAccessToken = null;
+const gcalStatus = document.getElementById('gcalStatus');
+
+function renderGcalStatus(){
+  if(!CONFIG.gcalClientId){
+    gcalStatus.innerHTML = '<span class="status-dot no"></span>클라이언트 ID가 설정되지 않았습니다';
+  }else if(gcalAccessToken){
+    gcalStatus.innerHTML = '<span class="status-dot ok"></span>구글 캘린더에 연결되었습니다 · 저장 시 자동으로 일정이 등록됩니다';
+  }else{
+    gcalStatus.innerHTML = '<span class="status-dot no"></span>클라이언트 ID는 저장됨 · "구글 계정 연결" 버튼을 눌러주세요';
+  }
+}
+
+function initGcalTokenClient(){
+  if(!CONFIG.gcalClientId || typeof google === 'undefined' || !google.accounts) return;
+  gcalTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CONFIG.gcalClientId,
+    scope: 'https://www.googleapis.com/auth/calendar.events',
+    callback: (resp)=>{
+      if(resp && resp.access_token){
+        gcalAccessToken = resp.access_token;
+        toast('구글 캘린더 연결됨');
+        renderGcalStatus();
+      }
+    }
+  });
+}
+
+document.getElementById('gcalSaveClientId').addEventListener('click', async ()=>{
+  const id = document.getElementById('gcalClientId').value.trim();
+  if(!id){ toast('클라이언트 ID를 입력해주세요'); return; }
+  CONFIG.gcalClientId = id;
+  await localStore.set('gcalClientId', id);
+  initGcalTokenClient();
+  toast('클라이언트 ID를 저장했습니다');
+  renderGcalStatus();
+});
+document.getElementById('gcalConnect').addEventListener('click', ()=>{
+  if(!CONFIG.gcalClientId){ toast('먼저 클라이언트 ID를 저장해주세요'); return; }
+  if(!gcalTokenClient) initGcalTokenClient();
+  if(!gcalTokenClient){ toast('구글 로그인 라이브러리를 아직 불러오는 중입니다. 잠시 후 다시 눌러주세요'); return; }
+  gcalTokenClient.requestAccessToken({ prompt: gcalAccessToken ? '' : 'consent' });
+});
+
+async function createGcalEventIfConnected(info){
+  if(!gcalAccessToken || !info) return;
+  const body = info.allDay
+    ? { summary: info.title, description: info.desc, start: { date: info.startDate }, end: { date: info.endDate } }
+    : { summary: info.title, description: info.desc, start: { dateTime: info.startISO }, end: { dateTime: info.endISO } };
+  try{
+    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + gcalAccessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    if(res.status === 401){
+      gcalAccessToken = null;
+      renderGcalStatus();
+      toast('구글 캘린더 연결이 만료되었습니다. 설정에서 다시 연결해주세요');
+      return;
+    }
+    if(!res.ok){ toast('구글 캘린더 등록에 실패했습니다'); return; }
+    toast('구글 캘린더에 보강 일정을 자동으로 등록했습니다');
+  }catch(err){
+    toast('구글 캘린더 등록 중 오류가 발생했습니다');
+  }
+}
 });
 
 // ---------------- 학생 관리 ----------------
@@ -1162,8 +1331,18 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
       document.getElementById('webAppUrl').value = saved.value;
     }
   }catch(e){}
+  try{
+    const savedId = await localStore.get('gcalClientId');
+    if(savedId && savedId.value){
+      CONFIG.gcalClientId = savedId.value;
+      document.getElementById('gcalClientId').value = savedId.value;
+    }
+  }catch(e){}
   renderConceptToggle();
-  renderStudentBlock();
+  renderStudentChip();
+  renderGcalStatus();
+  // 구글 로그인 라이브러리는 비동기로 로드되므로 약간의 지연 후 초기화 시도
+  setTimeout(()=>{ if(CONFIG.gcalClientId) initGcalTokenClient(); }, 500);
   lockInput.focus();
   await loadData();
 })();

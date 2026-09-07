@@ -415,6 +415,7 @@
     <label>학생 개별 문구 (선택)</label>
     <textarea id="personalNoteText" style="min-height:90px;" placeholder="이 학생에게만 전달할 내용이 있으면 적어주세요"></textarea>
     <p class="hint">%%학생 표기는 그대로 두시면 아카2000에서 학생 이름으로 자동 치환됩니다.</p>
+    <button class="btn teal sm" id="updateCurriBtn" style="display:none; margin-top:10px;">이 진도의 과제·공통알림장 수정사항 시트에 저장</button>
   </div>
 
   <div class="block">
@@ -478,7 +479,12 @@
     <div class="block-title"><span class="n c-teal">6</span>결석 &amp; 보강</div>
     <label>결석일자</label>
     <input type="date" id="absentDate">
-    <div class="row">
+    <div class="row" style="margin-top:10px;">
+      <button class="btn sm" id="addAbsentGoogleCal">결석 캘린더에 추가</button>
+      <button class="btn sm" id="downloadAbsentIcs">결석 .ics 다운로드</button>
+    </div>
+
+    <div class="row" style="margin-top:14px;">
       <div>
         <label>보강일자</label>
         <input type="date" id="makeupDate">
@@ -489,10 +495,10 @@
       </div>
     </div>
     <div class="row" style="margin-top:10px;">
-      <button class="btn sm" id="addToGoogleCal">구글 캘린더에 추가</button>
-      <button class="btn sm" id="downloadIcs">캘린더 파일(.ics) 다운로드</button>
+      <button class="btn sm" id="addToGoogleCal">보강 캘린더에 추가</button>
+      <button class="btn sm" id="downloadIcs">보강 .ics 다운로드</button>
     </div>
-    <p class="hint">.ics 파일은 삼성캘린더 등 아이콘을 눌러 열면 바로 일정으로 추가됩니다. 보강일자를 입력한 뒤 눌러주세요.</p>
+    <p class="hint">.ics 파일은 삼성캘린더 등 아이콘을 눌러 열면 바로 일정으로 추가됩니다. 날짜를 입력한 뒤 눌러주세요. 구글 캘린더 연동이 켜져 있으면 저장 시 결석·보강 일정이 각각 자동으로도 등록됩니다.</p>
   </div>
 
   <div class="record-actions">
@@ -514,7 +520,8 @@
       <div class="form-grid">
         <div><label>학교학년</label><input type="text" id="ns_school" placeholder="예) 중계중2"></div>
         <div><label>교과서</label><input type="text" id="ns_book" placeholder="예) 오투과학2-1"></div>
-        <div><label>시험날짜</label><input type="date" id="ns_examDate"></div>
+        <div><label>전체 시험기간</label><input type="text" id="ns_examPeriod" placeholder="예) 9/24~9/26"></div>
+        <div><label>과학시험날짜</label><input type="date" id="ns_examDate"></div>
         <div><label>시험범위</label><input type="text" id="ns_examRange" placeholder="예) 4,8"></div>
       </div>
       <div class="row" style="margin-top:10px;">
@@ -533,7 +540,8 @@
       <div class="info-row"><span class="info-label">이름</span><span id="ic_name"></span></div>
       <div class="info-row"><span class="info-label">학교학년</span><span id="ic_school"></span></div>
       <div class="info-row"><span class="info-label">교과서</span><span id="ic_book"></span></div>
-      <div class="info-row"><span class="info-label">시험날짜</span><span id="ic_examDate"></span></div>
+      <div class="info-row"><span class="info-label">전체 시험기간</span><span id="ic_examPeriod"></span></div>
+      <div class="info-row"><span class="info-label">과학시험날짜</span><span id="ic_examDate"></span></div>
       <div class="info-row"><span class="info-label">시험범위</span><span id="ic_examRange"></span></div>
     </div>
     <div class="row" id="md_actionsRow" style="margin-top:10px;">
@@ -548,7 +556,9 @@
       <input type="text" id="md_school">
       <label>교과서</label>
       <input type="text" id="md_book">
-      <label>시험날짜</label>
+      <label>전체 시험기간</label>
+      <input type="text" id="md_examPeriod" placeholder="예) 9/24~9/26">
+      <label>과학시험날짜</label>
       <input type="date" id="md_examDate">
       <label>시험범위</label>
       <input type="text" id="md_examRange">
@@ -817,10 +827,12 @@ function selectBook(book){
     form.book=''; form.lesson=null; bookChip.innerHTML=''; lessonArea.style.display='none';
     document.getElementById('lessonChip').innerHTML='';
     updateCopyPreview();
+    updateCurriButtonVisibility();
   });
   lessonArea.style.display = 'block';
   lessonChip.innerHTML = '';
   updateCopyPreview();
+  updateCurriButtonVisibility();
 }
 
 // ---------------- 진도 검색 ----------------
@@ -860,6 +872,14 @@ lessonSearch.addEventListener('keydown', (e)=>{
   openNewCurriForm(q);
 });
 
+function isPendingLesson(){
+  if(!form.book || !form.lesson) return false;
+  return form.pendingCurri.some(item => item.book === form.book && item.lesson === form.lesson.lesson);
+}
+function updateCurriButtonVisibility(){
+  const btn = document.getElementById('updateCurriBtn');
+  btn.style.display = (form.lesson && !isPendingLesson()) ? 'inline-flex' : 'none';
+}
 function selectLesson(idx){
   const l = (DATA.curriculum[form.book]||[])[idx];
   if(!l) return;
@@ -869,12 +889,34 @@ function selectLesson(idx){
   newCurriForm.style.display = 'none';
   lessonChip.innerHTML = `<div class="selected-chip">${l.lesson} <button id="clearLesson">✕</button></div>`;
   document.getElementById('clearLesson').addEventListener('click', ()=>{
-    form.lesson=null; lessonChip.innerHTML=''; updateCopyPreview();
+    form.lesson=null; lessonChip.innerHTML=''; updateCopyPreview(); updateCurriButtonVisibility();
   });
   document.getElementById('homeworkText').value = l.homework || '';
   document.getElementById('commonNoticeText').value = l.commonNotice || '';
   updateCopyPreview();
+  updateCurriButtonVisibility();
 }
+document.getElementById('updateCurriBtn').addEventListener('click', async ()=>{
+  if(!form.book || !form.lesson) return;
+  const payload = {
+    book: form.book,
+    lesson: form.lesson.lesson,
+    homework: document.getElementById('homeworkText').value.trim(),
+    commonNotice: document.getElementById('commonNoticeText').value.trim()
+  };
+  try{
+    const res = await apiPost('updateCurriculum', payload);
+    if(res.error){ toast(res.error); return; }
+    toast('과제DB에 수정 내용을 저장했습니다');
+    await loadData();
+    // 재선택하여 화면 상태를 최신으로 유지
+    if(DATA.curriculum[form.book]){
+      const idx = DATA.curriculum[form.book].findIndex(l => l.lesson === payload.lesson);
+      if(idx !== -1) form.lesson = DATA.curriculum[form.book][idx];
+    }
+    updateCurriButtonVisibility();
+  }catch(err){ toast('저장 실패: ' + err.message); }
+});
 
 // ---------------- 새 진도 폼 (같은 검색칸의 값을 그대로 사용) ----------------
 function openNewCurriForm(lessonPrefill){
@@ -939,6 +981,7 @@ document.getElementById('flushPending').addEventListener('click', async ()=>{
     form.pendingCurri = [];
     renderPending();
     await loadData();
+    updateCurriButtonVisibility();
   }catch(err){ toast('저장 실패: ' + err.message); }
 });
 
@@ -1023,6 +1066,9 @@ document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
     if(res.error){ toast(res.error); return; }
     toast('오늘 수업기록을 저장했습니다');
     await loadData();
+    if(payload.absentDate){
+      createGcalEventIfConnected(absentEventInfo());
+    }
     if(payload.makeupDate){
       createGcalEventIfConnected(makeupEventInfo());
     }
@@ -1048,16 +1094,16 @@ document.getElementById('shareBtn').addEventListener('click', async ()=>{
   }
 });
 
-// ---------------- 보강 일정 캘린더 연동 ----------------
+// ---------------- 결석/보강 일정 캘린더 연동 ----------------
 function pad2(n){ return n.toString().padStart(2, '0'); }
-function makeupEventInfo(){
-  const date = document.getElementById('makeupDate').value;
+function buildEventInfo(dateFieldId, timeFieldId, label){
+  const date = document.getElementById(dateFieldId).value;
   if(!date) return null;
-  const time = document.getElementById('makeupTime').value;
+  const time = timeFieldId ? document.getElementById(timeFieldId).value : '';
   const name = form.student ? form.student.이름 : '학생';
   const bl = form.book && form.lesson ? `${form.book} ${form.lesson.lesson}` : (form.book || '');
-  const title = `보강 - ${name}`;
-  const desc = `${name} 보강 수업${bl ? ' · ' + bl : ''}`;
+  const title = `${label} - ${name}`;
+  const desc = `${name} ${label}${bl ? ' · ' + bl : ''}`;
   if(time){
     const start = new Date(`${date}T${time}:00`);
     const end = new Date(start.getTime() + 60*60*1000);
@@ -1076,16 +1122,15 @@ function makeupEventInfo(){
     return { title, desc, allDay:true, startStr:d0, endStr:d1, startDate:date, endDate:nextDateStr };
   }
 }
-document.getElementById('addToGoogleCal').addEventListener('click', ()=>{
-  const info = makeupEventInfo();
-  if(!info){ toast('보강일자를 먼저 입력해주세요'); return; }
+function makeupEventInfo(){ return buildEventInfo('makeupDate', 'makeupTime', '보강'); }
+function absentEventInfo(){ return buildEventInfo('absentDate', null, '결석'); }
+
+function openGoogleCalLink(info){
   const dates = `${info.startStr}/${info.endStr}`;
   const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(info.title)}&dates=${dates}&details=${encodeURIComponent(info.desc)}`;
   window.open(url, '_blank');
-});
-document.getElementById('downloadIcs').addEventListener('click', ()=>{
-  const info = makeupEventInfo();
-  if(!info){ toast('보강일자를 먼저 입력해주세요'); return; }
+}
+function downloadIcsFile(info, filenamePrefix){
   const dtLine = info.allDay
     ? `DTSTART;VALUE=DATE:${info.startStr}\nDTEND;VALUE=DATE:${info.endStr}`
     : `DTSTART:${info.startStr}\nDTEND:${info.endStr}`;
@@ -1094,11 +1139,32 @@ document.getElementById('downloadIcs').addEventListener('click', ()=>{
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `보강_${form.student ? form.student.이름 : '학생'}.ics`;
+  a.download = `${filenamePrefix}_${form.student ? form.student.이름 : '학생'}.ics`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+document.getElementById('addToGoogleCal').addEventListener('click', ()=>{
+  const info = makeupEventInfo();
+  if(!info){ toast('보강일자를 먼저 입력해주세요'); return; }
+  openGoogleCalLink(info);
+});
+document.getElementById('downloadIcs').addEventListener('click', ()=>{
+  const info = makeupEventInfo();
+  if(!info){ toast('보강일자를 먼저 입력해주세요'); return; }
+  downloadIcsFile(info, '보강');
+});
+document.getElementById('addAbsentGoogleCal').addEventListener('click', ()=>{
+  const info = absentEventInfo();
+  if(!info){ toast('결석일자를 먼저 입력해주세요'); return; }
+  openGoogleCalLink(info);
+});
+document.getElementById('downloadAbsentIcs').addEventListener('click', ()=>{
+  const info = absentEventInfo();
+  if(!info){ toast('결석일자를 먼저 입력해주세요'); return; }
+  downloadIcsFile(info, '결석');
 });
 
 // ---------------- 구글 캘린더 자동 연동 (OAuth) ----------------
@@ -1210,7 +1276,7 @@ function renderManageList(){
     <div class="student-card">
       <h3>${s.이름}</h3>
       <div class="meta">${s.학교학년||'-'} · ${s.교과서||'교과서 미입력'}</div>
-      <div class="meta">시험 ${fmtDT(s.시험날짜)||'-'} · 범위 ${s.시험범위||'-'}</div>
+      <div class="meta">과학시험 ${fmtDT(s.시험날짜)||'-'} · 범위 ${s.시험범위||'-'}${s.시험기간 ? ' · 기간 ' + s.시험기간 : ''}</div>
       <div class="row" style="margin-top:8px;">
         <button class="btn sm" data-detail="${s.이름}">상세 / 수정</button>
         <button class="btn primary sm" data-pick="${s.이름}">오늘 수업기록 작성</button>
@@ -1232,6 +1298,7 @@ function openManageNewForm(prefillName){
   document.getElementById('manageResults').innerHTML = '';
   document.getElementById('ns_school').value = '';
   document.getElementById('ns_book').value = '';
+  document.getElementById('ns_examPeriod').value = '';
   document.getElementById('ns_examDate').value = '';
   document.getElementById('ns_examRange').value = '';
 }
@@ -1243,6 +1310,7 @@ document.getElementById('ns_save').addEventListener('click', async ()=>{
     name,
     schoolGrade: document.getElementById('ns_school').value.trim(),
     textbook: document.getElementById('ns_book').value.trim(),
+    examPeriod: document.getElementById('ns_examPeriod').value.trim(),
     examDate: document.getElementById('ns_examDate').value,
     examRange: document.getElementById('ns_examRange').value.trim()
   };
@@ -1260,6 +1328,7 @@ function renderCompactInfo(s){
   document.getElementById('ic_name').textContent = s.이름;
   document.getElementById('ic_school').textContent = s.학교학년 || '-';
   document.getElementById('ic_book').textContent = s.교과서 || '-';
+  document.getElementById('ic_examPeriod').textContent = s.시험기간 || '-';
   document.getElementById('ic_examDate').textContent = fmtDT(s.시험날짜) || '-';
   document.getElementById('ic_examRange').textContent = s.시험범위 || '-';
 }
@@ -1277,6 +1346,7 @@ function openManageDetail(name){
   document.getElementById('md_name').value = s.이름;
   document.getElementById('md_school').value = s.학교학년 || '';
   document.getElementById('md_book').value = s.교과서 || '';
+  document.getElementById('md_examPeriod').value = s.시험기간 || '';
   document.getElementById('md_examDate').value = fmtDT(s.시험날짜) || '';
   document.getElementById('md_examRange').value = s.시험범위 || '';
   renderCompactInfo(s);
@@ -1310,6 +1380,7 @@ document.getElementById('md_editCancel').addEventListener('click', ()=>{
   if(s){
     document.getElementById('md_school').value = s.학교학년 || '';
     document.getElementById('md_book').value = s.교과서 || '';
+    document.getElementById('md_examPeriod').value = s.시험기간 || '';
     document.getElementById('md_examDate').value = fmtDT(s.시험날짜) || '';
     document.getElementById('md_examRange').value = s.시험범위 || '';
   }
@@ -1320,6 +1391,7 @@ document.getElementById('md_save').addEventListener('click', async ()=>{
     name: document.getElementById('md_originalName').value,
     schoolGrade: document.getElementById('md_school').value.trim(),
     textbook: document.getElementById('md_book').value.trim(),
+    examPeriod: document.getElementById('md_examPeriod').value.trim(),
     examDate: document.getElementById('md_examDate').value,
     examRange: document.getElementById('md_examRange').value.trim()
   };

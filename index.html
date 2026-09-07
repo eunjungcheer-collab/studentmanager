@@ -357,6 +357,17 @@
     </div>
     <div id="bookChip"></div>
 
+    <div id="bookHomeworkPanel" style="display:none; margin-top:10px;">
+      <div class="copy-field">
+        <div class="txt" id="copy_bookHomework">-</div>
+        <button class="btn sm" data-copy="copy_bookHomework">복사</button>
+      </div>
+      <div class="copy-field">
+        <div class="txt" id="copy_bookHomeworkContent">-</div>
+        <button class="btn sm" data-copy="copy_bookHomeworkContent">복사</button>
+      </div>
+    </div>
+
     <div id="lessonArea" style="display:none; margin-top:12px;">
       <label>오늘 진도</label>
       <div class="search-wrap">
@@ -417,16 +428,34 @@
   <div class="block">
     <div class="block-title"><span class="n c-cobalt">✓</span>복사해서 아카2000에 붙여넣기</div>
 
-    <label style="margin-top:0;">교재 &amp; 진도</label>
+    <label style="margin-top:0;">교재</label>
     <div class="copy-field">
-      <div class="txt" id="copy_bookLesson">학생과 진도를 선택하면 여기 채워집니다</div>
-      <button class="btn sm" data-copy="copy_bookLesson">복사</button>
+      <div class="txt" id="copy_book">교재를 선택하면 여기 채워집니다</div>
+      <button class="btn sm" data-copy="copy_book">복사</button>
+    </div>
+
+    <label style="margin-top:0;">과제 제목</label>
+    <div class="copy-field">
+      <div class="txt" id="copy_homeworkTitle">교재를 선택하면 여기 채워집니다</div>
+      <button class="btn sm" data-copy="copy_homeworkTitle">복사</button>
     </div>
 
     <label>오늘 과제</label>
     <div class="copy-field">
       <div class="txt" id="copy_homework">-</div>
       <button class="btn sm" data-copy="copy_homework">복사</button>
+    </div>
+
+    <label>진도</label>
+    <div class="copy-field">
+      <div class="txt" id="copy_lesson">진도를 선택하면 여기 채워집니다</div>
+      <button class="btn sm" data-copy="copy_lesson">복사</button>
+    </div>
+
+    <label>알림장 머리말</label>
+    <div class="copy-field">
+      <div class="txt" id="copy_noticeHeader">%%학생 과학 수업 알림장내용입니다</div>
+      <button class="btn sm" data-copy="copy_noticeHeader">복사</button>
     </div>
 
     <label>알림장 내용</label>
@@ -590,6 +619,25 @@ let form = {
 
 // ---------------- 유틸 ----------------
 function normalize(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,''); }
+// 구글시트에서 오는 날짜/시간 값은 형식이 제각각(ISO, 풀텍스트, 시간전용 등)일 수 있어
+// 항상 보기 좋은 형태로 정리해서 돌려준다.
+function fmtDT(raw){
+  if(!raw) return '';
+  const s = raw.toString().trim();
+  if(!s) return '';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; // 이미 깔끔한 날짜만 있는 경우
+  const d = new Date(s);
+  if(isNaN(d.getTime())) return s; // 파싱 불가하면 원본 그대로
+  const pad = n => n.toString().padStart(2, '0');
+  if(d.getFullYear() < 1901){
+    // 구글시트의 "시간만" 값이 1899-12-30 등 임의의 날짜와 함께 오는 경우 -> 시간만 표시
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  const dateStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const hh = d.getHours(), mm = d.getMinutes();
+  if(hh === 0 && mm === 0) return dateStr; // 시간 정보가 없는 순수 날짜
+  return `${dateStr} ${pad(hh)}:${pad(mm)}`;
+}
 function fuzzyScore(query, target){
   const q = normalize(query), t = normalize(target);
   if(!q) return 1;
@@ -879,11 +927,21 @@ document.getElementById('flushPending').addEventListener('click', async ()=>{
 
 // ---------------- 알림장 미리보기 / 복사 ----------------
 function updateCopyPreview(){
-  const bl = form.book && form.lesson ? `${form.book} ${form.lesson.lesson}` : '';
-  document.getElementById('copy_bookLesson').textContent = bl || '학생과 진도를 선택하면 여기 채워집니다';
+  document.getElementById('copy_book').textContent = form.book || '교재를 선택하면 여기 채워집니다';
+  document.getElementById('copy_lesson').textContent = form.lesson ? form.lesson.lesson : '진도를 선택하면 여기 채워집니다';
+  document.getElementById('copy_homeworkTitle').textContent = form.book ? `${form.book} 과제` : '교재를 선택하면 여기 채워집니다';
 
   const hw = document.getElementById('homeworkText').value.trim();
   document.getElementById('copy_homework').textContent = hw || '-';
+
+  const bookHomeworkPanel = document.getElementById('bookHomeworkPanel');
+  if(form.book){
+    bookHomeworkPanel.style.display = 'block';
+    document.getElementById('copy_bookHomework').textContent = `${form.book} 과제`;
+    document.getElementById('copy_bookHomeworkContent').textContent = hw || '-';
+  }else{
+    bookHomeworkPanel.style.display = 'none';
+  }
 
   const common = document.getElementById('commonNoticeText').value.trim();
   const personal = document.getElementById('personalNoteText').value.trim();
@@ -1122,7 +1180,7 @@ function renderManageList(){
     <div class="student-card">
       <h3>${s.이름}</h3>
       <div class="meta">${s.학교학년||'-'} · ${s.교과서||'교과서 미입력'}</div>
-      <div class="meta">시험 ${s.시험날짜||'-'} · 범위 ${s.시험범위||'-'}</div>
+      <div class="meta">시험 ${fmtDT(s.시험날짜)||'-'} · 범위 ${s.시험범위||'-'}</div>
       <div class="row" style="margin-top:8px;">
         <button class="btn sm" data-detail="${s.이름}">상세 / 수정</button>
         <button class="btn primary sm" data-pick="${s.이름}">오늘 수업기록 작성</button>
@@ -1172,7 +1230,7 @@ function renderCompactInfo(s){
   document.getElementById('ic_name').textContent = s.이름;
   document.getElementById('ic_school').textContent = s.학교학년 || '-';
   document.getElementById('ic_book').textContent = s.교과서 || '-';
-  document.getElementById('ic_examDate').textContent = s.시험날짜 || '-';
+  document.getElementById('ic_examDate').textContent = fmtDT(s.시험날짜) || '-';
   document.getElementById('ic_examRange').textContent = s.시험범위 || '-';
 }
 function showCompactView(){
@@ -1189,24 +1247,24 @@ function openManageDetail(name){
   document.getElementById('md_name').value = s.이름;
   document.getElementById('md_school').value = s.학교학년 || '';
   document.getElementById('md_book').value = s.교과서 || '';
-  document.getElementById('md_examDate').value = s.시험날짜 || '';
+  document.getElementById('md_examDate').value = fmtDT(s.시험날짜) || '';
   document.getElementById('md_examRange').value = s.시험범위 || '';
   renderCompactInfo(s);
   showCompactView();
 
   const recs = DATA.records.filter(r => r['학생이름']===name)
-    .sort((a,b)=> (b['작성일시']||'').localeCompare(a['작성일시']||'')).slice(0,5);
+    .sort((a,b)=> new Date(b['작성일시']) - new Date(a['작성일시'])).slice(0,5);
   const box = document.getElementById('md_records');
   if(recs.length===0){
     box.innerHTML = '<p class="hint">아직 기록이 없습니다</p>';
   }else{
     box.innerHTML = recs.map(r=>`
       <div class="record-row">
-        <b>${r['작성일시']||''}</b> · 진도 ${r['오늘진도']||'-'}<br>
+        <b>${fmtDT(r['작성일시'])}</b> · 진도 ${r['오늘진도']||'-'}<br>
         과제: ${r['오늘과제']||'-'}<br>
         개념암기 ${r['개념암기결과']||'-'} / 객관식 ${r['객관식점수']||'-'}점
-        ${r['결석일자'] ? '<br>결석: ' + r['결석일자'] : ''}
-        ${r['보강일자'] ? ' / 보강: ' + r['보강일자'] + ' ' + (r['보강시간']||'') : ''}
+        ${r['결석일자'] ? '<br>결석: ' + fmtDT(r['결석일자']) : ''}
+        ${r['보강일자'] ? ' / 보강: ' + fmtDT(r['보강일자']) + (r['보강시간'] ? ' ' + fmtDT(r['보강시간']) : '') : ''}
       </div>
     `).join('');
   }
@@ -1222,7 +1280,7 @@ document.getElementById('md_editCancel').addEventListener('click', ()=>{
   if(s){
     document.getElementById('md_school').value = s.학교학년 || '';
     document.getElementById('md_book').value = s.교과서 || '';
-    document.getElementById('md_examDate').value = s.시험날짜 || '';
+    document.getElementById('md_examDate').value = fmtDT(s.시험날짜) || '';
     document.getElementById('md_examRange').value = s.시험범위 || '';
   }
   showCompactView();

@@ -9,23 +9,24 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root{
-    --ink:#121B3A;
-    --ink-soft:#57628C;
-    --paper:#F2F4FB;
-    --panel:#FFFFFF;
-    --line:rgba(18,27,58,0.12);
-    --line-strong:rgba(18,27,58,0.24);
-    --cobalt:#1E49E2;
-    --cobalt-dark:#15379E;
-    --cobalt-soft:#DCE4FB;
-    --amber:#E08E0B;
-    --amber-soft:#FCE7B8;
-    --teal:#0FA394;
-    --teal-soft:#CDF1EA;
-    --coral:#E2513F;
-    --coral-soft:#FBDCD6;
-    --violet:#6A5FC1;
-    --violet-soft:#E4E0F7;
+    --ink:#2E3A4F;
+    --ink-soft:#6C7A93;
+    --paper:#CFDCEF;
+    --panel:#F8FAFD;
+    --line:rgba(46,58,79,0.14);
+    --line-strong:rgba(46,58,79,0.26);
+    --cobalt:#6690C4;
+    --cobalt-dark:#3F638E;
+    --cobalt-soft:#DCE7F5;
+    --amber:#D98D79;
+    --amber-soft:#F6DFD6;
+    --teal:#6690C4;
+    --teal-soft:#DCE7F5;
+    --coral:#D98D79;
+    --coral-soft:#F6DFD6;
+    --violet:#8CA6C9;
+    --violet-soft:#E3EAF5;
+    --panel-salmon:#FBEAE3;
     --radius:8px;
     --maxw:640px;
   }
@@ -56,7 +57,7 @@
     display:block;
     width:46px; height:5px; border-radius:3px;
     margin-bottom:14px;
-    background:linear-gradient(90deg, var(--cobalt), var(--violet) 65%, var(--teal));
+    background:linear-gradient(90deg, var(--cobalt), var(--amber));
   }
   header.top h1{font-size:23px; letter-spacing:-0.01em; color:var(--ink);}
   header.top p{margin:5px 0 0; color:var(--ink-soft); font-size:13px;}
@@ -88,7 +89,7 @@
   .record-col{min-width:0;}
 
   .block{
-    background:var(--panel);
+    background:var(--panel-salmon);
     border:1px solid var(--line);
     border-radius:var(--radius);
     padding:16px;
@@ -370,6 +371,12 @@
         <div class="dropdown" id="lessonDropdown" style="display:none;"></div>
       </div>
       <div id="lessonChip"></div>
+      <div id="lessonRenamePanel" style="display:none; margin-top:8px;">
+        <div class="copy-field">
+          <input type="text" id="lessonRenameInput" style="border:none; background:transparent; padding:0; font-size:13.5px; margin-bottom:8px;">
+          <button class="btn sm" id="lessonRenameSave">진도명 시트에 저장</button>
+        </div>
+      </div>
     </div>
 
     <div id="bookHomeworkPanel" style="display:none; margin-top:10px;">
@@ -406,6 +413,7 @@
   <div class="block">
     <div class="block-title"><span class="n c-cobalt">3</span>오늘 과제</div>
     <textarea id="homeworkText" placeholder="선택한 진도의 과제가 자동으로 채워집니다. 직접 수정 가능"></textarea>
+    <button class="btn teal sm" id="updateHomeworkBtn" style="display:none; margin-top:10px;">과제 시트에 저장</button>
   </div>
 
   <div class="block">
@@ -415,7 +423,7 @@
     <label>학생 개별 문구 (선택)</label>
     <textarea id="personalNoteText" style="min-height:90px;" placeholder="이 학생에게만 전달할 내용이 있으면 적어주세요"></textarea>
     <p class="hint">%%학생 표기는 그대로 두시면 아카2000에서 학생 이름으로 자동 치환됩니다.</p>
-    <button class="btn teal sm" id="updateCurriBtn" style="display:none; margin-top:10px;">이 진도의 과제·공통알림장 수정사항 시트에 저장</button>
+    <button class="btn teal sm" id="updateNoticeBtn" style="display:none; margin-top:10px;">공통알림장 시트에 저장</button>
   </div>
 
   <div class="block">
@@ -503,7 +511,7 @@
 
   <div class="record-actions">
   <button class="btn primary block-w" id="saveRecordBtn" style="padding:13px; font-size:14.5px;">오늘 수업기록 저장</button>
-  <button class="btn block-w" id="shareBtn">카톡 / 문자로 공유</button>
+  <button class="btn block-w" id="shareBtn">카톡 / 문자로 공유할 내용 복사</button>
   </div>
 
 </section>
@@ -877,8 +885,13 @@ function isPendingLesson(){
   return form.pendingCurri.some(item => item.book === form.book && item.lesson === form.lesson.lesson);
 }
 function updateCurriButtonVisibility(){
-  const btn = document.getElementById('updateCurriBtn');
-  btn.style.display = (form.lesson && !isPendingLesson()) ? 'inline-flex' : 'none';
+  const show = form.lesson && !isPendingLesson();
+  document.getElementById('updateHomeworkBtn').style.display = show ? 'inline-flex' : 'none';
+  document.getElementById('updateNoticeBtn').style.display = show ? 'inline-flex' : 'none';
+  document.getElementById('lessonRenamePanel').style.display = show ? 'block' : 'none';
+  if(show){
+    document.getElementById('lessonRenameInput').value = form.lesson.lesson;
+  }
 }
 function selectLesson(idx){
   const l = (DATA.curriculum[form.book]||[])[idx];
@@ -896,25 +909,65 @@ function selectLesson(idx){
   updateCopyPreview();
   updateCurriButtonVisibility();
 }
-document.getElementById('updateCurriBtn').addEventListener('click', async ()=>{
+
+async function refreshSelectedLessonAfterSave(lessonNameForLookup){
+  await loadData();
+  if(DATA.curriculum[form.book]){
+    const idx = DATA.curriculum[form.book].findIndex(l => l.lesson === lessonNameForLookup);
+    if(idx !== -1) form.lesson = DATA.curriculum[form.book][idx];
+  }
+  updateCurriButtonVisibility();
+  updateCopyPreview();
+}
+
+document.getElementById('updateHomeworkBtn').addEventListener('click', async ()=>{
   if(!form.book || !form.lesson) return;
   const payload = {
     book: form.book,
     lesson: form.lesson.lesson,
-    homework: document.getElementById('homeworkText').value.trim(),
+    homework: document.getElementById('homeworkText').value.trim()
+  };
+  try{
+    const res = await apiPost('updateCurriculum', payload);
+    if(res.error){ toast(res.error); return; }
+    toast('과제를 시트에 저장했습니다');
+    await refreshSelectedLessonAfterSave(payload.lesson);
+  }catch(err){ toast('저장 실패: ' + err.message); }
+});
+
+document.getElementById('updateNoticeBtn').addEventListener('click', async ()=>{
+  if(!form.book || !form.lesson) return;
+  const payload = {
+    book: form.book,
+    lesson: form.lesson.lesson,
     commonNotice: document.getElementById('commonNoticeText').value.trim()
   };
   try{
     const res = await apiPost('updateCurriculum', payload);
     if(res.error){ toast(res.error); return; }
-    toast('과제DB에 수정 내용을 저장했습니다');
-    await loadData();
-    // 재선택하여 화면 상태를 최신으로 유지
-    if(DATA.curriculum[form.book]){
-      const idx = DATA.curriculum[form.book].findIndex(l => l.lesson === payload.lesson);
-      if(idx !== -1) form.lesson = DATA.curriculum[form.book][idx];
-    }
-    updateCurriButtonVisibility();
+    toast('공통알림장을 시트에 저장했습니다');
+    await refreshSelectedLessonAfterSave(payload.lesson);
+  }catch(err){ toast('저장 실패: ' + err.message); }
+});
+
+document.getElementById('lessonRenameSave').addEventListener('click', async ()=>{
+  if(!form.book || !form.lesson) return;
+  const newLesson = document.getElementById('lessonRenameInput').value.trim();
+  if(!newLesson){ toast('진도명을 입력해주세요'); return; }
+  const payload = {
+    book: form.book,
+    lesson: form.lesson.lesson,
+    newLesson: newLesson
+  };
+  try{
+    const res = await apiPost('updateCurriculum', payload);
+    if(res.error){ toast(res.error); return; }
+    toast('진도명을 시트에 저장했습니다');
+    await refreshSelectedLessonAfterSave(newLesson);
+    lessonChip.innerHTML = `<div class="selected-chip">${newLesson} <button id="clearLesson">✕</button></div>`;
+    document.getElementById('clearLesson').addEventListener('click', ()=>{
+      form.lesson=null; lessonChip.innerHTML=''; updateCopyPreview(); updateCurriButtonVisibility();
+    });
   }catch(err){ toast('저장 실패: ' + err.message); }
 });
 
@@ -1086,12 +1139,7 @@ document.getElementById('shareBtn').addEventListener('click', async ()=>{
   if(absent) lines.push(`결석일자: ${absent}`);
   if(makeD || makeT) lines.push(`보강일정: ${makeD}${makeT ? ' ' + makeT : ''}`);
   const text = lines.join('\n');
-  if(navigator.share){
-    try{ await navigator.share({ text }); }catch(e){}
-  }else{
-    await copyText(text);
-    toast('공유 대신 복사했습니다 (붙여넣기 하세요)');
-  }
+  await copyText(text);
 });
 
 // ---------------- 결석/보강 일정 캘린더 연동 ----------------

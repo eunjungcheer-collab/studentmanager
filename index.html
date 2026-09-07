@@ -1,1582 +1,323 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>수업노트 · 알림장 작성 도우미</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<style>
-  :root{
-    --ink:#2E3A4F;
-    --ink-soft:#6C7A93;
-    --paper:#CFDCEF;
-    --panel:#F8FAFD;
-    --line:rgba(46,58,79,0.14);
-    --line-strong:rgba(46,58,79,0.26);
-    --cobalt:#6690C4;
-    --cobalt-dark:#3F638E;
-    --cobalt-soft:#DCE7F5;
-    --amber:#D98D79;
-    --amber-soft:#F6DFD6;
-    --teal:#6690C4;
-    --teal-soft:#DCE7F5;
-    --coral:#D98D79;
-    --coral-soft:#F6DFD6;
-    --violet:#8CA6C9;
-    --violet-soft:#E3EAF5;
-    --panel-salmon:#FBEAE3;
-    --radius:8px;
-    --maxw:640px;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:var(--paper);
-    color:var(--ink);
-    font-family:'Noto Sans KR', -apple-system, sans-serif;
-    font-size:15px;
-    line-height:1.55;
-    padding-bottom:60px;
-  }
-  h1,h2,h3{font-family:'Noto Serif KR', serif; margin:0; font-weight:700;}
-  ::selection{background:var(--cobalt-soft);}
+/**
+ * 학생 알림장 도우미 - 백엔드 (Google Apps Script)
+ * 시트 구성
+ *  - 학생DB : 이름 | 학교학년 | 시험범위 | 시험날짜 | 교과서 | 시험기간
+ *    (시험기간 열이 없다면 F열에 헤더를 "시험기간"으로 추가해주세요 — 전체 시험기간을 담습니다. 시험날짜는 과학시험날짜로 사용합니다)
+ *  - 과제DB : 교재명 | 진도단원 | 과제 | 공통알림장
+ *  - 수업기록 : 이 스크립트가 자동 생성/관리 (기존 데이터가 있어도 헤더 이름으로 열을 찾으므로 안전합니다)
+ *
+ * 배포 방법: 배포 > 배포 관리 > 편집(연필) > 새 버전으로 배포
+ *  (기존 배포 URL을 그대로 쓰려면 "새 배포"가 아니라 "편집 > 새 버전"으로 올려야 URL이 안 바뀝니다)
+ */
 
-  .app{max-width:var(--maxw); margin:0 auto; padding:0 16px;}
-
-  header.top{
-    padding:28px 16px 18px;
-    border-bottom:1px solid var(--line-strong);
-    max-width:var(--maxw);
-    margin:0 auto;
-    position:relative;
-  }
-  header.top::before{
-    content:'';
-    display:block;
-    width:46px; height:5px; border-radius:3px;
-    margin-bottom:14px;
-    background:linear-gradient(90deg, var(--cobalt), var(--amber));
-  }
-  header.top h1{font-size:23px; letter-spacing:-0.01em; color:var(--ink);}
-  header.top p{margin:5px 0 0; color:var(--ink-soft); font-size:13px;}
-
-  nav.tabs{
-    display:flex;
-    max-width:var(--maxw);
-    margin:0 auto;
-    border-bottom:1px solid var(--line);
-    position:sticky; top:0; background:var(--paper); z-index:20;
-  }
-  nav.tabs button{
-    flex:1;
-    padding:13px 6px;
-    background:none; border:none;
-    font-family:'Noto Sans KR', sans-serif;
-    font-size:14px; font-weight:500;
-    color:var(--ink-soft);
-    cursor:pointer;
-    border-bottom:2px solid transparent;
-    margin-bottom:-1px;
-  }
-  nav.tabs button.active{color:var(--ink); border-bottom-color:var(--cobalt); border-bottom-width:3px; font-weight:700;}
-
-  section.view{display:none; padding-top:18px;}
-  section.view.active{display:block;}
-
-  .record-grid{display:block;}
-  .record-col{min-width:0;}
-
-  .block{
-    background:var(--panel-salmon);
-    border:1px solid var(--line);
-    border-radius:var(--radius);
-    padding:16px;
-    margin-bottom:14px;
-  }
-  .block-title{
-    font-size:12px; font-weight:700; color:var(--ink-soft);
-    margin-bottom:10px;
-    display:flex; align-items:center; gap:8px;
-  }
-  .block-title .n{
-    display:inline-flex; align-items:center; justify-content:center;
-    width:19px; height:19px; border-radius:50%;
-    background:var(--amber); color:#fff; font-size:11px; font-weight:700;
-    flex:none;
-  }
-  .n.c-amber{background:var(--amber);}
-  .n.c-teal{background:var(--teal);}
-  .n.c-coral{background:var(--coral);}
-  .n.c-violet{background:var(--violet);}
-  .n.c-cobalt{background:var(--cobalt);}
-
-  label{display:block; font-size:12px; color:var(--ink-soft); margin:10px 0 4px;}
-  label:first-child{margin-top:0;}
-  input[type=text], input[type=number], input[type=date], input[type=time], textarea, select{
-    width:100%;
-    padding:10px 11px;
-    border:1px solid var(--line-strong);
-    border-radius:5px;
-    background:#fff;
-    font-family:inherit; font-size:14px; color:var(--ink);
-  }
-  input:focus, textarea:focus, select:focus{
-    outline:2px solid var(--cobalt); outline-offset:0; border-color:var(--cobalt);
-  }
-  textarea{resize:vertical; min-height:56px;}
-
-  .search-wrap{position:relative; max-width:320px;}
-  .dropdown{
-    position:absolute; left:0; right:0; top:calc(100% + 3px);
-    background:#fff; border:1px solid var(--line-strong); border-radius:5px;
-    max-height:220px; overflow-y:auto; z-index:30;
-    box-shadow:0 6px 16px rgba(28,43,57,0.14);
-  }
-  .dropdown .opt{
-    padding:9px 12px; cursor:pointer; font-size:13.5px;
-    border-bottom:1px solid var(--line);
-  }
-  .dropdown .opt:last-child{border-bottom:none;}
-  .dropdown .opt:hover, .dropdown .opt.hi{background:var(--cobalt-soft);}
-  .dropdown .opt .sub{color:var(--ink-soft); font-size:11.5px; margin-top:1px;}
-  .dropdown .empty{padding:10px 12px; color:var(--ink-soft); font-size:13px;}
-  .dropdown .add-new{
-    padding:10px 12px; cursor:pointer; color:var(--cobalt); font-weight:700; font-size:13.5px;
-    border-top:1px dashed var(--line-strong);
-  }
-  .dropdown .add-new:hover{background:var(--cobalt-soft);}
-
-  .selected-chip{
-    display:inline-flex; align-items:center; gap:8px;
-    background:var(--cobalt-soft); color:var(--cobalt-dark);
-    border:1px solid rgba(30,73,226,0.3);
-    border-radius:5px; padding:7px 11px; font-size:13.5px; font-weight:500;
-    margin-top:6px;
-  }
-  .selected-chip button{
-    background:none; border:none; color:var(--cobalt-dark); cursor:pointer;
-    font-size:14px; line-height:1; padding:0;
-  }
-
-  .btn{
-    display:inline-flex; align-items:center; justify-content:center; gap:6px;
-    padding:10px 16px; border-radius:5px; border:1px solid var(--line-strong);
-    background:#fff; color:var(--ink); font-size:13.5px; font-weight:500;
-    cursor:pointer; font-family:inherit;
-  }
-  .btn:active{transform:translateY(1px);}
-  .btn.primary{background:var(--cobalt); color:#fff; border-color:var(--cobalt);}
-  .btn.brass{background:var(--amber); color:#fff; border-color:var(--amber);}
-  .btn.teal{background:var(--teal); color:#fff; border-color:var(--teal);}
-  .btn.ghost{background:transparent;}
-  .btn.block-w{width:100%;}
-  .btn.sm{padding:7px 11px; font-size:12.5px;}
-  .btn:disabled{opacity:0.45; cursor:not-allowed;}
-
-  .row{display:flex; gap:10px;}
-  .row > *{flex:1;}
-
-  .copy-field{
-    background:#fff; border:1px solid var(--line-strong); border-radius:5px;
-    padding:11px 12px; margin-top:6px;
-  }
-  .copy-field .txt{font-size:13.5px; white-space:pre-wrap; color:var(--ink); margin-bottom:8px;}
-  .copy-field .txt.empty{color:var(--ink-soft); font-style:normal;}
-  .copy-field textarea.txt-edit{
-    display:block; width:100%; border:none; background:transparent; resize:vertical;
-    font:inherit; font-size:13.5px; color:var(--ink); padding:0; margin-bottom:8px;
-    min-height:44px;
-  }
-  .copy-field textarea.txt-edit:focus{outline:none;}
-
-  .toggle-pair{display:flex; gap:8px;}
-  .toggle-pair button{
-    flex:1; padding:10px; border-radius:5px; border:1px solid var(--line-strong);
-    background:#fff; font-weight:700; font-size:13px; cursor:pointer; color:var(--ink-soft);
-  }
-  .toggle-pair button.pass.on{background:var(--teal); border-color:var(--teal); color:#fff;}
-  .toggle-pair button.fail.on{background:var(--coral); border-color:var(--coral); color:#fff;}
-
-  .divider{border:none; border-top:1px dashed var(--line-strong); margin:14px 0;}
-
-  .toast{
-    position:fixed; left:50%; bottom:26px; transform:translateX(-50%);
-    background:var(--ink); color:#fff; padding:10px 18px; border-radius:5px;
-    font-size:13.5px; z-index:100; opacity:0; pointer-events:none;
-    transition:opacity .2s ease;
-  }
-  .toast.show{opacity:1;}
-
-  .pending-list{margin-top:8px;}
-  .pending-item{
-    display:flex; justify-content:space-between; align-items:center; gap:8px;
-    padding:8px 10px; background:var(--amber-soft); border-radius:5px; margin-bottom:6px;
-    font-size:12.5px;
-  }
-  .pending-item .rm{background:none; border:none; color:var(--coral); cursor:pointer; font-weight:700;}
-
-  .student-card{
-    border:1px solid var(--line); border-radius:var(--radius); background:var(--panel);
-    padding:14px; margin-bottom:10px;
-  }
-  .student-card h3{font-size:15px;}
-  .student-card .meta{color:var(--ink-soft); font-size:12.5px; margin-top:2px;}
-  .record-row{
-    padding:12px 14px; border:1px solid var(--line); border-radius:6px; background:#fff;
-    margin-bottom:8px; font-size:14px; color:var(--ink-soft); line-height:1.7;
-  }
-  .record-row b{color:var(--ink); font-weight:700; font-size:14.5px;}
-
-  .info-compact{
-    display:flex; flex-direction:column;
-  }
-  .info-row{
-    display:flex; justify-content:space-between; gap:10px;
-    padding:5px 0; border-bottom:1px dashed var(--line);
-    font-size:12.5px;
-  }
-  .info-row:last-child{border-bottom:none;}
-  .info-label{color:var(--ink-soft); flex:none;}
-  .info-row span:last-child{color:var(--ink); font-weight:500; text-align:right;}
-
-  #recentTitle{font-size:14.5px; color:var(--ink); font-weight:700;}
-  #recentTitle .n{width:22px; height:22px; font-size:12px;}
-
-  .hint{font-size:11.5px; color:var(--ink-soft); margin-top:4px;}
-
-  .inline-new{
-    margin-top:10px; padding:12px; background:var(--cobalt-soft);
-    border-radius:6px; border:1px solid rgba(30,73,226,0.25);
-  }
-  .inline-new label{margin-top:8px;}
-  .inline-new label:first-of-type{margin-top:0;}
-  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:0 10px;}
-  .form-grid label{margin-top:8px;}
-  .status-dot{display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px;}
-  .status-dot.ok{background:var(--teal);}
-  .status-dot.no{background:var(--coral);}
-  .record-actions .btn + .btn{ margin-top:10px; }
-
-  .lock-screen{
-    position:fixed; inset:0; z-index:200;
-    background:var(--paper);
-    display:flex; align-items:center; justify-content:center;
-    padding:20px;
-  }
-  .lock-box{
-    width:100%; max-width:320px;
-    background:var(--panel); border:1px solid var(--line);
-    border-radius:var(--radius); padding:28px 24px; text-align:center;
-  }
-  .lock-box h1{font-size:20px; margin-bottom:4px;}
-  .lock-box p{color:var(--ink-soft); font-size:13px; margin:0 0 16px;}
-  .lock-box input{
-    text-align:center; letter-spacing:6px; font-size:20px;
-    margin-bottom:12px;
-  }
-  .lock-box .hint{margin-top:10px;}
-
-  .student-bar{
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-    padding:10px 14px; background:var(--panel); border:1px solid var(--line);
-    border-radius:6px; margin-bottom:14px; font-size:13.5px; color:var(--ink-soft);
-  }
-
-  /* ---- 넓은 화면(PC/태블릿 가로): 옆으로 넓게, 두 칸으로 배치 ---- */
-  @media (min-width: 860px){
-    :root{ --maxw:1080px; }
-    body{ padding-bottom:80px; }
-    header.top{ padding:34px 24px 20px; }
-    .app{ padding:0 24px; }
-    .record-grid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:0 20px;
-      align-items:start;
+function doGet(e) {
+  try {
+    const action = (e.parameter.action || 'getData');
+    if (action === 'getData') {
+      return respond(getAllData());
     }
-    #view-manage{
-      display:grid;
-      grid-template-columns:340px 1fr;
-      gap:0 20px;
-      align-items:start;
+    return respond({ error: '알 수 없는 action: ' + action });
+  } catch (err) {
+    return respond({ error: err.toString() });
+  }
+}
+
+function doPost(e) {
+  try {
+    const action = e.parameter.action || 'addRecord';
+    let result;
+    switch (action) {
+      case 'addStudent':
+        result = addStudent(e.parameter);
+        break;
+      case 'updateStudent':
+        result = updateStudent(e.parameter);
+        break;
+      case 'addCurriculumBatch':
+        result = addCurriculumBatch(JSON.parse(e.parameter.items || '[]'));
+        break;
+      case 'updateCurriculum':
+        result = updateCurriculum(e.parameter);
+        break;
+      case 'deleteRecord':
+        result = deleteRecord(e.parameter);
+        break;
+      case 'addRecord':
+      default:
+        result = addRecord(e.parameter);
+        break;
     }
-    #view-manage > .block:first-child{ grid-column:1; }
-    #manageResults{ grid-column:1; }
-    #manageDetail{ grid-column:2; grid-row:1 / span 2; margin-top:0; }
-    #saveRecordBtn, #shareBtn{ max-width:420px; }
-    .record-actions{ display:flex; gap:10px; }
-    .record-actions .btn{ width:auto; flex:1; }
-    .record-actions .btn + .btn{ margin-top:0; }
-  }
-</style>
-</head>
-<body>
-
-<div class="lock-screen" id="lockScreen">
-  <div class="lock-box">
-    <h1>수업노트</h1>
-    <p>비밀번호를 입력해주세요</p>
-    <input type="password" id="lockInput" inputmode="numeric" placeholder="••••" autocomplete="off">
-    <button class="btn primary block-w" id="lockSubmit">확인</button>
-    <p class="hint" id="lockError" style="color:var(--coral); display:none;">비밀번호가 올바르지 않습니다</p>
-  </div>
-</div>
-
-<div id="appRoot" style="display:none;">
-
-<header class="top">
-  <h1>수업노트</h1>
-  <p>오늘 수업 기록을 정리하고, 아카2000에 그대로 옮겨 붙일 수 있게 준비합니다</p>
-</header>
-
-<nav class="tabs">
-  <button class="tab-btn active" data-view="record">오늘 수업기록</button>
-  <button class="tab-btn" data-view="manage">학생 관리</button>
-  <button class="tab-btn" data-view="settings">설정</button>
-</nav>
-
-<div class="app">
-
-<!-- ============ 오늘 수업기록 ============ -->
-<section class="view active" id="view-record">
-
-  <div class="block">
-    <div class="block-title"><span class="n c-cobalt">1</span>학생</div>
-    <div class="search-wrap">
-      <input type="text" id="studentSearch" placeholder="학생 이름 검색" autocomplete="off">
-      <div class="dropdown" id="studentDropdown" style="display:none;"></div>
-    </div>
-    <div id="studentChip"></div>
-  </div>
-
-  <div class="record-grid">
-  <div class="record-col">
-
-  <div class="block">
-    <div class="block-title"><span class="n c-cobalt">2</span>교재 &amp; 오늘 진도</div>
-    <label>교재</label>
-    <div class="search-wrap">
-      <input type="text" id="bookSearch" placeholder="교재명 검색 또는 새 교재명 입력" autocomplete="off">
-      <div class="dropdown" id="bookDropdown" style="display:none;"></div>
-
-    </div>
-    <div id="bookChip"></div>
-
-    <div id="lessonArea" style="display:none; margin-top:12px;">
-      <label>오늘 진도</label>
-      <div class="search-wrap">
-        <input type="text" id="lessonSearch" placeholder="진도 검색 또는 새 진도 입력 (예: 1단원 물질)" autocomplete="off">
-        <div class="dropdown" id="lessonDropdown" style="display:none;"></div>
-      </div>
-      <div id="lessonChip"></div>
-      <div id="lessonRenamePanel" style="display:none; margin-top:8px;">
-        <div class="copy-field">
-          <input type="text" id="lessonRenameInput" style="border:none; background:transparent; padding:0; font-size:13.5px; margin-bottom:8px;">
-          <button class="btn sm" id="lessonRenameSave">진도명 시트에 저장</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="bookHomeworkPanel" style="display:none; margin-top:10px;">
-      <div class="copy-field">
-        <div class="txt" id="copy_bookHomework">-</div>
-        <button class="btn sm" data-copy="copy_bookHomework">복사</button>
-      </div>
-      <div class="copy-field">
-        <textarea class="txt-edit" id="copy_bookHomeworkContent" placeholder="-"></textarea>
-        <button class="btn sm" data-copy="copy_bookHomeworkContent">복사</button>
-      </div>
-    </div>
-
-    <div id="newCurriForm" class="inline-new" style="display:none;">
-      <p class="hint" style="margin:0 0 8px;">위 진도 칸의 내용으로 새 항목을 대기 목록에 담습니다 (교재: <span id="nc_bookLabel"></span>).</p>
-      <label>과제</label>
-      <textarea id="nc_homework" placeholder="예) 책 4-6, 시험대비교재 4-7"></textarea>
-      <label>공통알림장</label>
-      <textarea id="nc_notice" placeholder="예) 금일 %%학생 과학 수업 시간에는 ..."></textarea>
-      <div class="row" style="margin-top:10px;">
-        <button class="btn ghost sm" id="nc_cancel">취소</button>
-        <button class="btn primary sm" id="nc_addToPending">대기 목록에 담기</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="block" id="pendingBlock" style="display:none;">
-    <div class="block-title"><span class="n c-coral">·</span>아직 시트에 저장되지 않은 새 항목</div>
-    <div class="pending-list" id="pendingList"></div>
-    <button class="btn teal block-w" id="flushPending">구글 시트에 누적 저장</button>
-    <p class="hint">이미 시트에 있는 교재·진도와 겹치는 항목은 자동으로 건너뜁니다.</p>
-  </div>
-
-  <div class="block">
-    <div class="block-title"><span class="n c-cobalt">3</span>오늘 과제</div>
-    <textarea id="homeworkText" placeholder="선택한 진도의 과제가 자동으로 채워집니다. 직접 수정 가능"></textarea>
-    <button class="btn teal sm" id="updateHomeworkBtn" style="display:none; margin-top:10px;">과제 시트에 저장</button>
-  </div>
-
-  <div class="block">
-    <div class="block-title"><span class="n c-violet">4</span>알림장 내용</div>
-    <label>공통알림장 (교재/진도 선택 시 자동)</label>
-    <textarea id="commonNoticeText" style="min-height:110px;" placeholder="교재·진도를 선택하면 공통알림장이 채워집니다"></textarea>
-    <label>학생 개별 문구 (선택)</label>
-    <textarea id="personalNoteText" style="min-height:90px;" placeholder="이 학생에게만 전달할 내용이 있으면 적어주세요"></textarea>
-    <p class="hint">%%학생 표기는 그대로 두시면 아카2000에서 학생 이름으로 자동 치환됩니다.</p>
-    <button class="btn teal sm" id="updateNoticeBtn" style="display:none; margin-top:10px;">공통알림장 시트에 저장</button>
-    <button class="btn primary sm" id="updateAllCurriBtn" style="display:none; margin-top:8px;">진도·과제·알림장 모두 저장</button>
-  </div>
-
-  <div class="block">
-    <div class="block-title"><span class="n c-cobalt">5</span>오늘 시험 점수</div>
-    <label>개념암기</label>
-    <div class="toggle-pair">
-      <button class="pass" id="concept_pass">PASS</button>
-      <button class="fail" id="concept_fail">FAIL</button>
-    </div>
-    <label>객관식 시험</label>
-    <input type="number" id="quizScore" placeholder="점수 입력 (예: 85)">
-  </div>
-
-  </div>
-  <div class="record-col">
-
-  <div class="block">
-    <div class="block-title"><span class="n c-cobalt">✓</span>복사해서 아카2000에 붙여넣기</div>
-
-    <label style="margin-top:0;">교재</label>
-    <div class="copy-field">
-      <textarea class="txt-edit" id="copy_book" placeholder="교재를 선택하면 여기 채워집니다"></textarea>
-      <button class="btn sm" data-copy="copy_book">복사</button>
-    </div>
-
-    <label>진도</label>
-    <div class="copy-field">
-      <textarea class="txt-edit" id="copy_lesson" placeholder="진도를 선택하면 여기 채워집니다"></textarea>
-      <button class="btn sm" data-copy="copy_lesson">복사</button>
-    </div>
-
-    <label>과제 제목</label>
-    <div class="copy-field">
-      <textarea class="txt-edit" id="copy_homeworkTitle" placeholder="교재를 선택하면 여기 채워집니다"></textarea>
-      <button class="btn sm" data-copy="copy_homeworkTitle">복사</button>
-    </div>
-
-    <label>오늘 과제</label>
-    <div class="copy-field">
-      <textarea class="txt-edit" id="copy_homework" placeholder="-"></textarea>
-      <button class="btn sm" data-copy="copy_homework">복사</button>
-    </div>
-
-    <label>알림장 머리말</label>
-    <div class="copy-field">
-      <textarea class="txt-edit" id="copy_noticeHeader">%%학생 과학 수업 알림장내용입니다</textarea>
-      <button class="btn sm" data-copy="copy_noticeHeader">복사</button>
-    </div>
-
-    <label>알림장 내용</label>
-    <div class="copy-field">
-      <textarea class="txt-edit" id="copy_notice" style="min-height:110px;" placeholder="-"></textarea>
-      <button class="btn sm" data-copy="copy_notice">복사</button>
-    </div>
-  </div>
-
-  </div>
-  </div>
-
-  <div class="block">
-    <div class="block-title"><span class="n c-teal">6</span>결석 &amp; 보강</div>
-    <label>결석일자</label>
-    <input type="date" id="absentDate">
-    <div class="row" style="margin-top:10px;">
-      <button class="btn sm" id="addAbsentGoogleCal">결석 캘린더에 추가</button>
-      <button class="btn sm" id="downloadAbsentIcs">결석 .ics 다운로드</button>
-    </div>
-
-    <div class="row" style="margin-top:14px;">
-      <div>
-        <label>보강일자</label>
-        <input type="date" id="makeupDate">
-      </div>
-      <div>
-        <label>보강시간</label>
-        <input type="time" id="makeupTime">
-      </div>
-    </div>
-    <div class="row" style="margin-top:10px;">
-      <button class="btn sm" id="addToGoogleCal">보강 캘린더에 추가</button>
-      <button class="btn sm" id="downloadIcs">보강 .ics 다운로드</button>
-    </div>
-    <p class="hint">.ics 파일은 삼성캘린더 등 아이콘을 눌러 열면 바로 일정으로 추가됩니다. 날짜를 입력한 뒤 눌러주세요. 구글 캘린더 연동이 켜져 있으면 저장 시 결석·보강 일정이 각각 자동으로도 등록됩니다.</p>
-  </div>
-
-  <div class="record-actions">
-  <button class="btn primary block-w" id="saveRecordBtn" style="padding:13px; font-size:14.5px;">오늘 수업기록 저장</button>
-  <button class="btn block-w" id="shareBtn">카톡 / 문자로 공유할 내용 복사</button>
-  </div>
-
-</section>
-
-<!-- ============ 학생 관리 ============ -->
-<section class="view" id="view-manage">
-  <div class="block">
-    <div class="block-title"><span class="n c-cobalt">Q</span>학생 검색</div>
-    <div class="search-wrap">
-      <input type="text" id="manageSearch" placeholder="학생 이름 검색 또는 새 이름 입력" autocomplete="off">
-    </div>
-    <div id="manageNewForm" class="inline-new" style="display:none;">
-      <p class="hint" style="margin:0 0 8px;">위 칸의 이름으로 새 학생을 등록합니다. 필요하면 위에서 이름을 바로 고치세요.</p>
-      <div class="form-grid">
-        <div><label>학교학년</label><input type="text" id="ns_school" placeholder="예) 중계중2"></div>
-        <div><label>교과서</label><input type="text" id="ns_book" placeholder="예) 오투과학2-1"></div>
-        <div><label>전체 시험기간</label><input type="text" id="ns_examPeriod" placeholder="예) 9/24~9/26"></div>
-        <div><label>과학시험날짜</label><input type="date" id="ns_examDate"></div>
-        <div><label>시험범위</label><input type="text" id="ns_examRange" placeholder="예) 4,8"></div>
-      </div>
-      <div class="row" style="margin-top:10px;">
-        <button class="btn ghost sm" id="ns_cancel">취소</button>
-        <button class="btn primary sm" id="ns_save">학생DB에 저장</button>
-      </div>
-    </div>
-  </div>
-  <div id="manageResults"></div>
-
-  <div class="block" id="manageDetail" style="display:none;">
-    <div class="block-title"><span class="n c-cobalt">✎</span>학생 정보</div>
-    <input type="hidden" id="md_originalName">
-
-    <div class="info-compact" id="infoCompact">
-      <div class="info-row"><span class="info-label">이름</span><span id="ic_name"></span></div>
-      <div class="info-row"><span class="info-label">학교학년</span><span id="ic_school"></span></div>
-      <div class="info-row"><span class="info-label">교과서</span><span id="ic_book"></span></div>
-      <div class="info-row"><span class="info-label">전체 시험기간</span><span id="ic_examPeriod"></span></div>
-      <div class="info-row"><span class="info-label">과학시험날짜</span><span id="ic_examDate"></span></div>
-      <div class="info-row"><span class="info-label">시험범위</span><span id="ic_examRange"></span></div>
-    </div>
-    <div class="row" id="md_actionsRow" style="margin-top:10px;">
-      <button class="btn sm" id="md_editToggle">정보 수정</button>
-      <button class="btn teal sm" id="md_pickForToday">오늘 수업기록 작성</button>
-    </div>
-
-    <div id="editForm" class="inline-new" style="display:none;">
-      <label style="margin-top:0;">이름</label>
-      <input type="text" id="md_name" disabled>
-      <label>학교학년</label>
-      <input type="text" id="md_school">
-      <label>교과서</label>
-      <input type="text" id="md_book">
-      <label>전체 시험기간</label>
-      <input type="text" id="md_examPeriod" placeholder="예) 9/24~9/26">
-      <label>과학시험날짜</label>
-      <input type="date" id="md_examDate">
-      <label>시험범위</label>
-      <input type="text" id="md_examRange">
-      <div class="row" style="margin-top:10px;">
-        <button class="btn ghost sm" id="md_editCancel">취소</button>
-        <button class="btn primary sm" id="md_save">구글 시트에 저장</button>
-      </div>
-    </div>
-
-    <hr class="divider">
-    <div class="block-title" id="recentTitle"><span class="n c-coral">≡</span>최근 수업 기록</div>
-    <div id="md_records"></div>
-  </div>
-</section>
-
-<!-- ============ 설정 ============ -->
-<section class="view" id="view-settings">
-  <div class="block">
-    <div class="block-title"><span class="n c-teal">📅</span>구글 캘린더 자동 연동</div>
-    <label>구글 OAuth 클라이언트 ID</label>
-    <input type="text" id="gcalClientId" placeholder="xxxxxxxx.apps.googleusercontent.com" value="124712258994-ffgquqflaomcds1p46m72ppic8qlcb9v.apps.googleusercontent.com">
-    <p class="hint">Google Cloud Console에서 발급받은 클라이언트 ID를 붙여넣으세요. 아래 "설정 방법 보기"에 순서를 안내해 두었습니다.</p>
-    <button class="btn primary" id="gcalSaveClientId" style="margin-top:10px;">클라이언트 ID 저장</button>
-    <button class="btn teal" id="gcalConnect" style="margin-top:10px;">구글 계정 연결</button>
-    <p class="hint" id="gcalStatus" style="margin-top:10px;"></p>
-    <p class="hint" style="margin-top:10px;">연결되면 보강일자를 입력하고 "오늘 수업기록 저장"을 누를 때 구글 캘린더에 자동으로 일정이 생성됩니다. 연결 전에는 지금처럼 "구글 캘린더에 추가" 버튼으로 수동 등록하시면 됩니다.</p>
-  </div>
-  <div class="block">
-    <div class="block-title"><span class="n c-cobalt">⚙</span>구글 시트 연결</div>
-    <label>Apps Script 웹앱 URL</label>
-    <input type="text" id="webAppUrl" placeholder="https://script.google.com/macros/s/ .../exec" value="https://script.google.com/macros/s/AKfycbypEPpo_ah7GwsKXHm7K8gnrWkhHtJcSyafLysb2_-5B5Wq9tf1rdc8NQXmG22YvOUg/exec">
-    <p class="hint">구글 시트 &gt; 확장 프로그램 &gt; Apps Script에서 배포한 웹앱의 URL을 붙여넣으세요. 이 값은 이 기기에만 저장됩니다.</p>
-    <button class="btn primary" id="saveUrlBtn" style="margin-top:10px;">저장</button>
-    <button class="btn ghost" id="reloadDataBtn" style="margin-top:10px;">데이터 새로고침</button>
-    <p class="hint" id="connStatus" style="margin-top:10px;"></p>
-  </div>
-  <div class="block">
-    <div class="block-title"><span class="n c-coral">🔒</span>비밀번호 변경</div>
-    <label>현재 비밀번호</label>
-    <input type="password" id="pw_current" inputmode="numeric" autocomplete="off">
-    <label>새 비밀번호</label>
-    <input type="password" id="pw_new" inputmode="numeric" autocomplete="off">
-    <label>새 비밀번호 확인</label>
-    <input type="password" id="pw_confirm" inputmode="numeric" autocomplete="off">
-    <button class="btn primary" id="pw_save" style="margin-top:10px;">비밀번호 변경</button>
-    <p class="hint">처음 비밀번호는 1234입니다. 이 기기의 브라우저에만 저장되며, 다른 기기에서 열면 각자 설정해야 합니다.</p>
-  </div>
-  <div class="block">
-    <div class="block-title"><span class="n c-violet">i</span>안내</div>
-    <p class="hint" style="font-size:12.5px; line-height:1.7;">
-      · 학생 추가는 저장 즉시 학생DB에 반영됩니다.<br>
-      · 새 교재·진도는 "대기 목록"에 담긴 뒤, 누적 저장을 눌러야 과제DB에 반영됩니다 (중복 자동 제외).<br>
-      · 한글(HWP) 파일로 가진 교재별 진도·과제·공통알림장 자료가 있으면, 채팅으로 파일을 보내주세요. 과제DB에 바로 붙여넣기 좋은 형태(표/탭 구분 텍스트)로 정리해 드립니다.
-    </p>
-  </div>
-</section>
-
-</div>
-
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-// ---------------- 상태 ----------------
-let CONFIG = { webAppUrl: 'https://script.google.com/macros/s/AKfycbypEPpo_ah7GwsKXHm7K8gnrWkhHtJcSyafLysb2_-5B5Wq9tf1rdc8NQXmG22YvOUg/exec', gcalClientId: '124712258994-ffgquqflaomcds1p46m72ppic8qlcb9v.apps.googleusercontent.com' };
-let DATA = { students: [], curriculum: {}, records: [] };
-let form = {
-  student: null,
-  book: '',
-  lesson: null,      // {lesson, homework, commonNotice}
-  pendingCurri: []
-};
-
-// ---------------- 유틸 ----------------
-function normalize(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,''); }
-// 구글시트에서 오는 날짜/시간 값은 형식이 제각각(ISO, 풀텍스트, 시간전용 등)일 수 있어
-// 항상 보기 좋은 형태로 정리해서 돌려준다.
-function fmtDT(raw){
-  if(!raw) return '';
-  const s = raw.toString().trim();
-  if(!s) return '';
-  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; // 이미 깔끔한 날짜만 있는 경우
-  const d = new Date(s);
-  if(isNaN(d.getTime())) return s; // 파싱 불가하면 원본 그대로
-  const pad = n => n.toString().padStart(2, '0');
-  if(d.getFullYear() < 1901){
-    // 구글시트의 "시간만" 값이 1899-12-30 등 임의의 날짜와 함께 오는 경우 -> 시간만 표시
-    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }
-  const dateStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  const hh = d.getHours(), mm = d.getMinutes();
-  if(hh === 0 && mm === 0) return dateStr; // 시간 정보가 없는 순수 날짜
-  return `${dateStr} ${pad(hh)}:${pad(mm)}`;
-}
-function fuzzyScore(query, target){
-  const q = normalize(query), t = normalize(target);
-  if(!q) return 1;
-  if(t.includes(q)) return 100 - (t.length - q.length)*0.1 + (t.startsWith(q)?5:0);
-  let score=0, ti=0;
-  for(const ch of q){ const idx = t.indexOf(ch, ti); if(idx!==-1){ score++; ti=idx+1; } }
-  return (score / q.length) * 40;
-}
-function fuzzySearch(query, items, keyFn){
-  const scored = items.map(it=>({it, s: fuzzyScore(query, keyFn(it))}));
-  const filtered = query ? scored.filter(x=>x.s>12) : scored;
-  return filtered.sort((a,b)=>b.s-a.s).map(x=>x.it);
-}
-function toast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 1800);
-}
-async function copyText(text){
-  try{ await navigator.clipboard.writeText(text); toast('복사했습니다'); }
-  catch(e){
-    const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
-    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    toast('복사했습니다');
+    return respond(result);
+  } catch (err) {
+    return respond({ error: err.toString() });
   }
 }
 
-// ---------------- 구글 시트 통신 ----------------
-async function apiGet(){
-  if(!CONFIG.webAppUrl) return null;
-  const res = await fetch(CONFIG.webAppUrl + '?action=getData');
-  return res.json();
-}
-async function apiPost(action, params){
-  if(!CONFIG.webAppUrl) throw new Error('설정 탭에서 웹앱 URL을 먼저 입력해주세요');
-  const body = new URLSearchParams({ action, ...params });
-  const res = await fetch(CONFIG.webAppUrl, { method:'POST', body });
-  return res.json();
+function respond(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
-async function loadData(){
-  const status = document.getElementById('connStatus');
-  if(!CONFIG.webAppUrl){
-    if(status) status.innerHTML = '<span class="status-dot no"></span>웹앱 URL이 설정되지 않았습니다';
-    return;
+function getSS() { return SpreadsheetApp.getActiveSpreadsheet(); }
+
+function getHeaderIndex(headers, names) {
+  for (const n of names) {
+    const idx = headers.indexOf(n);
+    if (idx !== -1) return idx;
   }
-  try{
-    const data = await apiGet();
-    if(data.error) throw new Error(data.error);
-    DATA = data;
-    if(status) status.innerHTML = '<span class="status-dot ok"></span>연결됨 · 학생 ' + DATA.students.length + '명, 교재 ' + Object.keys(DATA.curriculum).length + '종';
-  }catch(err){
-    if(status) status.innerHTML = '<span class="status-dot no"></span>연결 실패: ' + err.message;
-  }
+  return -1;
 }
 
-// ---------------- 탭 ----------------
-function activateTab(view){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
-  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id === 'view-' + view));
-}
-document.querySelectorAll('.tab-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>activateTab(btn.dataset.view));
-});
-
-// ---------------- 학생 검색 (오늘 수업기록 상단) ----------------
-const studentSearchInput = document.getElementById('studentSearch');
-const studentDropdown = document.getElementById('studentDropdown');
-const studentChip = document.getElementById('studentChip');
-
-function renderStudentDropdown(){
-  const q = studentSearchInput.value.trim();
-  const results = fuzzySearch(q, DATA.students, s=>s.이름 + ' ' + s.학교학년).slice(0,8);
-  let html = '';
-  if(results.length===0){
-    html = q
-      ? '<div class="empty">일치하는 학생이 없습니다. 학생관리 탭에서 추가해주세요.</div>'
-      : '<div class="empty">이름을 입력해 검색하세요</div>';
-  }else{
-    results.forEach(s=>{
-      html += `<div class="opt" data-name="${s.이름}">${s.이름}<div class="sub">${s.학교학년 || ''}${s.교과서 ? ' · ' + s.교과서 : ''}</div></div>`;
-    });
-  }
-  studentDropdown.innerHTML = html;
-  studentDropdown.style.display = 'block';
-  studentDropdown.querySelectorAll('.opt').forEach(el=>{
-    el.addEventListener('click', ()=>selectStudent(el.dataset.name));
-  });
-}
-studentSearchInput.addEventListener('input', renderStudentDropdown);
-studentSearchInput.addEventListener('focus', renderStudentDropdown);
-document.addEventListener('click', (e)=>{
-  if(!e.target.closest('.search-wrap')) {
-    document.querySelectorAll('.dropdown').forEach(d=>d.style.display='none');
-  }
-});
-
-function renderStudentChip(){
-  if(form.student){
-    studentChip.innerHTML = `<div class="selected-chip">${form.student.이름} · ${form.student.학교학년||'학교학년 미입력'} <button id="clearStudent">✕</button></div>`;
-    document.getElementById('clearStudent').addEventListener('click', ()=>{
-      form.student = null; renderStudentChip(); updateCopyPreview();
-    });
-  }else{
-    studentChip.innerHTML = '';
-  }
+function getStudentSheet(ss) {
+  return ss.getSheetByName('학생DB') || ss.getSheetByName('학생목록') || ss.getSheets()[0];
 }
 
-function selectStudent(name){
-  const s = DATA.students.find(x=>x.이름===name);
-  if(!s) return;
-  form.student = s;
-  studentSearchInput.value = '';
-  studentDropdown.style.display = 'none';
-  renderStudentChip();
-  // 교재 자동 선택
-  if(s.교과서 && DATA.curriculum[s.교과서]){
-    bookSearch.value = '';
-    selectBook(s.교과서);
-  }
-  updateCopyPreview();
+function getCurriSheet(ss) {
+  return ss.getSheetByName('과제DB') || ss.getSheetByName('커리큘럼') || ss.getSheetByName('진도표');
 }
 
-// ---------------- 교재 검색 ----------------
-const bookSearch = document.getElementById('bookSearch');
-const bookDropdown = document.getElementById('bookDropdown');
-const bookChip = document.getElementById('bookChip');
-const lessonArea = document.getElementById('lessonArea');
-const newCurriForm = document.getElementById('newCurriForm');
+function getAllData() {
+  const ss = getSS();
 
-function renderBookDropdown(){
-  const q = bookSearch.value.trim();
-  const books = Object.keys(DATA.curriculum);
-  const results = fuzzySearch(q, books, b=>b).slice(0,8);
-  let html = '';
-  if(results.length===0){ html += '<div class="empty">일치하는 교재가 없습니다</div>'; }
-  else results.forEach(b=>{ html += `<div class="opt" data-book="${b}">${b}<div class="sub">진도 ${DATA.curriculum[b].length}개</div></div>`; });
-  if(q && !books.includes(q)) html += `<div class="add-new" id="addNewBookBtn">+ "${q}" 새 교재로 사용</div>`;
-  bookDropdown.innerHTML = html;
-  bookDropdown.style.display = 'block';
-  bookDropdown.querySelectorAll('.opt').forEach(el=>el.addEventListener('click', ()=>selectBook(el.dataset.book)));
-  const addBtn = document.getElementById('addNewBookBtn');
-  if(addBtn) addBtn.addEventListener('click', ()=>useNewBook(q));
-}
-bookSearch.addEventListener('input', renderBookDropdown);
-bookSearch.addEventListener('focus', renderBookDropdown);
-bookSearch.addEventListener('keydown', (e)=>{
-  if(e.key !== 'Enter') return;
-  e.preventDefault();
-  const q = bookSearch.value.trim();
-  if(!q) return;
-  if(DATA.curriculum[q]){ selectBook(q); return; }
-  useNewBook(q);
-});
-
-function useNewBook(book){
-  if(!DATA.curriculum[book]) DATA.curriculum[book] = [];
-  bookDropdown.style.display = 'none';
-  selectBook(book);
-}
-
-function selectBook(book){
-  form.book = book;
-  form.lesson = null;
-  bookSearch.value = '';
-  bookDropdown.style.display = 'none';
-  newCurriForm.style.display = 'none';
-  bookChip.innerHTML = `<div class="selected-chip">${book} <button id="clearBook">✕</button></div>`;
-  document.getElementById('clearBook').addEventListener('click', ()=>{
-    form.book=''; form.lesson=null; bookChip.innerHTML=''; lessonArea.style.display='none';
-    document.getElementById('lessonChip').innerHTML='';
-    updateCopyPreview();
-    updateCurriButtonVisibility();
-  });
-  lessonArea.style.display = 'block';
-  lessonChip.innerHTML = '';
-  updateCopyPreview();
-  updateCurriButtonVisibility();
-}
-
-// ---------------- 진도 검색 ----------------
-const lessonSearch = document.getElementById('lessonSearch');
-const lessonDropdown = document.getElementById('lessonDropdown');
-const lessonChip = document.getElementById('lessonChip');
-
-function renderLessonDropdown(){
-  if(!form.book) return;
-  const q = lessonSearch.value.trim();
-  const lessons = DATA.curriculum[form.book] || [];
-  const results = fuzzySearch(q, lessons, l=>l.lesson).slice(0,8);
-  let html = '';
-  if(results.length===0){ html += '<div class="empty">유사한 진도가 없습니다</div>'; }
-  else results.forEach((l,idx)=>{
-    const realIdx = lessons.indexOf(l);
-    html += `<div class="opt" data-idx="${realIdx}">${l.lesson}<div class="sub">${(l.homework||'').slice(0,40)}</div></div>`;
-  });
-  const exists = lessons.some(l=>l.lesson===q);
-  if(q && !exists) html += `<div class="add-new" id="addNewLessonBtn">+ "${q}" 새 진도로 추가</div>`;
-  lessonDropdown.innerHTML = html;
-  lessonDropdown.style.display = 'block';
-  lessonDropdown.querySelectorAll('.opt').forEach(el=>el.addEventListener('click', ()=>selectLesson(parseInt(el.dataset.idx))));
-  const addBtn = document.getElementById('addNewLessonBtn');
-  if(addBtn) addBtn.addEventListener('click', ()=>openNewCurriForm(q));
-}
-lessonSearch.addEventListener('input', ()=>{ newCurriForm.style.display='none'; renderLessonDropdown(); });
-lessonSearch.addEventListener('focus', renderLessonDropdown);
-lessonSearch.addEventListener('keydown', (e)=>{
-  if(e.key !== 'Enter' || !form.book) return;
-  e.preventDefault();
-  const q = lessonSearch.value.trim();
-  if(!q) return;
-  const lessons = DATA.curriculum[form.book] || [];
-  const idx = lessons.findIndex(l=>l.lesson===q);
-  if(idx !== -1){ selectLesson(idx); return; }
-  openNewCurriForm(q);
-});
-
-function isPendingLesson(){
-  if(!form.book || !form.lesson) return false;
-  return form.pendingCurri.some(item => item.book === form.book && item.lesson === form.lesson.lesson);
-}
-function updateCurriButtonVisibility(){
-  const show = form.lesson && !isPendingLesson();
-  document.getElementById('updateHomeworkBtn').style.display = show ? 'inline-flex' : 'none';
-  document.getElementById('updateNoticeBtn').style.display = show ? 'inline-flex' : 'none';
-  document.getElementById('updateAllCurriBtn').style.display = show ? 'inline-flex' : 'none';
-  document.getElementById('lessonRenamePanel').style.display = show ? 'block' : 'none';
-  if(show){
-    document.getElementById('lessonRenameInput').value = form.lesson.lesson;
-  }
-}
-function selectLesson(idx){
-  const l = (DATA.curriculum[form.book]||[])[idx];
-  if(!l) return;
-  form.lesson = l;
-  lessonSearch.value = '';
-  lessonDropdown.style.display = 'none';
-  newCurriForm.style.display = 'none';
-  lessonChip.innerHTML = `<div class="selected-chip">${l.lesson} <button id="clearLesson">✕</button></div>`;
-  document.getElementById('clearLesson').addEventListener('click', ()=>{
-    form.lesson=null; lessonChip.innerHTML=''; updateCopyPreview(); updateCurriButtonVisibility();
-  });
-  document.getElementById('homeworkText').value = l.homework || '';
-  document.getElementById('commonNoticeText').value = l.commonNotice || '';
-  updateCopyPreview();
-  updateCurriButtonVisibility();
-}
-
-async function refreshSelectedLessonAfterSave(lessonNameForLookup){
-  await loadData();
-  if(DATA.curriculum[form.book]){
-    const idx = DATA.curriculum[form.book].findIndex(l => l.lesson === lessonNameForLookup);
-    if(idx !== -1) form.lesson = DATA.curriculum[form.book][idx];
-  }
-  updateCurriButtonVisibility();
-  updateCopyPreview();
-}
-
-document.getElementById('updateHomeworkBtn').addEventListener('click', async ()=>{
-  if(!form.book || !form.lesson) return;
-  const payload = {
-    book: form.book,
-    lesson: form.lesson.lesson,
-    homework: document.getElementById('homeworkText').value.trim()
-  };
-  try{
-    const res = await apiPost('updateCurriculum', payload);
-    if(res.error){ toast(res.error); return; }
-    toast('과제를 시트에 저장했습니다');
-    await refreshSelectedLessonAfterSave(payload.lesson);
-  }catch(err){ toast('저장 실패: ' + err.message); }
-});
-
-document.getElementById('updateNoticeBtn').addEventListener('click', async ()=>{
-  if(!form.book || !form.lesson) return;
-  const payload = {
-    book: form.book,
-    lesson: form.lesson.lesson,
-    commonNotice: document.getElementById('commonNoticeText').value.trim()
-  };
-  try{
-    const res = await apiPost('updateCurriculum', payload);
-    if(res.error){ toast(res.error); return; }
-    toast('공통알림장을 시트에 저장했습니다');
-    await refreshSelectedLessonAfterSave(payload.lesson);
-  }catch(err){ toast('저장 실패: ' + err.message); }
-});
-
-document.getElementById('lessonRenameSave').addEventListener('click', async ()=>{
-  if(!form.book || !form.lesson) return;
-  const newLesson = document.getElementById('lessonRenameInput').value.trim();
-  if(!newLesson){ toast('진도명을 입력해주세요'); return; }
-  const payload = {
-    book: form.book,
-    lesson: form.lesson.lesson,
-    newLesson: newLesson
-  };
-  try{
-    const res = await apiPost('updateCurriculum', payload);
-    if(res.error){ toast(res.error); return; }
-    toast('진도명을 시트에 저장했습니다');
-    await refreshSelectedLessonAfterSave(newLesson);
-    lessonChip.innerHTML = `<div class="selected-chip">${newLesson} <button id="clearLesson">✕</button></div>`;
-    document.getElementById('clearLesson').addEventListener('click', ()=>{
-      form.lesson=null; lessonChip.innerHTML=''; updateCopyPreview(); updateCurriButtonVisibility();
-    });
-  }catch(err){ toast('저장 실패: ' + err.message); }
-});
-
-document.getElementById('updateAllCurriBtn').addEventListener('click', async ()=>{
-  if(!form.book || !form.lesson) return;
-  const newLesson = document.getElementById('lessonRenameInput').value.trim() || form.lesson.lesson;
-  const payload = {
-    book: form.book,
-    lesson: form.lesson.lesson,
-    newLesson: newLesson,
-    homework: document.getElementById('homeworkText').value.trim(),
-    commonNotice: document.getElementById('commonNoticeText').value.trim()
-  };
-  try{
-    const res = await apiPost('updateCurriculum', payload);
-    if(res.error){ toast(res.error); return; }
-    toast('진도·과제·알림장을 모두 시트에 저장했습니다');
-    await refreshSelectedLessonAfterSave(newLesson);
-    lessonChip.innerHTML = `<div class="selected-chip">${newLesson} <button id="clearLesson">✕</button></div>`;
-    document.getElementById('clearLesson').addEventListener('click', ()=>{
-      form.lesson=null; lessonChip.innerHTML=''; updateCopyPreview(); updateCurriButtonVisibility();
-    });
-  }catch(err){ toast('저장 실패: ' + err.message); }
-});
-
-// ---------------- 새 진도 폼 (같은 검색칸의 값을 그대로 사용) ----------------
-function openNewCurriForm(lessonPrefill){
-  newCurriForm.style.display = 'block';
-  bookDropdown.style.display = 'none';
-  lessonDropdown.style.display = 'none';
-  if(lessonPrefill) lessonSearch.value = lessonPrefill;
-  document.getElementById('nc_bookLabel').textContent = form.book || '';
-  document.getElementById('nc_homework').value = '';
-  document.getElementById('nc_notice').value = '';
-}
-document.getElementById('nc_cancel').addEventListener('click', ()=>{ newCurriForm.style.display='none'; });
-document.getElementById('nc_addToPending').addEventListener('click', ()=>{
-  const book = form.book;
-  const lesson = lessonSearch.value.trim();
-  const homework = document.getElementById('nc_homework').value.trim();
-  const notice = document.getElementById('nc_notice').value.trim();
-  if(!book || !lesson){ toast('교재를 먼저 선택하고, 진도 칸에 이름을 입력해주세요'); return; }
-  const item = { book, lesson, homework, commonNotice: notice };
-  form.pendingCurri.push(item);
-
-  // 화면에서도 바로 선택된 것처럼 사용 가능하게
-  if(!DATA.curriculum[book]) DATA.curriculum[book] = [];
-  DATA.curriculum[book].push({ lesson, homework, commonNotice: notice });
-  selectLesson(DATA.curriculum[book].length - 1);
-
-  newCurriForm.style.display = 'none';
-  renderPending();
-  toast('대기 목록에 담았습니다');
-});
-
-function renderPending(){
-  const block = document.getElementById('pendingBlock');
-  const list = document.getElementById('pendingList');
-  if(form.pendingCurri.length===0){ block.style.display='none'; list.innerHTML=''; return; }
-  block.style.display = 'block';
-  list.innerHTML = form.pendingCurri.map((it,idx)=>
-    `<div class="pending-item"><span>${it.book} · ${it.lesson}</span><button class="rm" data-idx="${idx}">삭제</button></div>`
-  ).join('');
-  list.querySelectorAll('.rm').forEach(b=>b.addEventListener('click', ()=>{
-    form.pendingCurri.splice(parseInt(b.dataset.idx),1);
-    renderPending();
-  }));
-}
-document.getElementById('flushPending').addEventListener('click', async ()=>{
-  if(form.pendingCurri.length===0) return;
-  // 현재 선택된 진도가 대기 목록에 있다면, 화면에서 이후에 고친 과제/공통알림장 내용을 반영
-  if(form.book && form.lesson){
-    const liveHomework = document.getElementById('homeworkText').value.trim();
-    const liveNotice = document.getElementById('commonNoticeText').value.trim();
-    form.pendingCurri.forEach(item=>{
-      if(item.book === form.book && item.lesson === form.lesson.lesson){
-        item.homework = liveHomework;
-        item.commonNotice = liveNotice;
-      }
-    });
-  }
-  try{
-    const res = await apiPost('addCurriculumBatch', { items: JSON.stringify(form.pendingCurri) });
-    if(res.error){ toast(res.error); return; }
-    toast(`${res.added}개 저장, ${res.skipped}개는 이미 있어 건너뜀`);
-    form.pendingCurri = [];
-    renderPending();
-    await loadData();
-    updateCurriButtonVisibility();
-  }catch(err){ toast('저장 실패: ' + err.message); }
-});
-
-// ---------------- 알림장 미리보기 / 복사 ----------------
-function setIfNotFocused(id, value){
-  const el = document.getElementById(id);
-  if(document.activeElement !== el) el.value = value;
-}
-function updateCopyPreview(){
-  setIfNotFocused('copy_book', form.book || '교재를 선택하면 여기 채워집니다');
-  setIfNotFocused('copy_lesson', form.lesson ? form.lesson.lesson : '진도를 선택하면 여기 채워집니다');
-  setIfNotFocused('copy_homeworkTitle', form.book ? `${form.book} 과제` : '교재를 선택하면 여기 채워집니다');
-
-  const hw = document.getElementById('homeworkText').value.trim();
-  setIfNotFocused('copy_homework', hw || '-');
-
-  const bookHomeworkPanel = document.getElementById('bookHomeworkPanel');
-  if(form.book){
-    bookHomeworkPanel.style.display = 'block';
-    document.getElementById('copy_bookHomework').textContent = `${form.book} 과제`;
-    setIfNotFocused('copy_bookHomeworkContent', hw);
-  }else{
-    bookHomeworkPanel.style.display = 'none';
-  }
-
-  const common = document.getElementById('commonNoticeText').value.trim();
-  const personal = document.getElementById('personalNoteText').value.trim();
-  const combined = [common, personal].filter(Boolean).join(' ');
-  setIfNotFocused('copy_notice', combined || '-');
-}
-document.getElementById('copy_bookHomeworkContent').addEventListener('input', function(){
-  document.getElementById('homeworkText').value = this.value;
-  updateCopyPreview();
-});
-document.getElementById('copy_homework').addEventListener('input', function(){
-  document.getElementById('homeworkText').value = this.value;
-  updateCopyPreview();
-});
-['homeworkText','commonNoticeText','personalNoteText'].forEach(id=>{
-  document.getElementById(id).addEventListener('input', updateCopyPreview);
-});
-document.querySelectorAll('[data-copy]').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    const el = document.getElementById(btn.dataset.copy);
-    const text = (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') ? el.value : el.textContent;
-    if(text && text !== '-') copyText(text);
-  });
-});
-
-// ---------------- 개념암기 토글 ----------------
-let conceptResult = '';
-document.getElementById('concept_pass').addEventListener('click', ()=>{
-  conceptResult = conceptResult==='PASS' ? '' : 'PASS';
-  renderConceptToggle();
-});
-document.getElementById('concept_fail').addEventListener('click', ()=>{
-  conceptResult = conceptResult==='FAIL' ? '' : 'FAIL';
-  renderConceptToggle();
-});
-function renderConceptToggle(){
-  document.getElementById('concept_pass').classList.toggle('on', conceptResult==='PASS');
-  document.getElementById('concept_fail').classList.toggle('on', conceptResult==='FAIL');
-}
-
-// ---------------- 저장 / 공유 ----------------
-document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
-  if(!form.student){ toast('학생을 먼저 선택해주세요'); return; }
-  const payload = {
-    studentName: form.student.이름,
-    textbook: form.book,
-    progress: form.lesson ? form.lesson.lesson : lessonSearch.value.trim(),
-    homework: document.getElementById('homeworkText').value.trim(),
-    conceptResult,
-    quizScore: document.getElementById('quizScore').value,
-    absentDate: document.getElementById('absentDate').value,
-    makeupDate: document.getElementById('makeupDate').value,
-    makeupTime: document.getElementById('makeupTime').value,
-    memo: document.getElementById('personalNoteText').value.trim()
-  };
-  try{
-    const res = await apiPost('addRecord', payload);
-    if(res.error){ toast(res.error); return; }
-    toast('오늘 수업기록을 저장했습니다');
-    await loadData();
-    if(payload.absentDate){
-      createGcalEventIfConnected(absentEventInfo());
-    }
-    if(payload.makeupDate){
-      createGcalEventIfConnected(makeupEventInfo());
-    }
-  }catch(err){ toast('저장 실패: ' + err.message); }
-});
-
-document.getElementById('shareBtn').addEventListener('click', async ()=>{
-  if(!form.student){ toast('학생을 먼저 선택해주세요'); return; }
-  const bl = form.book && form.lesson ? `${form.book} ${form.lesson.lesson}` : (form.book || '');
-  const hw = document.getElementById('homeworkText').value.trim();
-  const absent = document.getElementById('absentDate').value;
-  const makeD = document.getElementById('makeupDate').value;
-  const makeT = document.getElementById('makeupTime').value;
-  let lines = [`학생: ${form.student.이름}`, `교재&진도: ${bl}`, `오늘 과제: ${hw}`];
-  if(absent) lines.push(`결석일자: ${absent}`);
-  if(makeD || makeT) lines.push(`보강일정: ${makeD}${makeT ? ' ' + makeT : ''}`);
-  const text = lines.join('\n');
-  await copyText(text);
-});
-
-// ---------------- 결석/보강 일정 캘린더 연동 ----------------
-function pad2(n){ return n.toString().padStart(2, '0'); }
-function buildEventInfo(dateFieldId, timeFieldId, label){
-  const date = document.getElementById(dateFieldId).value;
-  if(!date) return null;
-  const time = timeFieldId ? document.getElementById(timeFieldId).value : '';
-  const name = form.student ? form.student.이름 : '학생';
-  const bl = form.book && form.lesson ? `${form.book} ${form.lesson.lesson}` : (form.book || '');
-  const title = `${label} - ${name}`;
-  const desc = `${name} ${label}${bl ? ' · ' + bl : ''}`;
-  if(time){
-    const start = new Date(`${date}T${time}:00`);
-    const end = new Date(start.getTime() + 60*60*1000);
-    const fmt = d => `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}T${pad2(d.getHours())}${pad2(d.getMinutes())}00`;
-    return {
-      title, desc, allDay:false, startStr:fmt(start), endStr:fmt(end),
-      startISO: `${date}T${time}:00`,
-      endISO: `${pad2(end.getFullYear())}-${pad2(end.getMonth()+1)}-${pad2(end.getDate())}T${pad2(end.getHours())}:${pad2(end.getMinutes())}:00`
-    };
-  }else{
-    const d0 = date.replaceAll('-', '');
-    const next = new Date(`${date}T00:00:00`);
-    next.setDate(next.getDate()+1);
-    const d1 = `${next.getFullYear()}${pad2(next.getMonth()+1)}${pad2(next.getDate())}`;
-    const nextDateStr = `${next.getFullYear()}-${pad2(next.getMonth()+1)}-${pad2(next.getDate())}`;
-    return { title, desc, allDay:true, startStr:d0, endStr:d1, startDate:date, endDate:nextDateStr };
-  }
-}
-function makeupEventInfo(){ return buildEventInfo('makeupDate', 'makeupTime', '보강'); }
-function absentEventInfo(){ return buildEventInfo('absentDate', null, '결석'); }
-
-function openGoogleCalLink(info){
-  const dates = `${info.startStr}/${info.endStr}`;
-  const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(info.title)}&dates=${dates}&details=${encodeURIComponent(info.desc)}`;
-  window.open(url, '_blank');
-}
-function downloadIcsFile(info, filenamePrefix){
-  const dtLine = info.allDay
-    ? `DTSTART;VALUE=DATE:${info.startStr}\nDTEND;VALUE=DATE:${info.endStr}`
-    : `DTSTART:${info.startStr}\nDTEND:${info.endStr}`;
-  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:${info.title}\n${dtLine}\nDESCRIPTION:${info.desc}\nEND:VEVENT\nEND:VCALENDAR`;
-  const blob = new Blob([ics], { type: 'text/calendar' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${filenamePrefix}_${form.student ? form.student.이름 : '학생'}.ics`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-document.getElementById('addToGoogleCal').addEventListener('click', ()=>{
-  const info = makeupEventInfo();
-  if(!info){ toast('보강일자를 먼저 입력해주세요'); return; }
-  openGoogleCalLink(info);
-});
-document.getElementById('downloadIcs').addEventListener('click', ()=>{
-  const info = makeupEventInfo();
-  if(!info){ toast('보강일자를 먼저 입력해주세요'); return; }
-  downloadIcsFile(info, '보강');
-});
-document.getElementById('addAbsentGoogleCal').addEventListener('click', ()=>{
-  const info = absentEventInfo();
-  if(!info){ toast('결석일자를 먼저 입력해주세요'); return; }
-  openGoogleCalLink(info);
-});
-document.getElementById('downloadAbsentIcs').addEventListener('click', ()=>{
-  const info = absentEventInfo();
-  if(!info){ toast('결석일자를 먼저 입력해주세요'); return; }
-  downloadIcsFile(info, '결석');
-});
-
-// ---------------- 구글 캘린더 자동 연동 (OAuth) ----------------
-let gcalTokenClient = null;
-let gcalAccessToken = null;
-const gcalStatus = document.getElementById('gcalStatus');
-
-function renderGcalStatus(){
-  if(!CONFIG.gcalClientId){
-    gcalStatus.innerHTML = '<span class="status-dot no"></span>클라이언트 ID가 설정되지 않았습니다';
-  }else if(gcalAccessToken){
-    gcalStatus.innerHTML = '<span class="status-dot ok"></span>구글 캘린더에 연결되었습니다 · 저장 시 자동으로 일정이 등록됩니다';
-  }else{
-    gcalStatus.innerHTML = '<span class="status-dot no"></span>클라이언트 ID는 저장됨 · "구글 계정 연결" 버튼을 눌러주세요';
-  }
-}
-
-function initGcalTokenClient(){
-  if(!CONFIG.gcalClientId || typeof google === 'undefined' || !google.accounts) return;
-  gcalTokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CONFIG.gcalClientId,
-    scope: 'https://www.googleapis.com/auth/calendar.events',
-    callback: (resp)=>{
-      if(resp && resp.access_token){
-        gcalAccessToken = resp.access_token;
-        toast('구글 캘린더 연결됨');
-        renderGcalStatus();
+  // 1. 학생 목록
+  let students = [];
+  const studentSheet = getStudentSheet(ss);
+  if (studentSheet) {
+    const data = studentSheet.getDataRange().getValues();
+    if (data.length > 1) {
+      const headers = data[0];
+      const nameIdx = getHeaderIndex(headers, ['이름']);
+      const schoolIdx = getHeaderIndex(headers, ['학교학년']);
+      const rangeIdx = getHeaderIndex(headers, ['시험범위']);
+      const dateIdx = getHeaderIndex(headers, ['시험날짜']);
+      const periodIdx = getHeaderIndex(headers, ['시험기간']);
+      const bookIdx = getHeaderIndex(headers, ['교과서']);
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const name = nameIdx !== -1 ? row[nameIdx] : row[0];
+        if (name && name.toString().trim() !== '') {
+          students.push({
+            이름: name.toString().trim(),
+            학교학년: schoolIdx !== -1 && row[schoolIdx] ? row[schoolIdx].toString().trim() : '',
+            시험범위: rangeIdx !== -1 && row[rangeIdx] ? row[rangeIdx].toString().trim() : '',
+            시험날짜: dateIdx !== -1 && row[dateIdx] ? formatDate(row[dateIdx]) : '',
+            시험기간: periodIdx !== -1 && row[periodIdx] ? row[periodIdx].toString().trim() : '',
+            교과서: bookIdx !== -1 && row[bookIdx] ? row[bookIdx].toString().trim() : ''
+          });
+        }
       }
     }
+  }
+
+  // 2. 커리큘럼(교재/진도/과제/공통알림장)
+  let curriculum = {};
+  const curriSheet = getCurriSheet(ss);
+  if (curriSheet) {
+    const data = curriSheet.getDataRange().getValues();
+    if (data.length > 1) {
+      let currentBook = '';
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        let book = row[0] ? row[0].toString().trim() : '';
+        let lesson = row[1] ? row[1].toString().trim() : '';
+        let homework = row[2] ? row[2].toString().trim() : '';
+        let commonNotice = row[3] ? row[3].toString().trim() : '';
+        if (book !== '') currentBook = book; else book = currentBook;
+        if (book && lesson) {
+          if (!curriculum[book]) curriculum[book] = [];
+          curriculum[book].push({ lesson: lesson, homework: homework, commonNotice: commonNotice });
+        }
+      }
+    }
+  }
+
+  // 3. 수업기록 (최근 과제/시험점수/결석·보강 조회용)
+  let records = [];
+  const recordSheet = ss.getSheetByName('수업기록');
+  if (recordSheet) {
+    const data = recordSheet.getDataRange().getValues();
+    if (data.length > 1) {
+      const headers = data[0];
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        let obj = {};
+        headers.forEach((h, idx) => {
+          obj[h] = row[idx] instanceof Date ? formatDate(row[idx]) : row[idx];
+        });
+        records.push(obj);
+      }
+    }
+  }
+
+  return { students: students, curriculum: curriculum, records: records };
+}
+
+function addStudent(p) {
+  const ss = getSS();
+  const sheet = getStudentSheet(ss);
+  if (!sheet) return { error: '학생DB 시트를 찾을 수 없습니다' };
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const nameIdx = getHeaderIndex(headers, ['이름']);
+  const name = (p.name || '').toString().trim();
+  if (!name) return { error: '이름이 없습니다' };
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][nameIdx] && data[i][nameIdx].toString().trim() === name) {
+      return { error: '이미 존재하는 학생입니다', duplicate: true };
+    }
+  }
+  const row = new Array(headers.length).fill('');
+  const set = (names, val) => {
+    const idx = getHeaderIndex(headers, names);
+    if (idx !== -1) row[idx] = val || '';
+  };
+  set(['이름'], name);
+  set(['학교학년'], p.schoolGrade);
+  set(['시험범위'], p.examRange);
+  set(['시험날짜'], p.examDate);
+  set(['시험기간'], p.examPeriod);
+  set(['교과서'], p.textbook);
+  sheet.appendRow(row);
+  return { result: 'success' };
+}
+
+function updateStudent(p) {
+  const ss = getSS();
+  const sheet = getStudentSheet(ss);
+  if (!sheet) return { error: '학생DB 시트를 찾을 수 없습니다' };
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const nameIdx = getHeaderIndex(headers, ['이름']);
+  const name = (p.name || '').toString().trim();
+  if (!name) return { error: '이름이 없습니다' };
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][nameIdx] && data[i][nameIdx].toString().trim() === name) {
+      const rowNum = i + 1;
+      const setCell = (names, val) => {
+        if (val === undefined || val === null || val === '') return;
+        const idx = getHeaderIndex(headers, names);
+        if (idx !== -1) sheet.getRange(rowNum, idx + 1).setValue(val);
+      };
+      setCell(['학교학년'], p.schoolGrade);
+      setCell(['시험범위'], p.examRange);
+      setCell(['시험날짜'], p.examDate);
+      setCell(['시험기간'], p.examPeriod);
+      setCell(['교과서'], p.textbook);
+      return { result: 'success' };
+    }
+  }
+  return { error: '학생을 찾을 수 없습니다' };
+}
+
+function addCurriculumBatch(items) {
+  const ss = getSS();
+  const sheet = getCurriSheet(ss);
+  if (!sheet) return { error: '과제DB 시트를 찾을 수 없습니다' };
+  const data = sheet.getDataRange().getValues();
+  let currentBook = '';
+  const existingKeys = new Set();
+  for (let i = 1; i < data.length; i++) {
+    let book = data[i][0] ? data[i][0].toString().trim() : '';
+    let lesson = data[i][1] ? data[i][1].toString().trim() : '';
+    if (book !== '') currentBook = book; else book = currentBook;
+    if (book && lesson) existingKeys.add(book + '|||' + lesson);
+  }
+  let added = 0;
+  (items || []).forEach(item => {
+    const book = (item.book || '').toString().trim();
+    const lesson = (item.lesson || '').toString().trim();
+    if (!book || !lesson) return;
+    const key = book + '|||' + lesson;
+    if (existingKeys.has(key)) return;
+    sheet.appendRow([book, lesson, item.homework || '', item.commonNotice || '']);
+    existingKeys.add(key);
+    added++;
   });
+  return { result: 'success', added: added, skipped: (items || []).length - added };
 }
 
-document.getElementById('gcalSaveClientId').addEventListener('click', async ()=>{
-  const id = document.getElementById('gcalClientId').value.trim();
-  if(!id){ toast('클라이언트 ID를 입력해주세요'); return; }
-  CONFIG.gcalClientId = id;
-  await localStore.set('gcalClientId', id);
-  initGcalTokenClient();
-  toast('클라이언트 ID를 저장했습니다');
-  renderGcalStatus();
-});
-document.getElementById('gcalConnect').addEventListener('click', ()=>{
-  if(!CONFIG.gcalClientId){ toast('먼저 클라이언트 ID를 저장해주세요'); return; }
-  if(!gcalTokenClient) initGcalTokenClient();
-  if(!gcalTokenClient){ toast('구글 로그인 라이브러리를 아직 불러오는 중입니다. 잠시 후 다시 눌러주세요'); return; }
-  gcalTokenClient.requestAccessToken({ prompt: gcalAccessToken ? '' : 'consent' });
-});
-
-async function createGcalEventIfConnected(info){
-  if(!gcalAccessToken || !info) return;
-  const body = info.allDay
-    ? { summary: info.title, description: info.desc, start: { date: info.startDate }, end: { date: info.endDate } }
-    : { summary: info.title, description: info.desc, start: { dateTime: info.startISO, timeZone: 'Asia/Seoul' }, end: { dateTime: info.endISO, timeZone: 'Asia/Seoul' } };
-  try{
-    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + gcalAccessToken,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-    if(res.status === 401){
-      gcalAccessToken = null;
-      renderGcalStatus();
-      toast('구글 캘린더 연결이 만료되었습니다. 설정에서 다시 연결해주세요');
-      return;
+function updateCurriculum(p) {
+  const ss = getSS();
+  const sheet = getCurriSheet(ss);
+  if (!sheet) return { error: '과제DB 시트를 찾을 수 없습니다' };
+  const book = (p.book || '').toString().trim();
+  const lesson = (p.lesson || '').toString().trim();
+  if (!book || !lesson) return { error: '교재명과 진도단원이 필요합니다' };
+  const data = sheet.getDataRange().getValues();
+  let currentBook = '';
+  for (let i = 1; i < data.length; i++) {
+    let rowBook = data[i][0] ? data[i][0].toString().trim() : '';
+    let rowLesson = data[i][1] ? data[i][1].toString().trim() : '';
+    if (rowBook !== '') currentBook = rowBook; else rowBook = currentBook;
+    if (rowBook === book && rowLesson === lesson) {
+      const rowNum = i + 1;
+      if (p.newLesson !== undefined && p.newLesson !== '') sheet.getRange(rowNum, 2).setValue(p.newLesson);
+      if (p.homework !== undefined) sheet.getRange(rowNum, 3).setValue(p.homework);
+      if (p.commonNotice !== undefined) sheet.getRange(rowNum, 4).setValue(p.commonNotice);
+      return { result: 'success' };
     }
-    if(!res.ok){ toast('구글 캘린더 등록에 실패했습니다'); return; }
-    toast('구글 캘린더에 보강 일정을 자동으로 등록했습니다');
-  }catch(err){
-    toast('구글 캘린더 등록 중 오류가 발생했습니다');
   }
+  return { error: '해당 교재/진도를 찾을 수 없습니다' };
 }
 
-// ---------------- 학생 관리 ----------------
-function substringSearch(query, items, keyFn){
-  const q = normalize(query);
-  if(!q) return [];
-  return items.filter(it => normalize(keyFn(it)).includes(q));
-}
-
-const manageSearch = document.getElementById('manageSearch');
-const manageNewForm = document.getElementById('manageNewForm');
-
-manageSearch.addEventListener('input', ()=>{ manageNewForm.style.display='none'; renderManageList(); });
-manageSearch.addEventListener('keydown', (e)=>{
-  if(e.key !== 'Enter') return;
-  e.preventDefault();
-  const q = manageSearch.value.trim();
-  if(!q) return;
-  const exact = DATA.students.find(s=>s.이름===q);
-  if(exact){ openManageDetail(exact.이름); return; }
-  openManageNewForm(q);
-});
-
-function renderManageList(){
-  const q = manageSearch.value.trim();
-  const results = substringSearch(q, DATA.students, s=>s.이름).slice(0,10);
-  const box = document.getElementById('manageResults');
-  document.getElementById('manageDetail').style.display = 'none';
-  if(q && results.length===0){
-    box.innerHTML = `<p class="hint">"${q}"와(과) 일치하는 학생이 없습니다.</p>
-      <button class="btn primary sm" id="manageAddNewBtn">+ "${q}" 새 학생으로 추가</button>`;
-    document.getElementById('manageAddNewBtn').addEventListener('click', ()=>openManageNewForm(q));
-    return;
+function addRecord(p) {
+  const ss = getSS();
+  let recordSheet = ss.getSheetByName('수업기록');
+  const wantedHeaders = ['작성일시', '학생이름', '교재명', '오늘진도', '오늘과제', '개념암기결과', '객관식점수', '결석일자', '보강일자', '보강시간', '선생님전달사항'];
+  if (!recordSheet) {
+    recordSheet = ss.insertSheet('수업기록');
+    recordSheet.appendRow(wantedHeaders);
   }
-  box.innerHTML = results.map(s=>`
-    <div class="student-card">
-      <h3>${s.이름}</h3>
-      <div class="meta">${s.학교학년||'-'} · ${s.교과서||'교과서 미입력'}</div>
-      <div class="meta">과학시험 ${fmtDT(s.시험날짜)||'-'} · 범위 ${s.시험범위||'-'}${s.시험기간 ? ' · 기간 ' + s.시험기간 : ''}</div>
-      <div class="row" style="margin-top:8px;">
-        <button class="btn sm" data-detail="${s.이름}">상세 / 수정</button>
-        <button class="btn primary sm" data-pick="${s.이름}">오늘 수업기록 작성</button>
-      </div>
-    </div>
-  `).join('');
-  box.querySelectorAll('button[data-detail]').forEach(b=>b.addEventListener('click', ()=>openManageDetail(b.dataset.detail)));
-  box.querySelectorAll('button[data-pick]').forEach(b=>b.addEventListener('click', ()=>pickStudentForToday(b.dataset.pick)));
-}
-
-function pickStudentForToday(name){
-  selectStudent(name);
-  activateTab('record');
-}
-
-function openManageNewForm(prefillName){
-  manageNewForm.style.display = 'block';
-  manageSearch.value = prefillName || manageSearch.value;
-  document.getElementById('manageResults').innerHTML = '';
-  document.getElementById('ns_school').value = '';
-  document.getElementById('ns_book').value = '';
-  document.getElementById('ns_examPeriod').value = '';
-  document.getElementById('ns_examDate').value = '';
-  document.getElementById('ns_examRange').value = '';
-}
-document.getElementById('ns_cancel').addEventListener('click', ()=>{ manageNewForm.style.display='none'; });
-document.getElementById('ns_save').addEventListener('click', async ()=>{
-  const name = manageSearch.value.trim();
-  if(!name){ toast('학생 이름을 입력해주세요'); return; }
-  const payload = {
-    name,
-    schoolGrade: document.getElementById('ns_school').value.trim(),
-    textbook: document.getElementById('ns_book').value.trim(),
-    examPeriod: document.getElementById('ns_examPeriod').value.trim(),
-    examDate: document.getElementById('ns_examDate').value,
-    examRange: document.getElementById('ns_examRange').value.trim()
+  const headers = recordSheet.getDataRange().getValues()[0];
+  const now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+  const row = new Array(headers.length).fill('');
+  const set = (names, val) => {
+    const idx = getHeaderIndex(headers, names);
+    if (idx !== -1) row[idx] = val || '';
   };
-  try{
-    const res = await apiPost('addStudent', payload);
-    if(res.error){ toast(res.error); return; }
-    toast('학생DB에 저장했습니다');
-    manageNewForm.style.display = 'none';
-    await loadData();
-    openManageDetail(name);
-  }catch(err){ toast('저장 실패: ' + err.message); }
-});
-
-function renderCompactInfo(s){
-  document.getElementById('ic_name').textContent = s.이름;
-  document.getElementById('ic_school').textContent = s.학교학년 || '-';
-  document.getElementById('ic_book').textContent = s.교과서 || '-';
-  document.getElementById('ic_examPeriod').textContent = s.시험기간 || '-';
-  document.getElementById('ic_examDate').textContent = fmtDT(s.시험날짜) || '-';
-  document.getElementById('ic_examRange').textContent = s.시험범위 || '-';
+  set(['작성일시'], now);
+  set(['학생이름'], p.studentName);
+  set(['교재명'], p.textbook);
+  set(['오늘진도'], p.progress);
+  set(['오늘과제'], p.homework);
+  set(['개념암기결과'], p.conceptResult);
+  set(['객관식점수'], p.quizScore);
+  set(['결석일자'], p.absentDate);
+  set(['보강일자'], p.makeupDate);
+  set(['보강시간'], p.makeupTime);
+  set(['선생님전달사항'], p.memo);
+  recordSheet.appendRow(row);
+  return { result: 'success' };
 }
-function showCompactView(){
-  document.getElementById('infoCompact').style.display = 'flex';
-  document.getElementById('md_actionsRow').style.display = 'flex';
-  document.getElementById('editForm').style.display = 'none';
-}
-function openManageDetail(name){
-  const s = DATA.students.find(x=>x.이름===name);
-  if(!s) return;
-  document.getElementById('manageResults').innerHTML = '';
-  document.getElementById('manageDetail').style.display = 'block';
-  document.getElementById('md_originalName').value = s.이름;
-  document.getElementById('md_name').value = s.이름;
-  document.getElementById('md_school').value = s.학교학년 || '';
-  document.getElementById('md_book').value = s.교과서 || '';
-  document.getElementById('md_examPeriod').value = s.시험기간 || '';
-  document.getElementById('md_examDate').value = fmtDT(s.시험날짜) || '';
-  document.getElementById('md_examRange').value = s.시험범위 || '';
-  renderCompactInfo(s);
-  showCompactView();
 
-  const recs = DATA.records.filter(r => r['학생이름']===name)
-    .sort((a,b)=> new Date(b['작성일시']) - new Date(a['작성일시'])).slice(0,5);
-  const box = document.getElementById('md_records');
-  if(recs.length===0){
-    box.innerHTML = '<p class="hint">아직 기록이 없습니다</p>';
-  }else{
-    box.innerHTML = recs.map(r=>`
-      <div class="record-row">
-        <b>${fmtDT(r['작성일시'])}</b> · 진도 ${r['오늘진도']||'-'}<br>
-        과제: ${r['오늘과제']||'-'}<br>
-        개념암기 ${r['개념암기결과']||'-'} / 객관식 ${r['객관식점수']||'-'}점
-        ${r['결석일자'] ? '<br>결석: ' + fmtDT(r['결석일자']) : ''}
-        ${r['보강일자'] ? ' / 보강: ' + fmtDT(r['보강일자']) + (r['보강시간'] ? ' ' + fmtDT(r['보강시간']) : '') : ''}
-      </div>
-    `).join('');
-  }
-  document.getElementById('view-manage').scrollIntoView({behavior:'smooth'});
-}
-document.getElementById('md_editToggle').addEventListener('click', ()=>{
-  document.getElementById('infoCompact').style.display = 'none';
-  document.getElementById('md_actionsRow').style.display = 'none';
-  document.getElementById('editForm').style.display = 'block';
-});
-document.getElementById('md_editCancel').addEventListener('click', ()=>{
-  const s = DATA.students.find(x=>x.이름===document.getElementById('md_originalName').value);
-  if(s){
-    document.getElementById('md_school').value = s.학교학년 || '';
-    document.getElementById('md_book').value = s.교과서 || '';
-    document.getElementById('md_examPeriod').value = s.시험기간 || '';
-    document.getElementById('md_examDate').value = fmtDT(s.시험날짜) || '';
-    document.getElementById('md_examRange').value = s.시험범위 || '';
-  }
-  showCompactView();
-});
-document.getElementById('md_save').addEventListener('click', async ()=>{
-  const payload = {
-    name: document.getElementById('md_originalName').value,
-    schoolGrade: document.getElementById('md_school').value.trim(),
-    textbook: document.getElementById('md_book').value.trim(),
-    examPeriod: document.getElementById('md_examPeriod').value.trim(),
-    examDate: document.getElementById('md_examDate').value,
-    examRange: document.getElementById('md_examRange').value.trim()
-  };
-  try{
-    const res = await apiPost('updateStudent', payload);
-    if(res.error){ toast(res.error); return; }
-    toast('수정 내용을 저장했습니다');
-    await loadData();
-    const updated = DATA.students.find(x=>x.이름===payload.name);
-    if(updated) renderCompactInfo(updated);
-    showCompactView();
-  }catch(err){ toast('저장 실패: ' + err.message); }
-});
-document.getElementById('md_pickForToday').addEventListener('click', ()=>{
-  pickStudentForToday(document.getElementById('md_originalName').value);
-});
-
-// ---------------- 설정 저장(로컬 저장소) ----------------
-// Claude 안에서 열었을 때는 window.storage를, 다운로드해서 단독으로 열었을 때는
-// 이 브라우저의 localStorage를 사용해 웹앱 URL을 기억합니다.
-const localStore = {
-  async get(key){
-    try{
-      if(window.storage) return await window.storage.get(key, false);
-    }catch(e){}
-    try{
-      const v = localStorage.getItem(key);
-      return v !== null ? { value: v } : null;
-    }catch(e){ return null; }
-  },
-  async set(key, value){
-    try{
-      if(window.storage){ await window.storage.set(key, value, false); return; }
-    }catch(e){}
-    try{ localStorage.setItem(key, value); }catch(e){}
-  }
-};
-
-// ---------------- 비밀번호 잠금 ----------------
-async function getPassword(){
-  const saved = await localStore.get('appPassword');
-  return (saved && saved.value) ? saved.value : '1234';
-}
-const lockScreen = document.getElementById('lockScreen');
-const appRoot = document.getElementById('appRoot');
-const lockInput = document.getElementById('lockInput');
-const lockError = document.getElementById('lockError');
-
-async function tryUnlock(){
-  const entered = lockInput.value.trim();
-  const correct = await getPassword();
-  if(entered && entered === correct){
-    lockScreen.style.display = 'none';
-    appRoot.style.display = 'block';
-  }else{
-    lockError.style.display = 'block';
-    lockInput.value = '';
-    lockInput.focus();
-  }
-}
-document.getElementById('lockSubmit').addEventListener('click', tryUnlock);
-lockInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); tryUnlock(); } });
-lockInput.addEventListener('input', ()=>{ lockError.style.display = 'none'; });
-
-document.getElementById('pw_save').addEventListener('click', async ()=>{
-  const cur = document.getElementById('pw_current').value.trim();
-  const next = document.getElementById('pw_new').value.trim();
-  const conf = document.getElementById('pw_confirm').value.trim();
-  const correct = await getPassword();
-  if(cur !== correct){ toast('현재 비밀번호가 올바르지 않습니다'); return; }
-  if(!next){ toast('새 비밀번호를 입력해주세요'); return; }
-  if(next !== conf){ toast('새 비밀번호가 서로 다릅니다'); return; }
-  await localStore.set('appPassword', next);
-  toast('비밀번호를 변경했습니다');
-  document.getElementById('pw_current').value = '';
-  document.getElementById('pw_new').value = '';
-  document.getElementById('pw_confirm').value = '';
-});
-
-// ---------------- 설정 ----------------
-document.getElementById('saveUrlBtn').addEventListener('click', async ()=>{
-  const url = document.getElementById('webAppUrl').value.trim();
-  CONFIG.webAppUrl = url;
-  await localStore.set('webAppUrl', url);
-  toast('저장했습니다');
-  loadData();
-});
-document.getElementById('reloadDataBtn').addEventListener('click', loadData);
-
-// ---------------- 초기화 ----------------
-(async function init(){
-  try{
-    const saved = await localStore.get('webAppUrl');
-    if(saved && saved.value){
-      CONFIG.webAppUrl = saved.value;
-      document.getElementById('webAppUrl').value = saved.value;
+function deleteRecord(p) {
+  const ss = getSS();
+  const recordSheet = ss.getSheetByName('수업기록');
+  if (!recordSheet) return { error: '수업기록 시트를 찾을 수 없습니다' };
+  const data = recordSheet.getDataRange().getValues();
+  const headers = data[0];
+  const writtenAtIdx = getHeaderIndex(headers, ['작성일시']);
+  const nameIdx = getHeaderIndex(headers, ['학생이름']);
+  const writtenAt = (p.writtenAt || '').toString().trim();
+  const studentName = (p.studentName || '').toString().trim();
+  if (!writtenAt || !studentName) return { error: '삭제할 기록을 특정할 수 없습니다' };
+  for (let i = 1; i < data.length; i++) {
+    const rowWrittenAt = data[i][writtenAtIdx] instanceof Date
+      ? formatDate(data[i][writtenAtIdx])
+      : (data[i][writtenAtIdx] || '').toString().trim();
+    const rowName = (data[i][nameIdx] || '').toString().trim();
+    if (rowWrittenAt === writtenAt && rowName === studentName) {
+      recordSheet.deleteRow(i + 1);
+      return { result: 'success' };
     }
-  }catch(e){}
-  try{
-    const savedId = await localStore.get('gcalClientId');
-    if(savedId && savedId.value){
-      CONFIG.gcalClientId = savedId.value;
-      document.getElementById('gcalClientId').value = savedId.value;
-    }
-  }catch(e){}
-  renderConceptToggle();
-  renderStudentChip();
-  renderGcalStatus();
-  // 구글 로그인 라이브러리는 비동기로 로드되므로 약간의 지연 후 초기화 시도
-  setTimeout(()=>{ if(CONFIG.gcalClientId) initGcalTokenClient(); }, 500);
-  lockInput.focus();
-  await loadData();
-})();
-</script>
-</body>
-</html>
+  }
+  return { error: '해당 기록을 찾을 수 없습니다' };
+}
+
+function formatDate(dateObj) {
+  if (!dateObj) return '';
+  if (dateObj instanceof Date) {
+    return Utilities.formatDate(dateObj, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return dateObj.toString();
+}

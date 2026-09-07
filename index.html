@@ -1063,7 +1063,7 @@ async function createGcalEventIfConnected(info){
   if(!gcalAccessToken || !info) return;
   const body = info.allDay
     ? { summary: info.title, description: info.desc, start: { date: info.startDate }, end: { date: info.endDate } }
-    : { summary: info.title, description: info.desc, start: { dateTime: info.startISO }, end: { dateTime: info.endISO } };
+    : { summary: info.title, description: info.desc, start: { dateTime: info.startISO, timeZone: 'Asia/Seoul' }, end: { dateTime: info.endISO, timeZone: 'Asia/Seoul' } };
   try{
     const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
       method: 'POST',

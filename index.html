@@ -26,6 +26,7 @@
     --violet:#6A5FC1;
     --violet-soft:#E4E0F7;
     --radius:8px;
+    --maxw:640px;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -40,12 +41,12 @@
   h1,h2,h3{font-family:'Noto Serif KR', serif; margin:0; font-weight:700;}
   ::selection{background:var(--cobalt-soft);}
 
-  .app{max-width:640px; margin:0 auto; padding:0 16px;}
+  .app{max-width:var(--maxw); margin:0 auto; padding:0 16px;}
 
   header.top{
     padding:28px 16px 18px;
     border-bottom:1px solid var(--line-strong);
-    max-width:640px;
+    max-width:var(--maxw);
     margin:0 auto;
     position:relative;
   }
@@ -61,7 +62,7 @@
 
   nav.tabs{
     display:flex;
-    max-width:640px;
+    max-width:var(--maxw);
     margin:0 auto;
     border-bottom:1px solid var(--line);
     position:sticky; top:0; background:var(--paper); z-index:20;
@@ -81,6 +82,9 @@
 
   section.view{display:none; padding-top:18px;}
   section.view.active{display:block;}
+
+  .record-grid{display:block;}
+  .record-col{min-width:0;}
 
   .block{
     background:var(--panel);
@@ -218,9 +222,46 @@
   .record-row b{color:var(--ink); font-weight:500;}
 
   .hint{font-size:11.5px; color:var(--ink-soft); margin-top:4px;}
+
+  .inline-new{
+    margin-top:10px; padding:12px; background:var(--cobalt-soft);
+    border-radius:6px; border:1px solid rgba(30,73,226,0.25);
+  }
+  .inline-new label{margin-top:8px;}
+  .inline-new label:first-of-type{margin-top:0;}
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:0 10px;}
+  .form-grid label{margin-top:8px;}
   .status-dot{display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px;}
   .status-dot.ok{background:var(--teal);}
   .status-dot.no{background:var(--coral);}
+  .record-actions .btn + .btn{ margin-top:10px; }
+
+  /* ---- 넓은 화면(PC/태블릿 가로): 옆으로 넓게, 두 칸으로 배치 ---- */
+  @media (min-width: 860px){
+    :root{ --maxw:1080px; }
+    body{ padding-bottom:80px; }
+    header.top{ padding:34px 24px 20px; }
+    .app{ padding:0 24px; }
+    .record-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:0 20px;
+      align-items:start;
+    }
+    #view-manage{
+      display:grid;
+      grid-template-columns:340px 1fr;
+      gap:0 20px;
+      align-items:start;
+    }
+    #view-manage > .block:first-child{ grid-column:1; }
+    #manageResults{ grid-column:1; }
+    #manageDetail{ grid-column:2; grid-row:1 / span 2; margin-top:0; }
+    #saveRecordBtn, #shareBtn{ max-width:420px; }
+    .record-actions{ display:flex; gap:10px; }
+    .record-actions .btn{ width:auto; flex:1; }
+    .record-actions .btn + .btn{ margin-top:0; }
+  }
 </style>
 </head>
 <body>
@@ -241,25 +282,25 @@
 <!-- ============ 오늘 수업기록 ============ -->
 <section class="view active" id="view-record">
 
+  <div class="record-grid">
+  <div class="record-col">
+
   <div class="block">
     <div class="block-title"><span class="n c-cobalt">1</span>학생</div>
     <div class="search-wrap">
-      <input type="text" id="studentSearch" placeholder="학생 이름 검색" autocomplete="off">
+      <input type="text" id="studentSearch" placeholder="학생 이름 검색 또는 새 이름 입력" autocomplete="off">
       <div class="dropdown" id="studentDropdown" style="display:none;"></div>
     </div>
     <div id="studentChip"></div>
-    <div id="newStudentForm" style="display:none; margin-top:12px; padding-top:12px; border-top:1px dashed var(--line-strong);">
-      <label>이름</label>
-      <input type="text" id="ns_name" placeholder="새 학생 이름">
-      <label>학교학년</label>
-      <input type="text" id="ns_school" placeholder="예) 중계중2">
-      <label>교과서</label>
-      <input type="text" id="ns_book" placeholder="예) 오투과학2-1">
-      <label>시험날짜</label>
-      <input type="date" id="ns_examDate">
-      <label>시험범위</label>
-      <input type="text" id="ns_examRange" placeholder="예) 4,8">
-      <div class="row" style="margin-top:12px;">
+    <div id="newStudentForm" class="inline-new" style="display:none;">
+      <p class="hint" style="margin:0 0 8px;">위 칸의 이름으로 새 학생을 등록합니다. 필요하면 위에서 이름을 바로 고치세요.</p>
+      <div class="form-grid">
+        <div><label>학교학년</label><input type="text" id="ns_school" placeholder="예) 중계중2"></div>
+        <div><label>교과서</label><input type="text" id="ns_book" placeholder="예) 오투과학2-1"></div>
+        <div><label>시험날짜</label><input type="date" id="ns_examDate"></div>
+        <div><label>시험범위</label><input type="text" id="ns_examRange" placeholder="예) 4,8"></div>
+      </div>
+      <div class="row" style="margin-top:10px;">
         <button class="btn ghost sm" id="ns_cancel">취소</button>
         <button class="btn primary sm" id="ns_save">학생DB에 저장하고 선택</button>
       </div>
@@ -270,7 +311,7 @@
     <div class="block-title"><span class="n c-cobalt">2</span>교재 &amp; 오늘 진도</div>
     <label>교재</label>
     <div class="search-wrap">
-      <input type="text" id="bookSearch" placeholder="교재명 검색" autocomplete="off">
+      <input type="text" id="bookSearch" placeholder="교재명 검색 또는 새 교재명 입력" autocomplete="off">
       <div class="dropdown" id="bookDropdown" style="display:none;"></div>
     </div>
     <div id="bookChip"></div>
@@ -278,23 +319,19 @@
     <div id="lessonArea" style="display:none; margin-top:12px;">
       <label>오늘 진도</label>
       <div class="search-wrap">
-        <input type="text" id="lessonSearch" placeholder="진도 검색 (예: 1단원 물질)" autocomplete="off">
+        <input type="text" id="lessonSearch" placeholder="진도 검색 또는 새 진도 입력 (예: 1단원 물질)" autocomplete="off">
         <div class="dropdown" id="lessonDropdown" style="display:none;"></div>
       </div>
       <div id="lessonChip"></div>
     </div>
 
-    <div id="newCurriForm" style="display:none; margin-top:12px; padding-top:12px; border-top:1px dashed var(--line-strong);">
-      <p class="hint" style="margin:0 0 8px;">과제DB에 없는 새 항목입니다. 아래 내용을 입력하면 대기 목록에 담아두었다가, 원하실 때 "구글 시트에 누적 저장"으로 한번에 올립니다.</p>
-      <label>교재명</label>
-      <input type="text" id="nc_book">
-      <label>진도단원</label>
-      <input type="text" id="nc_lesson">
+    <div id="newCurriForm" class="inline-new" style="display:none;">
+      <p class="hint" style="margin:0 0 8px;">위 진도 칸의 내용으로 새 항목을 대기 목록에 담습니다 (교재: <span id="nc_bookLabel"></span>).</p>
       <label>과제</label>
       <textarea id="nc_homework" placeholder="예) 책 4-6, 시험대비교재 4-7"></textarea>
       <label>공통알림장</label>
       <textarea id="nc_notice" placeholder="예) 금일 %%학생 과학 수업 시간에는 ..."></textarea>
-      <div class="row" style="margin-top:12px;">
+      <div class="row" style="margin-top:10px;">
         <button class="btn ghost sm" id="nc_cancel">취소</button>
         <button class="btn primary sm" id="nc_addToPending">대기 목록에 담기</button>
       </div>
@@ -312,6 +349,9 @@
     <div class="block-title"><span class="n c-cobalt">3</span>오늘 과제</div>
     <textarea id="homeworkText" placeholder="선택한 진도의 과제가 자동으로 채워집니다. 직접 수정 가능"></textarea>
   </div>
+
+  </div>
+  <div class="record-col">
 
   <div class="block">
     <div class="block-title"><span class="n c-violet">4</span>알림장 내용</div>
@@ -371,8 +411,13 @@
     </div>
   </div>
 
+  </div>
+  </div>
+
+  <div class="record-actions">
   <button class="btn primary block-w" id="saveRecordBtn" style="padding:13px; font-size:14.5px;">오늘 수업기록 저장</button>
-  <button class="btn block-w" id="shareBtn" style="margin-top:10px;">카톡 / 문자로 공유</button>
+  <button class="btn block-w" id="shareBtn">카톡 / 문자로 공유</button>
+  </div>
 
 </section>
 
@@ -538,8 +583,17 @@ function renderStudentDropdown(){
   const addBtn = document.getElementById('addNewStudentBtn');
   if(addBtn) addBtn.addEventListener('click', ()=>openNewStudentForm(q));
 }
-studentSearch.addEventListener('input', renderStudentDropdown);
+studentSearch.addEventListener('input', ()=>{ newStudentForm.style.display='none'; renderStudentDropdown(); });
 studentSearch.addEventListener('focus', renderStudentDropdown);
+studentSearch.addEventListener('keydown', (e)=>{
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  const q = studentSearch.value.trim();
+  if(!q) return;
+  const exact = DATA.students.find(s=>s.이름===q);
+  if(exact){ selectStudent(exact.이름); return; }
+  openNewStudentForm(q);
+});
 document.addEventListener('click', (e)=>{
   if(!e.target.closest('.search-wrap')) {
     document.querySelectorAll('.dropdown').forEach(d=>d.style.display='none');
@@ -567,12 +621,12 @@ function selectStudent(name){
 function openNewStudentForm(prefillName){
   newStudentForm.style.display = 'block';
   studentDropdown.style.display = 'none';
-  document.getElementById('ns_name').value = prefillName || '';
+  studentSearch.value = prefillName || studentSearch.value;
 }
 document.getElementById('ns_cancel').addEventListener('click', ()=>{ newStudentForm.style.display='none'; });
 document.getElementById('ns_save').addEventListener('click', async ()=>{
-  const name = document.getElementById('ns_name').value.trim();
-  if(!name){ toast('이름을 입력해주세요'); return; }
+  const name = studentSearch.value.trim();
+  if(!name){ toast('학생 이름을 입력해주세요'); return; }
   const payload = {
     name,
     schoolGrade: document.getElementById('ns_school').value.trim(),
@@ -603,15 +657,29 @@ function renderBookDropdown(){
   let html = '';
   if(results.length===0){ html += '<div class="empty">일치하는 교재가 없습니다</div>'; }
   else results.forEach(b=>{ html += `<div class="opt" data-book="${b}">${b}<div class="sub">진도 ${DATA.curriculum[b].length}개</div></div>`; });
-  if(q) html += `<div class="add-new" id="addNewBookBtn">+ "${q}" 새 교재로 추가</div>`;
+  if(q && !books.includes(q)) html += `<div class="add-new" id="addNewBookBtn">+ "${q}" 새 교재로 사용</div>`;
   bookDropdown.innerHTML = html;
   bookDropdown.style.display = 'block';
   bookDropdown.querySelectorAll('.opt').forEach(el=>el.addEventListener('click', ()=>selectBook(el.dataset.book)));
   const addBtn = document.getElementById('addNewBookBtn');
-  if(addBtn) addBtn.addEventListener('click', ()=>openNewCurriForm(q, ''));
+  if(addBtn) addBtn.addEventListener('click', ()=>useNewBook(q));
 }
 bookSearch.addEventListener('input', renderBookDropdown);
 bookSearch.addEventListener('focus', renderBookDropdown);
+bookSearch.addEventListener('keydown', (e)=>{
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  const q = bookSearch.value.trim();
+  if(!q) return;
+  if(DATA.curriculum[q]){ selectBook(q); return; }
+  useNewBook(q);
+});
+
+function useNewBook(book){
+  if(!DATA.curriculum[book]) DATA.curriculum[book] = [];
+  bookDropdown.style.display = 'none';
+  selectBook(book);
+}
 
 function selectBook(book){
   form.book = book;
@@ -646,15 +714,26 @@ function renderLessonDropdown(){
     const realIdx = lessons.indexOf(l);
     html += `<div class="opt" data-idx="${realIdx}">${l.lesson}<div class="sub">${(l.homework||'').slice(0,40)}</div></div>`;
   });
-  if(q) html += `<div class="add-new" id="addNewLessonBtn">+ "${q}" 새 진도로 추가</div>`;
+  const exists = lessons.some(l=>l.lesson===q);
+  if(q && !exists) html += `<div class="add-new" id="addNewLessonBtn">+ "${q}" 새 진도로 추가</div>`;
   lessonDropdown.innerHTML = html;
   lessonDropdown.style.display = 'block';
   lessonDropdown.querySelectorAll('.opt').forEach(el=>el.addEventListener('click', ()=>selectLesson(parseInt(el.dataset.idx))));
   const addBtn = document.getElementById('addNewLessonBtn');
-  if(addBtn) addBtn.addEventListener('click', ()=>openNewCurriForm(form.book, q));
+  if(addBtn) addBtn.addEventListener('click', ()=>openNewCurriForm(q));
 }
-lessonSearch.addEventListener('input', renderLessonDropdown);
+lessonSearch.addEventListener('input', ()=>{ newCurriForm.style.display='none'; renderLessonDropdown(); });
 lessonSearch.addEventListener('focus', renderLessonDropdown);
+lessonSearch.addEventListener('keydown', (e)=>{
+  if(e.key !== 'Enter' || !form.book) return;
+  e.preventDefault();
+  const q = lessonSearch.value.trim();
+  if(!q) return;
+  const lessons = DATA.curriculum[form.book] || [];
+  const idx = lessons.findIndex(l=>l.lesson===q);
+  if(idx !== -1){ selectLesson(idx); return; }
+  openNewCurriForm(q);
+});
 
 function selectLesson(idx){
   const l = (DATA.curriculum[form.book]||[])[idx];
@@ -662,6 +741,7 @@ function selectLesson(idx){
   form.lesson = l;
   lessonSearch.value = '';
   lessonDropdown.style.display = 'none';
+  newCurriForm.style.display = 'none';
   lessonChip.innerHTML = `<div class="selected-chip">${l.lesson} <button id="clearLesson">✕</button></div>`;
   document.getElementById('clearLesson').addEventListener('click', ()=>{
     form.lesson=null; lessonChip.innerHTML=''; updateCopyPreview();
@@ -671,30 +751,29 @@ function selectLesson(idx){
   updateCopyPreview();
 }
 
-// ---------------- 새 교재/진도 폼 ----------------
-function openNewCurriForm(book, lesson){
+// ---------------- 새 진도 폼 (같은 검색칸의 값을 그대로 사용) ----------------
+function openNewCurriForm(lessonPrefill){
   newCurriForm.style.display = 'block';
   bookDropdown.style.display = 'none';
   lessonDropdown.style.display = 'none';
-  document.getElementById('nc_book').value = book || form.book || '';
-  document.getElementById('nc_lesson').value = lesson || '';
+  if(lessonPrefill) lessonSearch.value = lessonPrefill;
+  document.getElementById('nc_bookLabel').textContent = form.book || '';
   document.getElementById('nc_homework').value = '';
   document.getElementById('nc_notice').value = '';
 }
 document.getElementById('nc_cancel').addEventListener('click', ()=>{ newCurriForm.style.display='none'; });
 document.getElementById('nc_addToPending').addEventListener('click', ()=>{
-  const book = document.getElementById('nc_book').value.trim();
-  const lesson = document.getElementById('nc_lesson').value.trim();
+  const book = form.book;
+  const lesson = lessonSearch.value.trim();
   const homework = document.getElementById('nc_homework').value.trim();
   const notice = document.getElementById('nc_notice').value.trim();
-  if(!book || !lesson){ toast('교재명과 진도단원을 입력해주세요'); return; }
+  if(!book || !lesson){ toast('교재를 먼저 선택하고, 진도 칸에 이름을 입력해주세요'); return; }
   const item = { book, lesson, homework, commonNotice: notice };
   form.pendingCurri.push(item);
 
   // 화면에서도 바로 선택된 것처럼 사용 가능하게
   if(!DATA.curriculum[book]) DATA.curriculum[book] = [];
   DATA.curriculum[book].push({ lesson, homework, commonNotice: notice });
-  selectBook(book);
   selectLesson(DATA.curriculum[book].length - 1);
 
   newCurriForm.style.display = 'none';
@@ -808,11 +887,17 @@ document.getElementById('shareBtn').addEventListener('click', async ()=>{
 });
 
 // ---------------- 학생 관리 ----------------
+function substringSearch(query, items, keyFn){
+  const q = normalize(query);
+  if(!q) return [];
+  return items.filter(it => normalize(keyFn(it)).includes(q));
+}
+
 const manageSearch = document.getElementById('manageSearch');
 manageSearch.addEventListener('input', renderManageList);
 function renderManageList(){
   const q = manageSearch.value.trim();
-  const results = q ? fuzzySearch(q, DATA.students, s=>s.이름).slice(0,10) : [];
+  const results = substringSearch(q, DATA.students, s=>s.이름).slice(0,10);
   const box = document.getElementById('manageResults');
   box.innerHTML = results.map(s=>`
     <div class="student-card">

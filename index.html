@@ -374,19 +374,8 @@
       <div id="lessonRenamePanel" style="display:none; margin-top:8px;">
         <div class="copy-field">
           <input type="text" id="lessonRenameInput" style="border:none; background:transparent; padding:0; font-size:13.5px; margin-bottom:8px;">
-          <button class="btn sm" id="lessonRenameSave">진도명 시트에 저장</button>
+          <button class="btn teal sm" id="lessonRenameSave">진도명 시트에 저장</button>
         </div>
-      </div>
-    </div>
-
-    <div id="bookHomeworkPanel" style="display:none; margin-top:10px;">
-      <div class="copy-field">
-        <div class="txt" id="copy_bookHomework">-</div>
-        <button class="btn sm" data-copy="copy_bookHomework">복사</button>
-      </div>
-      <div class="copy-field">
-        <textarea class="txt-edit" id="copy_bookHomeworkContent" placeholder="-"></textarea>
-        <button class="btn sm" data-copy="copy_bookHomeworkContent">복사</button>
       </div>
     </div>
 
@@ -613,7 +602,8 @@
     <label>새 비밀번호 확인</label>
     <input type="password" id="pw_confirm" inputmode="numeric" autocomplete="off">
     <button class="btn primary" id="pw_save" style="margin-top:10px;">비밀번호 변경</button>
-    <p class="hint">처음 비밀번호는 1234입니다. 이 기기의 브라우저에만 저장되며, 다른 기기에서 열면 각자 설정해야 합니다.</p>
+    <p class="hint">처음 비밀번호는 1234입니다. 한 번 맞게 입력하면 로그아웃하기 전까지 이 기기에서는 다시 묻지 않습니다.</p>
+    <button class="btn ghost" id="logoutBtn" style="margin-top:10px;">로그아웃</button>
   </div>
   <div class="block">
     <div class="block-title"><span class="n c-violet">i</span>안내</div>
@@ -1075,24 +1065,11 @@ function updateCopyPreview(){
   const hw = document.getElementById('homeworkText').value.trim();
   setIfNotFocused('copy_homework', hw || '-');
 
-  const bookHomeworkPanel = document.getElementById('bookHomeworkPanel');
-  if(form.book){
-    bookHomeworkPanel.style.display = 'block';
-    document.getElementById('copy_bookHomework').textContent = `${form.book} 과제`;
-    setIfNotFocused('copy_bookHomeworkContent', hw);
-  }else{
-    bookHomeworkPanel.style.display = 'none';
-  }
-
   const common = document.getElementById('commonNoticeText').value.trim();
   const personal = document.getElementById('personalNoteText').value.trim();
   const combined = [common, personal].filter(Boolean).join(' ');
   setIfNotFocused('copy_notice', combined || '-');
 }
-document.getElementById('copy_bookHomeworkContent').addEventListener('input', function(){
-  document.getElementById('homeworkText').value = this.value;
-  updateCopyPreview();
-});
 document.getElementById('copy_homework').addEventListener('input', function(){
   document.getElementById('homeworkText').value = this.value;
   updateCopyPreview();
@@ -1531,12 +1508,16 @@ const appRoot = document.getElementById('appRoot');
 const lockInput = document.getElementById('lockInput');
 const lockError = document.getElementById('lockError');
 
+function unlockApp(){
+  lockScreen.style.display = 'none';
+  appRoot.style.display = 'block';
+}
 async function tryUnlock(){
   const entered = lockInput.value.trim();
   const correct = await getPassword();
   if(entered && entered === correct){
-    lockScreen.style.display = 'none';
-    appRoot.style.display = 'block';
+    await localStore.set('unlocked', 'true');
+    unlockApp();
   }else{
     lockError.style.display = 'block';
     lockInput.value = '';
@@ -1546,6 +1527,15 @@ async function tryUnlock(){
 document.getElementById('lockSubmit').addEventListener('click', tryUnlock);
 lockInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); tryUnlock(); } });
 lockInput.addEventListener('input', ()=>{ lockError.style.display = 'none'; });
+
+document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+  await localStore.set('unlocked', '');
+  appRoot.style.display = 'none';
+  lockScreen.style.display = 'flex';
+  lockInput.value = '';
+  lockError.style.display = 'none';
+  lockInput.focus();
+});
 
 document.getElementById('pw_save').addEventListener('click', async ()=>{
   const cur = document.getElementById('pw_current').value.trim();
@@ -1593,7 +1583,14 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
   renderGcalStatus();
   // 구글 로그인 라이브러리는 비동기로 로드되므로 약간의 지연 후 초기화 시도
   setTimeout(()=>{ if(CONFIG.gcalClientId) initGcalTokenClient(); }, 500);
-  lockInput.focus();
+  try{
+    const wasUnlocked = await localStore.get('unlocked');
+    if(wasUnlocked && wasUnlocked.value === 'true'){
+      unlockApp();
+    }else{
+      lockInput.focus();
+    }
+  }catch(e){ lockInput.focus(); }
   await loadData();
 })();
 </script>

@@ -1427,7 +1427,7 @@ function openManageDetail(name){
         const ok = confirm(`${fmtDT(r['작성일시'])} · 진도 ${r['오늘진도']||'-'} 기록을 삭제할까요?\n삭제하면 되돌릴 수 없습니다.`);
         if(!ok) return;
         try{
-          const res = await apiPost('deleteRecord', { writtenAt: r['작성일시'], studentName: r['학생이름'] });
+          const res = await apiPost('deleteRecord', { rowNum: r._rowNum, studentName: r['학생이름'] });
           if(res.error){ toast(res.error); return; }
           toast('기록을 삭제했습니다');
           await loadData();

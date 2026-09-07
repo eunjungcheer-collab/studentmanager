@@ -183,6 +183,12 @@
   }
   .copy-field .txt{font-size:13.5px; white-space:pre-wrap; color:var(--ink); margin-bottom:8px;}
   .copy-field .txt.empty{color:var(--ink-soft); font-style:normal;}
+  .copy-field textarea.txt-edit{
+    display:block; width:100%; border:none; background:transparent; resize:vertical;
+    font:inherit; font-size:13.5px; color:var(--ink); padding:0; margin-bottom:8px;
+    min-height:44px;
+  }
+  .copy-field textarea.txt-edit:focus{outline:none;}
 
   .toggle-pair{display:flex; gap:8px;}
   .toggle-pair button{
@@ -372,7 +378,7 @@
         <button class="btn sm" data-copy="copy_bookHomework">복사</button>
       </div>
       <div class="copy-field">
-        <div class="txt" id="copy_bookHomeworkContent">-</div>
+        <textarea class="txt-edit" id="copy_bookHomeworkContent" placeholder="-"></textarea>
         <button class="btn sm" data-copy="copy_bookHomeworkContent">복사</button>
       </div>
     </div>
@@ -946,10 +952,11 @@ function updateCopyPreview(){
   document.getElementById('copy_homework').textContent = hw || '-';
 
   const bookHomeworkPanel = document.getElementById('bookHomeworkPanel');
+  const bookHwContentEl = document.getElementById('copy_bookHomeworkContent');
   if(form.book){
     bookHomeworkPanel.style.display = 'block';
     document.getElementById('copy_bookHomework').textContent = `${form.book} 과제`;
-    document.getElementById('copy_bookHomeworkContent').textContent = hw || '-';
+    if(document.activeElement !== bookHwContentEl) bookHwContentEl.value = hw;
   }else{
     bookHomeworkPanel.style.display = 'none';
   }
@@ -959,12 +966,17 @@ function updateCopyPreview(){
   const combined = [common, personal].filter(Boolean).join(' ');
   document.getElementById('copy_notice').textContent = combined || '-';
 }
+document.getElementById('copy_bookHomeworkContent').addEventListener('input', function(){
+  document.getElementById('homeworkText').value = this.value;
+  updateCopyPreview();
+});
 ['homeworkText','commonNoticeText','personalNoteText'].forEach(id=>{
   document.getElementById(id).addEventListener('input', updateCopyPreview);
 });
 document.querySelectorAll('[data-copy]').forEach(btn=>{
   btn.addEventListener('click', ()=>{
-    const text = document.getElementById(btn.dataset.copy).textContent;
+    const el = document.getElementById(btn.dataset.copy);
+    const text = (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') ? el.value : el.textContent;
     if(text && text !== '-') copyText(text);
   });
 });

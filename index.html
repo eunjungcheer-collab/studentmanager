@@ -424,6 +424,7 @@
     <textarea id="personalNoteText" style="min-height:90px;" placeholder="이 학생에게만 전달할 내용이 있으면 적어주세요"></textarea>
     <p class="hint">%%학생 표기는 그대로 두시면 아카2000에서 학생 이름으로 자동 치환됩니다.</p>
     <button class="btn teal sm" id="updateNoticeBtn" style="display:none; margin-top:10px;">공통알림장 시트에 저장</button>
+    <button class="btn primary sm" id="updateAllCurriBtn" style="display:none; margin-top:8px;">진도·과제·알림장 모두 저장</button>
   </div>
 
   <div class="block">
@@ -888,6 +889,7 @@ function updateCurriButtonVisibility(){
   const show = form.lesson && !isPendingLesson();
   document.getElementById('updateHomeworkBtn').style.display = show ? 'inline-flex' : 'none';
   document.getElementById('updateNoticeBtn').style.display = show ? 'inline-flex' : 'none';
+  document.getElementById('updateAllCurriBtn').style.display = show ? 'inline-flex' : 'none';
   document.getElementById('lessonRenamePanel').style.display = show ? 'block' : 'none';
   if(show){
     document.getElementById('lessonRenameInput').value = form.lesson.lesson;
@@ -963,6 +965,28 @@ document.getElementById('lessonRenameSave').addEventListener('click', async ()=>
     const res = await apiPost('updateCurriculum', payload);
     if(res.error){ toast(res.error); return; }
     toast('진도명을 시트에 저장했습니다');
+    await refreshSelectedLessonAfterSave(newLesson);
+    lessonChip.innerHTML = `<div class="selected-chip">${newLesson} <button id="clearLesson">✕</button></div>`;
+    document.getElementById('clearLesson').addEventListener('click', ()=>{
+      form.lesson=null; lessonChip.innerHTML=''; updateCopyPreview(); updateCurriButtonVisibility();
+    });
+  }catch(err){ toast('저장 실패: ' + err.message); }
+});
+
+document.getElementById('updateAllCurriBtn').addEventListener('click', async ()=>{
+  if(!form.book || !form.lesson) return;
+  const newLesson = document.getElementById('lessonRenameInput').value.trim() || form.lesson.lesson;
+  const payload = {
+    book: form.book,
+    lesson: form.lesson.lesson,
+    newLesson: newLesson,
+    homework: document.getElementById('homeworkText').value.trim(),
+    commonNotice: document.getElementById('commonNoticeText').value.trim()
+  };
+  try{
+    const res = await apiPost('updateCurriculum', payload);
+    if(res.error){ toast(res.error); return; }
+    toast('진도·과제·알림장을 모두 시트에 저장했습니다');
     await refreshSelectedLessonAfterSave(newLesson);
     lessonChip.innerHTML = `<div class="selected-chip">${newLesson} <button id="clearLesson">✕</button></div>`;
     document.getElementById('clearLesson').addEventListener('click', ()=>{

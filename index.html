@@ -125,7 +125,7 @@
   }
   textarea{resize:vertical; min-height:56px;}
 
-  .search-wrap{position:relative;}
+  .search-wrap{position:relative; max-width:320px;}
   .dropdown{
     position:absolute; left:0; right:0; top:calc(100% + 3px);
     background:#fff; border:1px solid var(--line-strong); border-radius:5px;
@@ -216,10 +216,25 @@
   .student-card h3{font-size:15px;}
   .student-card .meta{color:var(--ink-soft); font-size:12.5px; margin-top:2px;}
   .record-row{
-    padding:8px 0; border-bottom:1px dashed var(--line);
-    font-size:12.5px; color:var(--ink-soft);
+    padding:12px 14px; border:1px solid var(--line); border-radius:6px; background:#fff;
+    margin-bottom:8px; font-size:14px; color:var(--ink-soft); line-height:1.7;
   }
-  .record-row b{color:var(--ink); font-weight:500;}
+  .record-row b{color:var(--ink); font-weight:700; font-size:14.5px;}
+
+  .info-compact{
+    display:flex; flex-direction:column;
+  }
+  .info-row{
+    display:flex; justify-content:space-between; gap:10px;
+    padding:5px 0; border-bottom:1px dashed var(--line);
+    font-size:12.5px;
+  }
+  .info-row:last-child{border-bottom:none;}
+  .info-label{color:var(--ink-soft); flex:none;}
+  .info-row span:last-child{color:var(--ink); font-weight:500; text-align:right;}
+
+  #recentTitle{font-size:14.5px; color:var(--ink); font-weight:700;}
+  #recentTitle .n{width:22px; height:22px; font-size:12px;}
 
   .hint{font-size:11.5px; color:var(--ink-soft); margin-top:4px;}
 
@@ -466,25 +481,40 @@
   <div id="manageResults"></div>
 
   <div class="block" id="manageDetail" style="display:none;">
-    <div class="block-title"><span class="n c-cobalt">✎</span>정보 수정</div>
+    <div class="block-title"><span class="n c-cobalt">✎</span>학생 정보</div>
     <input type="hidden" id="md_originalName">
-    <label>이름</label>
-    <input type="text" id="md_name" disabled>
-    <label>학교학년</label>
-    <input type="text" id="md_school">
-    <label>교과서</label>
-    <input type="text" id="md_book">
-    <label>시험날짜</label>
-    <input type="date" id="md_examDate">
-    <label>시험범위</label>
-    <input type="text" id="md_examRange">
-    <div class="row" style="margin-top:12px;">
-      <button class="btn primary" id="md_save">구글 시트에 수정 저장</button>
-      <button class="btn teal" id="md_pickForToday">오늘 수업기록 작성</button>
+
+    <div class="info-compact" id="infoCompact">
+      <div class="info-row"><span class="info-label">이름</span><span id="ic_name"></span></div>
+      <div class="info-row"><span class="info-label">학교학년</span><span id="ic_school"></span></div>
+      <div class="info-row"><span class="info-label">교과서</span><span id="ic_book"></span></div>
+      <div class="info-row"><span class="info-label">시험날짜</span><span id="ic_examDate"></span></div>
+      <div class="info-row"><span class="info-label">시험범위</span><span id="ic_examRange"></span></div>
+    </div>
+    <div class="row" id="md_actionsRow" style="margin-top:10px;">
+      <button class="btn sm" id="md_editToggle">정보 수정</button>
+      <button class="btn teal sm" id="md_pickForToday">오늘 수업기록 작성</button>
+    </div>
+
+    <div id="editForm" class="inline-new" style="display:none;">
+      <label style="margin-top:0;">이름</label>
+      <input type="text" id="md_name" disabled>
+      <label>학교학년</label>
+      <input type="text" id="md_school">
+      <label>교과서</label>
+      <input type="text" id="md_book">
+      <label>시험날짜</label>
+      <input type="date" id="md_examDate">
+      <label>시험범위</label>
+      <input type="text" id="md_examRange">
+      <div class="row" style="margin-top:10px;">
+        <button class="btn ghost sm" id="md_editCancel">취소</button>
+        <button class="btn primary sm" id="md_save">구글 시트에 저장</button>
+      </div>
     </div>
 
     <hr class="divider">
-    <div class="block-title" style="margin-bottom:8px;"><span class="n c-coral">≡</span>최근 수업 기록</div>
+    <div class="block-title" id="recentTitle"><span class="n c-coral">≡</span>최근 수업 기록</div>
     <div id="md_records"></div>
   </div>
 </section>
@@ -621,6 +651,9 @@ function renderStudentBlock(){
 }
 goPickStudent.addEventListener('click', ()=>{
   activateTab('manage');
+  manageSearch.value = '';
+  document.getElementById('manageResults').innerHTML = '';
+  document.getElementById('manageDetail').style.display = 'none';
   manageSearch.focus();
 });
 document.addEventListener('click', (e)=>{
@@ -967,6 +1000,18 @@ document.getElementById('ns_save').addEventListener('click', async ()=>{
   }catch(err){ toast('저장 실패: ' + err.message); }
 });
 
+function renderCompactInfo(s){
+  document.getElementById('ic_name').textContent = s.이름;
+  document.getElementById('ic_school').textContent = s.학교학년 || '-';
+  document.getElementById('ic_book').textContent = s.교과서 || '-';
+  document.getElementById('ic_examDate').textContent = s.시험날짜 || '-';
+  document.getElementById('ic_examRange').textContent = s.시험범위 || '-';
+}
+function showCompactView(){
+  document.getElementById('infoCompact').style.display = 'flex';
+  document.getElementById('md_actionsRow').style.display = 'flex';
+  document.getElementById('editForm').style.display = 'none';
+}
 function openManageDetail(name){
   const s = DATA.students.find(x=>x.이름===name);
   if(!s) return;
@@ -978,6 +1023,8 @@ function openManageDetail(name){
   document.getElementById('md_book').value = s.교과서 || '';
   document.getElementById('md_examDate').value = s.시험날짜 || '';
   document.getElementById('md_examRange').value = s.시험범위 || '';
+  renderCompactInfo(s);
+  showCompactView();
 
   const recs = DATA.records.filter(r => r['학생이름']===name)
     .sort((a,b)=> (b['작성일시']||'').localeCompare(a['작성일시']||'')).slice(0,5);
@@ -997,6 +1044,21 @@ function openManageDetail(name){
   }
   document.getElementById('view-manage').scrollIntoView({behavior:'smooth'});
 }
+document.getElementById('md_editToggle').addEventListener('click', ()=>{
+  document.getElementById('infoCompact').style.display = 'none';
+  document.getElementById('md_actionsRow').style.display = 'none';
+  document.getElementById('editForm').style.display = 'block';
+});
+document.getElementById('md_editCancel').addEventListener('click', ()=>{
+  const s = DATA.students.find(x=>x.이름===document.getElementById('md_originalName').value);
+  if(s){
+    document.getElementById('md_school').value = s.학교학년 || '';
+    document.getElementById('md_book').value = s.교과서 || '';
+    document.getElementById('md_examDate').value = s.시험날짜 || '';
+    document.getElementById('md_examRange').value = s.시험범위 || '';
+  }
+  showCompactView();
+});
 document.getElementById('md_save').addEventListener('click', async ()=>{
   const payload = {
     name: document.getElementById('md_originalName').value,
@@ -1010,7 +1072,9 @@ document.getElementById('md_save').addEventListener('click', async ()=>{
     if(res.error){ toast(res.error); return; }
     toast('수정 내용을 저장했습니다');
     await loadData();
-    manageSearch.value = '';
+    const updated = DATA.students.find(x=>x.이름===payload.name);
+    if(updated) renderCompactInfo(updated);
+    showCompactView();
   }catch(err){ toast('저장 실패: ' + err.message); }
 });
 document.getElementById('md_pickForToday').addEventListener('click', ()=>{

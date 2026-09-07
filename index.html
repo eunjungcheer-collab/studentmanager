@@ -287,24 +287,9 @@
 
   <div class="block">
     <div class="block-title"><span class="n c-cobalt">1</span>학생</div>
-    <div class="search-wrap">
-      <input type="text" id="studentSearch" placeholder="학생 이름 검색 또는 새 이름 입력" autocomplete="off">
-      <div class="dropdown" id="studentDropdown" style="display:none;"></div>
-    </div>
     <div id="studentChip"></div>
-    <div id="newStudentForm" class="inline-new" style="display:none;">
-      <p class="hint" style="margin:0 0 8px;">위 칸의 이름으로 새 학생을 등록합니다. 필요하면 위에서 이름을 바로 고치세요.</p>
-      <div class="form-grid">
-        <div><label>학교학년</label><input type="text" id="ns_school" placeholder="예) 중계중2"></div>
-        <div><label>교과서</label><input type="text" id="ns_book" placeholder="예) 오투과학2-1"></div>
-        <div><label>시험날짜</label><input type="date" id="ns_examDate"></div>
-        <div><label>시험범위</label><input type="text" id="ns_examRange" placeholder="예) 4,8"></div>
-      </div>
-      <div class="row" style="margin-top:10px;">
-        <button class="btn ghost sm" id="ns_cancel">취소</button>
-        <button class="btn primary sm" id="ns_save">학생DB에 저장하고 선택</button>
-      </div>
-    </div>
+    <p class="hint" id="noStudentHint" style="margin-top:0;">아직 선택된 학생이 없습니다. 학생관리 탭에서 학생을 선택하거나 새로 등록해주세요.</p>
+    <button class="btn primary sm" id="goPickStudent" style="margin-top:8px;">학생관리에서 학생 선택</button>
   </div>
 
   <div class="block">
@@ -350,9 +335,6 @@
     <textarea id="homeworkText" placeholder="선택한 진도의 과제가 자동으로 채워집니다. 직접 수정 가능"></textarea>
   </div>
 
-  </div>
-  <div class="record-col">
-
   <div class="block">
     <div class="block-title"><span class="n c-violet">4</span>알림장 내용</div>
     <label>공통알림장 (교재/진도 선택 시 자동)</label>
@@ -373,21 +355,8 @@
     <input type="number" id="quizScore" placeholder="점수 입력 (예: 85)">
   </div>
 
-  <div class="block">
-    <div class="block-title"><span class="n c-teal">6</span>결석 &amp; 보강</div>
-    <label>결석일자</label>
-    <input type="date" id="absentDate">
-    <div class="row">
-      <div>
-        <label>보강일자</label>
-        <input type="date" id="makeupDate">
-      </div>
-      <div>
-        <label>보강시간</label>
-        <input type="time" id="makeupTime">
-      </div>
-    </div>
   </div>
+  <div class="record-col">
 
   <div class="block">
     <div class="block-title"><span class="n c-cobalt">✓</span>복사해서 아카2000에 붙여넣기</div>
@@ -414,6 +383,22 @@
   </div>
   </div>
 
+  <div class="block">
+    <div class="block-title"><span class="n c-teal">6</span>결석 &amp; 보강</div>
+    <label>결석일자</label>
+    <input type="date" id="absentDate">
+    <div class="row">
+      <div>
+        <label>보강일자</label>
+        <input type="date" id="makeupDate">
+      </div>
+      <div>
+        <label>보강시간</label>
+        <input type="time" id="makeupTime">
+      </div>
+    </div>
+  </div>
+
   <div class="record-actions">
   <button class="btn primary block-w" id="saveRecordBtn" style="padding:13px; font-size:14.5px;">오늘 수업기록 저장</button>
   <button class="btn block-w" id="shareBtn">카톡 / 문자로 공유</button>
@@ -425,7 +410,22 @@
 <section class="view" id="view-manage">
   <div class="block">
     <div class="block-title"><span class="n c-cobalt">Q</span>학생 검색</div>
-    <input type="text" id="manageSearch" placeholder="학생 이름 검색" autocomplete="off">
+    <div class="search-wrap">
+      <input type="text" id="manageSearch" placeholder="학생 이름 검색 또는 새 이름 입력" autocomplete="off">
+    </div>
+    <div id="manageNewForm" class="inline-new" style="display:none;">
+      <p class="hint" style="margin:0 0 8px;">위 칸의 이름으로 새 학생을 등록합니다. 필요하면 위에서 이름을 바로 고치세요.</p>
+      <div class="form-grid">
+        <div><label>학교학년</label><input type="text" id="ns_school" placeholder="예) 중계중2"></div>
+        <div><label>교과서</label><input type="text" id="ns_book" placeholder="예) 오투과학2-1"></div>
+        <div><label>시험날짜</label><input type="date" id="ns_examDate"></div>
+        <div><label>시험범위</label><input type="text" id="ns_examRange" placeholder="예) 4,8"></div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <button class="btn ghost sm" id="ns_cancel">취소</button>
+        <button class="btn primary sm" id="ns_save">학생DB에 저장</button>
+      </div>
+    </div>
   </div>
   <div id="manageResults"></div>
 
@@ -442,7 +442,10 @@
     <input type="date" id="md_examDate">
     <label>시험범위</label>
     <input type="text" id="md_examRange">
-    <button class="btn primary block-w" id="md_save" style="margin-top:12px;">구글 시트에 수정 저장</button>
+    <div class="row" style="margin-top:12px;">
+      <button class="btn primary" id="md_save">구글 시트에 수정 저장</button>
+      <button class="btn teal" id="md_pickForToday">오늘 수업기록 작성</button>
+    </div>
 
     <hr class="divider">
     <div class="block-title" style="margin-bottom:8px;"><span class="n c-coral">≡</span>최근 수업 기록</div>
@@ -546,53 +549,36 @@ async function loadData(){
 }
 
 // ---------------- 탭 ----------------
+function activateTab(view){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id === 'view-' + view));
+}
 document.querySelectorAll('.tab-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('view-' + btn.dataset.view).classList.add('active');
-  });
+  btn.addEventListener('click', ()=>activateTab(btn.dataset.view));
 });
 
-// ---------------- 학생 검색 ----------------
-const studentSearch = document.getElementById('studentSearch');
-const studentDropdown = document.getElementById('studentDropdown');
+// ---------------- 현재 선택된 학생 (선택은 학생관리 탭에서만) ----------------
 const studentChip = document.getElementById('studentChip');
-const newStudentForm = document.getElementById('newStudentForm');
+const noStudentHint = document.getElementById('noStudentHint');
+const goPickStudent = document.getElementById('goPickStudent');
 
-function renderStudentDropdown(){
-  const q = studentSearch.value.trim();
-  const results = fuzzySearch(q, DATA.students, s=>s.이름 + ' ' + s.학교학년).slice(0,8);
-  let html = '';
-  if(results.length===0){
-    html += '<div class="empty">일치하는 학생이 없습니다</div>';
-  }else{
-    results.forEach(s=>{
-      html += `<div class="opt" data-name="${s.이름}">${s.이름}<div class="sub">${s.학교학년 || ''}${s.교과서 ? ' · ' + s.교과서 : ''}</div></div>`;
+function renderStudentBlock(){
+  if(form.student){
+    studentChip.innerHTML = `<div class="selected-chip">${form.student.이름} · ${form.student.학교학년||'학교학년 미입력'} <button id="clearStudent">✕</button></div>`;
+    document.getElementById('clearStudent').addEventListener('click', ()=>{
+      form.student = null; renderStudentBlock(); updateCopyPreview();
     });
+    noStudentHint.style.display = 'none';
+    goPickStudent.textContent = '다른 학생으로 변경';
+  }else{
+    studentChip.innerHTML = '';
+    noStudentHint.style.display = 'block';
+    goPickStudent.textContent = '학생관리에서 학생 선택';
   }
-  if(q){
-    html += `<div class="add-new" id="addNewStudentBtn">+ "${q}" 새 학생으로 추가</div>`;
-  }
-  studentDropdown.innerHTML = html;
-  studentDropdown.style.display = 'block';
-  studentDropdown.querySelectorAll('.opt').forEach(el=>{
-    el.addEventListener('click', ()=>selectStudent(el.dataset.name));
-  });
-  const addBtn = document.getElementById('addNewStudentBtn');
-  if(addBtn) addBtn.addEventListener('click', ()=>openNewStudentForm(q));
 }
-studentSearch.addEventListener('input', ()=>{ newStudentForm.style.display='none'; renderStudentDropdown(); });
-studentSearch.addEventListener('focus', renderStudentDropdown);
-studentSearch.addEventListener('keydown', (e)=>{
-  if(e.key !== 'Enter') return;
-  e.preventDefault();
-  const q = studentSearch.value.trim();
-  if(!q) return;
-  const exact = DATA.students.find(s=>s.이름===q);
-  if(exact){ selectStudent(exact.이름); return; }
-  openNewStudentForm(q);
+goPickStudent.addEventListener('click', ()=>{
+  activateTab('manage');
+  manageSearch.focus();
 });
 document.addEventListener('click', (e)=>{
   if(!e.target.closest('.search-wrap')) {
@@ -604,13 +590,7 @@ function selectStudent(name){
   const s = DATA.students.find(x=>x.이름===name);
   if(!s) return;
   form.student = s;
-  studentSearch.value = '';
-  studentDropdown.style.display = 'none';
-  newStudentForm.style.display = 'none';
-  studentChip.innerHTML = `<div class="selected-chip">${s.이름} · ${s.학교학년||'학교학년 미입력'} <button id="clearStudent">✕</button></div>`;
-  document.getElementById('clearStudent').addEventListener('click', ()=>{
-    form.student = null; studentChip.innerHTML=''; updateCopyPreview();
-  });
+  renderStudentBlock();
   // 교재 자동 선택
   if(s.교과서 && DATA.curriculum[s.교과서]){
     bookSearch.value = '';
@@ -618,30 +598,6 @@ function selectStudent(name){
   }
   updateCopyPreview();
 }
-function openNewStudentForm(prefillName){
-  newStudentForm.style.display = 'block';
-  studentDropdown.style.display = 'none';
-  studentSearch.value = prefillName || studentSearch.value;
-}
-document.getElementById('ns_cancel').addEventListener('click', ()=>{ newStudentForm.style.display='none'; });
-document.getElementById('ns_save').addEventListener('click', async ()=>{
-  const name = studentSearch.value.trim();
-  if(!name){ toast('학생 이름을 입력해주세요'); return; }
-  const payload = {
-    name,
-    schoolGrade: document.getElementById('ns_school').value.trim(),
-    textbook: document.getElementById('ns_book').value.trim(),
-    examDate: document.getElementById('ns_examDate').value,
-    examRange: document.getElementById('ns_examRange').value.trim()
-  };
-  try{
-    const res = await apiPost('addStudent', payload);
-    if(res.error){ toast(res.error); return; }
-    toast('학생DB에 저장했습니다');
-    await loadData();
-    selectStudent(name);
-  }catch(err){ toast('저장 실패: ' + err.message); }
-});
 
 // ---------------- 교재 검색 ----------------
 const bookSearch = document.getElementById('bookSearch');
@@ -894,24 +850,84 @@ function substringSearch(query, items, keyFn){
 }
 
 const manageSearch = document.getElementById('manageSearch');
-manageSearch.addEventListener('input', renderManageList);
+const manageNewForm = document.getElementById('manageNewForm');
+
+manageSearch.addEventListener('input', ()=>{ manageNewForm.style.display='none'; renderManageList(); });
+manageSearch.addEventListener('keydown', (e)=>{
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  const q = manageSearch.value.trim();
+  if(!q) return;
+  const exact = DATA.students.find(s=>s.이름===q);
+  if(exact){ openManageDetail(exact.이름); return; }
+  openManageNewForm(q);
+});
+
 function renderManageList(){
   const q = manageSearch.value.trim();
   const results = substringSearch(q, DATA.students, s=>s.이름).slice(0,10);
   const box = document.getElementById('manageResults');
+  document.getElementById('manageDetail').style.display = 'none';
+  if(q && results.length===0){
+    box.innerHTML = `<p class="hint">"${q}"와(과) 일치하는 학생이 없습니다.</p>
+      <button class="btn primary sm" id="manageAddNewBtn">+ "${q}" 새 학생으로 추가</button>`;
+    document.getElementById('manageAddNewBtn').addEventListener('click', ()=>openManageNewForm(q));
+    return;
+  }
   box.innerHTML = results.map(s=>`
     <div class="student-card">
       <h3>${s.이름}</h3>
       <div class="meta">${s.학교학년||'-'} · ${s.교과서||'교과서 미입력'}</div>
       <div class="meta">시험 ${s.시험날짜||'-'} · 범위 ${s.시험범위||'-'}</div>
-      <button class="btn sm" data-name="${s.이름}" style="margin-top:8px;">상세 / 수정</button>
+      <div class="row" style="margin-top:8px;">
+        <button class="btn sm" data-detail="${s.이름}">상세 / 수정</button>
+        <button class="btn primary sm" data-pick="${s.이름}">오늘 수업기록 작성</button>
+      </div>
     </div>
   `).join('');
-  box.querySelectorAll('button[data-name]').forEach(b=>b.addEventListener('click', ()=>openManageDetail(b.dataset.name)));
+  box.querySelectorAll('button[data-detail]').forEach(b=>b.addEventListener('click', ()=>openManageDetail(b.dataset.detail)));
+  box.querySelectorAll('button[data-pick]').forEach(b=>b.addEventListener('click', ()=>pickStudentForToday(b.dataset.pick)));
 }
+
+function pickStudentForToday(name){
+  selectStudent(name);
+  activateTab('record');
+}
+
+function openManageNewForm(prefillName){
+  manageNewForm.style.display = 'block';
+  manageSearch.value = prefillName || manageSearch.value;
+  document.getElementById('manageResults').innerHTML = '';
+  document.getElementById('ns_school').value = '';
+  document.getElementById('ns_book').value = '';
+  document.getElementById('ns_examDate').value = '';
+  document.getElementById('ns_examRange').value = '';
+}
+document.getElementById('ns_cancel').addEventListener('click', ()=>{ manageNewForm.style.display='none'; });
+document.getElementById('ns_save').addEventListener('click', async ()=>{
+  const name = manageSearch.value.trim();
+  if(!name){ toast('학생 이름을 입력해주세요'); return; }
+  const payload = {
+    name,
+    schoolGrade: document.getElementById('ns_school').value.trim(),
+    textbook: document.getElementById('ns_book').value.trim(),
+    examDate: document.getElementById('ns_examDate').value,
+    examRange: document.getElementById('ns_examRange').value.trim()
+  };
+  try{
+    const res = await apiPost('addStudent', payload);
+    if(res.error){ toast(res.error); return; }
+    toast('학생DB에 저장했습니다');
+    manageNewForm.style.display = 'none';
+    await loadData();
+    openManageDetail(name);
+  }catch(err){ toast('저장 실패: ' + err.message); }
+});
+
 function openManageDetail(name){
   const s = DATA.students.find(x=>x.이름===name);
   if(!s) return;
+  document.getElementById('manageResults').innerHTML = '';
   document.getElementById('manageDetail').style.display = 'block';
   document.getElementById('md_originalName').value = s.이름;
   document.getElementById('md_name').value = s.이름;
@@ -951,8 +967,11 @@ document.getElementById('md_save').addEventListener('click', async ()=>{
     if(res.error){ toast(res.error); return; }
     toast('수정 내용을 저장했습니다');
     await loadData();
-    renderManageList();
+    manageSearch.value = '';
   }catch(err){ toast('저장 실패: ' + err.message); }
+});
+document.getElementById('md_pickForToday').addEventListener('click', ()=>{
+  pickStudentForToday(document.getElementById('md_originalName').value);
 });
 
 // ---------------- 설정 저장(로컬 저장소) ----------------
@@ -996,6 +1015,7 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
     }
   }catch(e){}
   renderConceptToggle();
+  renderStudentBlock();
   await loadData();
 })();
 </script>

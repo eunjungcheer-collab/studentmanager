@@ -769,6 +769,40 @@ function renderStudentChip(){
   }
 }
 
+function toDateInputValue(raw){
+  if(!raw) return '';
+  const s = raw.toString().trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s);
+  if(isNaN(d.getTime())) return '';
+  const pad = n=>n.toString().padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function toTimeInputValue(raw){
+  if(!raw) return '';
+  const s = raw.toString().trim();
+  if(/^\d{2}:\d{2}$/.test(s)) return s;
+  const d = new Date(s);
+  if(isNaN(d.getTime())) return '';
+  const pad = n=>n.toString().padStart(2,'0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function resetRecordForm(){
+  form.book = '';
+  form.lesson = null;
+  bookChip.innerHTML = '';
+  lessonArea.style.display = 'none';
+  document.getElementById('lessonChip').innerHTML = '';
+  document.getElementById('homeworkText').value = '';
+  document.getElementById('commonNoticeText').value = '';
+  document.getElementById('personalNoteText').value = '';
+  conceptResult = '';
+  renderConceptToggle();
+  document.getElementById('quizScore').value = '';
+  document.getElementById('absentDate').value = '';
+  document.getElementById('makeupDate').value = '';
+  document.getElementById('makeupTime').value = '';
+}
 function selectStudent(name){
   const s = DATA.students.find(x=>x.이름===name);
   if(!s) return;
@@ -776,12 +810,45 @@ function selectStudent(name){
   studentSearchInput.value = '';
   studentDropdown.style.display = 'none';
   renderStudentChip();
-  // 교재 자동 선택
-  if(s.교과서 && DATA.curriculum[s.교과서]){
-    bookSearch.value = '';
+  resetRecordForm();
+
+  const existing = findTodayRecord(s.이름);
+  if(existing){
+    if(existing['교재명'] && DATA.curriculum[existing['교재명']]){
+      selectBook(existing['교재명']);
+      const idx = DATA.curriculum[existing['교재명']].findIndex(l=>l.lesson===existing['오늘진도']);
+      if(idx !== -1){
+        selectLesson(idx);
+      }else if(existing['오늘진도']){
+        form.lesson = { lesson: existing['오늘진도'], homework:'', commonNotice:'' };
+        document.getElementById('lessonChip').innerHTML = `<div class="selected-chip">${existing['오늘진도']} <button id="clearLesson">✕</button></div>`;
+        document.getElementById('clearLesson').addEventListener('click', ()=>{
+          form.lesson=null; document.getElementById('lessonChip').innerHTML=''; updateCopyPreview(); updateCurriButtonVisibility();
+        });
+      }
+    }else if(existing['교재명']){
+      form.book = existing['교재명'];
+      bookChip.innerHTML = `<div class="selected-chip">${existing['교재명']} <button id="clearBook">✕</button></div>`;
+      document.getElementById('clearBook').addEventListener('click', ()=>{
+        form.book=''; form.lesson=null; bookChip.innerHTML=''; lessonArea.style.display='none';
+        document.getElementById('lessonChip').innerHTML='';
+        updateCopyPreview(); updateCurriButtonVisibility();
+      });
+    }
+    document.getElementById('homeworkText').value = existing['오늘과제'] || '';
+    document.getElementById('commonNoticeText').value = existing['알림장내용'] || '';
+    conceptResult = existing['개념암기결과'] || '';
+    renderConceptToggle();
+    document.getElementById('quizScore').value = existing['객관식점수'] || '';
+    document.getElementById('absentDate').value = toDateInputValue(existing['결석일자']);
+    document.getElementById('makeupDate').value = toDateInputValue(existing['보강일자']);
+    document.getElementById('makeupTime').value = toTimeInputValue(existing['보강시간']);
+    toast('오늘 이미 저장된 기록을 불러왔습니다');
+  }else if(s.교과서 && DATA.curriculum[s.교과서]){
     selectBook(s.교과서);
   }
   updateCopyPreview();
+  updateCurriButtonVisibility();
 }
 
 // ---------------- 교재 검색 ----------------
@@ -1064,6 +1131,16 @@ function setIfNotFocused(id, value){
   const el = document.getElementById(id);
   if(document.activeElement !== el) el.value = value;
 }
+function buildNoticeContent(){
+  const common = document.getElementById('commonNoticeText').value.trim();
+  const personal = document.getElementById('personalNoteText').value.trim();
+  let examParts = [];
+  if(conceptResult) examParts.push(`개념암기 ${conceptResult}`);
+  const qs = document.getElementById('quizScore').value.trim();
+  if(qs) examParts.push(`객관식 ${qs}점`);
+  const examLine = examParts.length ? `(${examParts.join(' · ')})` : '';
+  return [common, personal, examLine].filter(Boolean).join(' ');
+}
 function updateCopyPreview(){
   setIfNotFocused('copy_book', form.book || '교재를 선택하면 여기 채워집니다');
   setIfNotFocused('copy_lesson', form.lesson ? form.lesson.lesson : '진도를 선택하면 여기 채워집니다');
@@ -1072,16 +1149,13 @@ function updateCopyPreview(){
   const hw = document.getElementById('homeworkText').value.trim();
   setIfNotFocused('copy_homework', hw || '-');
 
-  const common = document.getElementById('commonNoticeText').value.trim();
-  const personal = document.getElementById('personalNoteText').value.trim();
-  const combined = [common, personal].filter(Boolean).join(' ');
-  setIfNotFocused('copy_notice', combined || '-');
+  setIfNotFocused('copy_notice', buildNoticeContent() || '-');
 }
 document.getElementById('copy_homework').addEventListener('input', function(){
   document.getElementById('homeworkText').value = this.value;
   updateCopyPreview();
 });
-['homeworkText','commonNoticeText','personalNoteText'].forEach(id=>{
+['homeworkText','commonNoticeText','personalNoteText','quizScore'].forEach(id=>{
   document.getElementById(id).addEventListener('input', updateCopyPreview);
 });
 document.querySelectorAll('[data-copy]').forEach(btn=>{
@@ -1097,10 +1171,12 @@ let conceptResult = '';
 document.getElementById('concept_pass').addEventListener('click', ()=>{
   conceptResult = conceptResult==='PASS' ? '' : 'PASS';
   renderConceptToggle();
+  updateCopyPreview();
 });
 document.getElementById('concept_fail').addEventListener('click', ()=>{
   conceptResult = conceptResult==='FAIL' ? '' : 'FAIL';
   renderConceptToggle();
+  updateCopyPreview();
 });
 function renderConceptToggle(){
   document.getElementById('concept_pass').classList.toggle('on', conceptResult==='PASS');
@@ -1108,6 +1184,19 @@ function renderConceptToggle(){
 }
 
 // ---------------- 저장 / 공유 ----------------
+function todayStr(){
+  const d = new Date();
+  const pad = n => n.toString().padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function findTodayRecord(studentName){
+  return DATA.records.find(r => {
+    if(r['학생이름'] !== studentName) return false;
+    const raw = (r['작성일시']||'').toString();
+    return raw.slice(0,10) === todayStr();
+  });
+}
+
 document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
   if(!form.student){ toast('학생을 먼저 선택해주세요'); return; }
   const payload = {
@@ -1115,6 +1204,7 @@ document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
     textbook: form.book,
     progress: form.lesson ? form.lesson.lesson : lessonSearch.value.trim(),
     homework: document.getElementById('homeworkText').value.trim(),
+    noticeContent: buildNoticeContent(),
     conceptResult,
     quizScore: document.getElementById('quizScore').value,
     absentDate: document.getElementById('absentDate').value,
@@ -1122,10 +1212,19 @@ document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
     makeupTime: document.getElementById('makeupTime').value,
     memo: document.getElementById('personalNoteText').value.trim()
   };
+  const existing = findTodayRecord(form.student.이름);
+  let action = 'addRecord';
+  if(existing){
+    const wantUpdate = confirm('오늘 이미 저장된 기록이 있습니다.\n확인 = 기존 기록 수정 (덮어쓰기)\n취소 = 새 기록으로 저장');
+    if(wantUpdate){
+      action = 'updateRecord';
+      payload.rowNum = existing._rowNum;
+    }
+  }
   try{
-    const res = await apiPost('addRecord', payload);
+    const res = await apiPost(action, payload);
     if(res.error){ toast(res.error); return; }
-    toast('오늘 수업기록을 저장했습니다');
+    toast(action === 'updateRecord' ? '기존 수업기록을 수정했습니다' : '오늘 수업기록을 저장했습니다');
     await loadData();
     if(payload.absentDate){
       createGcalEventIfConnected(absentEventInfo());
@@ -1144,6 +1243,11 @@ document.getElementById('shareBtn').addEventListener('click', async ()=>{
   const makeD = document.getElementById('makeupDate').value;
   const makeT = document.getElementById('makeupTime').value;
   let lines = [`학생: ${form.student.이름}`, `교재&진도: ${bl}`, `오늘 과제: ${hw}`];
+  let examParts = [];
+  if(conceptResult) examParts.push(`개념암기 ${conceptResult}`);
+  const qs = document.getElementById('quizScore').value.trim();
+  if(qs) examParts.push(`객관식 ${qs}점`);
+  if(examParts.length) lines.push(`시험 결과: ${examParts.join(' · ')}`);
   if(absent) lines.push(`결석일자: ${absent}`);
   if(makeD || makeT) lines.push(`보강일정: ${makeD}${makeT ? ' ' + makeT : ''}`);
   const text = lines.join('\n');

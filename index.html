@@ -297,6 +297,27 @@
     border-radius:var(--radius); padding:22px 20px;
   }
 
+  .cal-grid{
+    display:grid; grid-template-columns:repeat(7, 1fr); gap:4px;
+  }
+  .cal-cell{
+    aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-size:12px; color:var(--ink-soft); border-radius:5px; position:relative;
+    background:#fff; border:1px solid var(--line);
+  }
+  .cal-cell.empty{background:transparent; border:none;}
+  .cal-cell.today{border-color:var(--cobalt); border-width:2px; font-weight:700; color:var(--ink);}
+  .cal-cell .dots{display:flex; gap:2px; margin-top:2px;}
+  .cal-dot{width:6px; height:6px; border-radius:50%;}
+  .cal-dot.absent{background:var(--coral);}
+  .cal-dot.makeup{background:var(--cobalt);}
+  .cal-head{font-size:11px; color:var(--ink-soft); text-align:center; padding-bottom:4px;}
+  .cal-event-row{
+    display:flex; align-items:center; gap:8px; padding:6px 0;
+    border-bottom:1px dashed var(--line); font-size:12.5px;
+  }
+  .cal-event-row:last-child{border-bottom:none;}
+
   .student-bar{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
     padding:10px 14px; background:var(--panel); border:1px solid var(--line);
@@ -498,10 +519,6 @@
     <div class="block-title"><span class="n c-teal">6</span>결석 &amp; 보강</div>
     <label>결석일자</label>
     <input type="date" id="absentDate">
-    <div class="row" style="margin-top:10px;">
-      <button class="btn sm" id="addAbsentGoogleCal">결석 캘린더에 추가</button>
-      <button class="btn sm" id="downloadAbsentIcs">결석 .ics 다운로드</button>
-    </div>
 
     <div class="row" style="margin-top:14px;">
       <div>
@@ -514,10 +531,10 @@
       </div>
     </div>
     <div class="row" style="margin-top:10px;">
-      <button class="btn sm" id="addToGoogleCal">보강 캘린더에 추가</button>
-      <button class="btn sm" id="downloadIcs">보강 .ics 다운로드</button>
+      <button class="btn primary sm" id="addBothGoogleCal">결석·보강 한번에 캘린더에 추가</button>
+      <button class="btn sm" id="downloadBothIcs">한번에 .ics 다운로드</button>
     </div>
-    <p class="hint">.ics 파일은 삼성캘린더 등 아이콘을 눌러 열면 바로 일정으로 추가됩니다. 날짜를 입력한 뒤 눌러주세요. 구글 캘린더 연동이 켜져 있으면 저장 시 결석·보강 일정이 각각 자동으로도 등록됩니다.</p>
+    <p class="hint">입력된 날짜만큼 자동으로 처리합니다 (결석만 있으면 결석만, 둘 다 있으면 둘 다). 구글 캘린더 연동이 켜져 있으면 저장 시 자동으로도 등록됩니다.</p>
   </div>
 
   <div class="record-actions">
@@ -529,6 +546,18 @@
 
 <!-- ============ 학생 관리 ============ -->
 <section class="view" id="view-manage">
+
+  <div class="block">
+    <div class="block-title"><span class="n c-violet">📅</span>결석·보강 달력</div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <button class="btn sm" id="calPrevMonth">‹ 이전달</button>
+      <b id="calMonthLabel" style="font-size:14px;"></b>
+      <button class="btn sm" id="calNextMonth">다음달 ›</button>
+    </div>
+    <div id="calGrid" class="cal-grid"></div>
+    <div id="calEventList" style="margin-top:10px;"></div>
+  </div>
+
   <div class="block">
     <div class="block-title"><span class="n c-cobalt">Q</span>학생 검색</div>
     <div class="search-wrap">
@@ -562,6 +591,8 @@
       <div class="info-row"><span class="info-label">전체 시험기간</span><span id="ic_examPeriod"></span></div>
       <div class="info-row"><span class="info-label">과학시험날짜</span><span id="ic_examDate"></span></div>
       <div class="info-row"><span class="info-label">시험범위</span><span id="ic_examRange"></span></div>
+      <div class="info-row"><span class="info-label">최근 결석일자</span><span id="ic_absentDate"></span></div>
+      <div class="info-row"><span class="info-label">최근 보강일정</span><span id="ic_makeupDate"></span></div>
     </div>
     <div class="row" id="md_actionsRow" style="margin-top:10px;">
       <button class="btn sm" id="md_editToggle">정보 수정</button>
@@ -735,6 +766,7 @@ async function loadData(){
     if(data.error) throw new Error(data.error);
     DATA = data;
     if(status) status.innerHTML = '<span class="status-dot ok"></span>연결됨 · 학생 ' + DATA.students.length + '명, 교재 ' + Object.keys(DATA.curriculum).length + '종';
+    renderCalendar();
   }catch(err){
     if(status) status.innerHTML = '<span class="status-dot no"></span>연결 실패: ' + err.message;
   }
@@ -1283,10 +1315,10 @@ document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
     toast(action === 'updateRecord' ? '기존 수업기록을 수정했습니다' : '오늘 수업기록을 저장했습니다');
     await loadData();
     if(payload.absentDate){
-      createGcalEventIfConnected(absentEventInfo());
+      await createGcalEventIfConnected(absentEventInfo());
     }
     if(payload.makeupDate){
-      createGcalEventIfConnected(makeupEventInfo());
+      await createGcalEventIfConnected(makeupEventInfo());
     }
   }catch(err){ toast('저장 실패: ' + err.message); }
 });
@@ -1347,10 +1379,16 @@ function openGoogleCalLink(info){
   window.open(url, '_blank');
 }
 function downloadIcsFile(info, filenamePrefix){
-  const dtLine = info.allDay
-    ? `DTSTART;VALUE=DATE:${info.startStr}\nDTEND;VALUE=DATE:${info.endStr}`
-    : `DTSTART:${info.startStr}\nDTEND:${info.endStr}`;
-  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:${info.title}\n${dtLine}\nDESCRIPTION:${info.desc}\nEND:VEVENT\nEND:VCALENDAR`;
+  downloadIcsFileMulti([info], filenamePrefix);
+}
+function downloadIcsFileMulti(infos, filenamePrefix){
+  const events = infos.map(info=>{
+    const dtLine = info.allDay
+      ? `DTSTART;VALUE=DATE:${info.startStr}\nDTEND;VALUE=DATE:${info.endStr}`
+      : `DTSTART:${info.startStr}\nDTEND:${info.endStr}`;
+    return `BEGIN:VEVENT\nSUMMARY:${info.title}\n${dtLine}\nDESCRIPTION:${info.desc}\nEND:VEVENT`;
+  }).join('\n');
+  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\n${events}\nEND:VCALENDAR`;
   const blob = new Blob([ics], { type: 'text/calendar' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1362,25 +1400,19 @@ function downloadIcsFile(info, filenamePrefix){
   URL.revokeObjectURL(url);
 }
 
-document.getElementById('addToGoogleCal').addEventListener('click', ()=>{
-  const info = makeupEventInfo();
-  if(!info){ toast('보강일자를 먼저 입력해주세요'); return; }
-  openGoogleCalLink(info);
+document.getElementById('addBothGoogleCal').addEventListener('click', ()=>{
+  const absentInfo = absentEventInfo();
+  const makeupInfo = makeupEventInfo();
+  if(!absentInfo && !makeupInfo){ toast('결석일자 또는 보강일자를 먼저 입력해주세요'); return; }
+  if(absentInfo) openGoogleCalLink(absentInfo);
+  if(makeupInfo) setTimeout(()=>openGoogleCalLink(makeupInfo), absentInfo ? 400 : 0);
 });
-document.getElementById('downloadIcs').addEventListener('click', ()=>{
-  const info = makeupEventInfo();
-  if(!info){ toast('보강일자를 먼저 입력해주세요'); return; }
-  downloadIcsFile(info, '보강');
-});
-document.getElementById('addAbsentGoogleCal').addEventListener('click', ()=>{
-  const info = absentEventInfo();
-  if(!info){ toast('결석일자를 먼저 입력해주세요'); return; }
-  openGoogleCalLink(info);
-});
-document.getElementById('downloadAbsentIcs').addEventListener('click', ()=>{
-  const info = absentEventInfo();
-  if(!info){ toast('결석일자를 먼저 입력해주세요'); return; }
-  downloadIcsFile(info, '결석');
+document.getElementById('downloadBothIcs').addEventListener('click', ()=>{
+  const absentInfo = absentEventInfo();
+  const makeupInfo = makeupEventInfo();
+  const infos = [absentInfo, makeupInfo].filter(Boolean);
+  if(infos.length === 0){ toast('결석일자 또는 보강일자를 먼저 입력해주세요'); return; }
+  downloadIcsFileMulti(infos, '결석_보강');
 });
 
 // ---------------- 구글 캘린더 자동 연동 (OAuth) ----------------
@@ -1430,7 +1462,7 @@ document.getElementById('gcalConnect').addEventListener('click', ()=>{
 });
 
 async function createGcalEventIfConnected(info){
-  if(!gcalAccessToken || !info) return;
+  if(!gcalAccessToken || !info) return false;
   const body = info.allDay
     ? { summary: info.title, description: info.desc, start: { date: info.startDate }, end: { date: info.endDate } }
     : { summary: info.title, description: info.desc, start: { dateTime: info.startISO, timeZone: 'Asia/Seoul' }, end: { dateTime: info.endISO, timeZone: 'Asia/Seoul' } };
@@ -1447,14 +1479,104 @@ async function createGcalEventIfConnected(info){
       gcalAccessToken = null;
       renderGcalStatus();
       toast('구글 캘린더 연결이 만료되었습니다. 설정에서 다시 연결해주세요');
-      return;
+      return false;
     }
-    if(!res.ok){ toast('구글 캘린더 등록에 실패했습니다'); return; }
-    toast('구글 캘린더에 보강 일정을 자동으로 등록했습니다');
+    if(!res.ok){
+      let detail = '';
+      try{ const errBody = await res.json(); detail = errBody && errBody.error ? (' - ' + errBody.error.message) : ''; }catch(e){}
+      toast(`구글 캘린더 등록에 실패했습니다 (${info.title})${detail}`);
+      return false;
+    }
+    toast(`구글 캘린더에 "${info.title}" 일정을 등록했습니다`);
+    return true;
   }catch(err){
-    toast('구글 캘린더 등록 중 오류가 발생했습니다');
+    toast(`구글 캘린더 등록 중 오류가 발생했습니다 (${info.title})`);
+    return false;
   }
 }
+
+// ---------------- 결석·보강 달력 ----------------
+let calYear, calMonth; // calMonth: 0-11
+(function initCalState(){
+  const d = new Date();
+  calYear = d.getFullYear();
+  calMonth = d.getMonth();
+})();
+
+function collectCalEvents(){
+  // key "YYYY-MM-DD" -> { absent:[names], makeup:[{name,time}] }
+  const map = {};
+  DATA.records.forEach(r=>{
+    const name = r['학생이름'];
+    if(!name) return;
+    const ad = toDateInputValue(r['결석일자']);
+    if(ad){
+      if(!map[ad]) map[ad] = { absent:[], makeup:[] };
+      map[ad].absent.push(name);
+    }
+    const md = toDateInputValue(r['보강일자']);
+    if(md){
+      if(!map[md]) map[md] = { absent:[], makeup:[] };
+      const t = toTimeInputValue(r['보강시간']);
+      map[md].makeup.push({ name, time:t });
+    }
+  });
+  return map;
+}
+
+function renderCalendar(){
+  const label = document.getElementById('calMonthLabel');
+  const grid = document.getElementById('calGrid');
+  const listBox = document.getElementById('calEventList');
+  label.textContent = `${calYear}년 ${calMonth+1}월`;
+
+  const events = collectCalEvents();
+  const firstDay = new Date(calYear, calMonth, 1);
+  const startWeekday = firstDay.getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const pad = n=>n.toString().padStart(2,'0');
+  const todayKey = todayStr();
+
+  let html = ['일','월','화','수','목','금','토'].map(d=>`<div class="cal-head">${d}</div>`).join('');
+  for(let i=0;i<startWeekday;i++) html += '<div class="cal-cell empty"></div>';
+  for(let day=1; day<=daysInMonth; day++){
+    const key = `${calYear}-${pad(calMonth+1)}-${pad(day)}`;
+    const ev = events[key];
+    let dots = '';
+    if(ev){
+      if(ev.absent.length) dots += '<span class="cal-dot absent"></span>';
+      if(ev.makeup.length) dots += '<span class="cal-dot makeup"></span>';
+    }
+    const isToday = key === todayKey ? ' today' : '';
+    html += `<div class="cal-cell${isToday}">${day}<div class="dots">${dots}</div></div>`;
+  }
+  grid.innerHTML = html;
+
+  // 이번 달 이벤트 목록
+  const monthPrefix = `${calYear}-${pad(calMonth+1)}-`;
+  const rows = [];
+  Object.keys(events).filter(k=>k.startsWith(monthPrefix)).sort().forEach(key=>{
+    const ev = events[key];
+    const day = parseInt(key.slice(8,10),10);
+    ev.absent.forEach(name=>{
+      rows.push(`<div class="cal-event-row"><span class="cal-dot absent"></span><span>${calMonth+1}/${day} 결석 - ${name}</span></div>`);
+    });
+    ev.makeup.forEach(m=>{
+      rows.push(`<div class="cal-event-row"><span class="cal-dot makeup"></span><span>${calMonth+1}/${day} 보강${m.time ? ' ' + m.time : ''} - ${m.name}</span></div>`);
+    });
+  });
+  listBox.innerHTML = rows.length ? rows.join('') : '<p class="hint">이번 달 결석·보강 일정이 없습니다</p>';
+}
+document.getElementById('calPrevMonth').addEventListener('click', ()=>{
+  calMonth--;
+  if(calMonth < 0){ calMonth = 11; calYear--; }
+  renderCalendar();
+});
+document.getElementById('calNextMonth').addEventListener('click', ()=>{
+  calMonth++;
+  if(calMonth > 11){ calMonth = 0; calYear++; }
+  renderCalendar();
+});
 
 // ---------------- 학생 관리 ----------------
 function substringSearch(query, items, keyFn){
@@ -1547,6 +1669,15 @@ function renderCompactInfo(s){
   document.getElementById('ic_examPeriod').textContent = s.시험기간 || '-';
   document.getElementById('ic_examDate').textContent = fmtDT(s.시험날짜) || '-';
   document.getElementById('ic_examRange').textContent = s.시험범위 || '-';
+
+  const myRecords = DATA.records.filter(r => r['학생이름']===s.이름)
+    .sort((a,b)=> new Date(b['작성일시']) - new Date(a['작성일시']));
+  const lastAbsent = myRecords.find(r => r['결석일자']);
+  const lastMakeup = myRecords.find(r => r['보강일자']);
+  document.getElementById('ic_absentDate').textContent = lastAbsent ? fmtDT(lastAbsent['결석일자']) : '-';
+  document.getElementById('ic_makeupDate').textContent = lastMakeup
+    ? fmtDT(lastMakeup['보강일자']) + (lastMakeup['보강시간'] ? ' ' + fmtDT(lastMakeup['보강시간']) : '')
+    : '-';
 }
 function showCompactView(){
   document.getElementById('infoCompact').style.display = 'flex';
@@ -1749,6 +1880,7 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
   renderConceptToggle();
   renderStudentChip();
   renderGcalStatus();
+  renderCalendar();
   // 구글 로그인 라이브러리는 비동기로 로드되므로 약간의 지연 후 초기화 시도
   setTimeout(()=>{ if(CONFIG.gcalClientId) initGcalTokenClient(); }, 500);
   try{

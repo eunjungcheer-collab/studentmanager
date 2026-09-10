@@ -285,6 +285,18 @@
   }
   .lock-box .hint{margin-top:10px;}
 
+  .modal-overlay{
+    position:fixed; inset:0; z-index:210;
+    background:rgba(46,58,79,0.45);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .modal-box{
+    width:100%; max-width:340px;
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); padding:22px 20px;
+  }
+
   .student-bar{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
     padding:10px 14px; background:var(--panel); border:1px solid var(--line);
@@ -348,6 +360,8 @@
 
 <!-- ============ 오늘 수업기록 ============ -->
 <section class="view active" id="view-record">
+
+  <button class="btn ghost sm" id="clearAllBtn" style="margin-bottom:10px; color:var(--coral); border-color:var(--coral);">전체 지우고 새로 입력하기</button>
 
   <div class="block">
     <div class="block-title"><span class="n c-cobalt">1</span>학생</div>
@@ -628,6 +642,15 @@
 
 <div class="toast" id="toast"></div>
 
+<div class="modal-overlay" id="sameDayModal" style="display:none;">
+  <div class="modal-box">
+    <p style="margin:0 0 16px; font-size:14px; line-height:1.6;">오늘 이미 저장된 기록이 있습니다.<br>어떻게 저장할까요?</p>
+    <button class="btn primary block-w" id="sameDayUpdate" style="margin-bottom:8px;">기존 기록 수정 (덮어쓰기)</button>
+    <button class="btn teal block-w" id="sameDayNew" style="margin-bottom:8px;">새 기록으로 저장</button>
+    <button class="btn ghost block-w" id="sameDayCancel">취소</button>
+  </div>
+</div>
+
 <script>
 // ---------------- 상태 ----------------
 let CONFIG = { webAppUrl: 'https://script.google.com/macros/s/AKfycbypEPpo_ah7GwsKXHm7K8gnrWkhHtJcSyafLysb2_-5B5Wq9tf1rdc8NQXmG22YvOUg/exec', gcalClientId: '124712258994-ffgquqflaomcds1p46m72ppic8qlcb9v.apps.googleusercontent.com' };
@@ -803,6 +826,16 @@ function resetRecordForm(){
   document.getElementById('makeupDate').value = '';
   document.getElementById('makeupTime').value = '';
 }
+document.getElementById('clearAllBtn').addEventListener('click', ()=>{
+  const ok = confirm('현재 입력한 내용을 전부 지우고 새로 시작할까요?');
+  if(!ok) return;
+  form.student = null;
+  renderStudentChip();
+  resetRecordForm();
+  updateCopyPreview();
+  updateCurriButtonVisibility();
+  toast('입력 내용을 지웠습니다');
+});
 function selectStudent(name){
   const s = DATA.students.find(x=>x.이름===name);
   if(!s) return;
@@ -1184,6 +1217,28 @@ function renderConceptToggle(){
 }
 
 // ---------------- 저장 / 공유 ----------------
+function askSameDayChoice(){
+  return new Promise(resolve=>{
+    const modal = document.getElementById('sameDayModal');
+    modal.style.display = 'flex';
+    const cleanup = (result)=>{
+      modal.style.display = 'none';
+      updateBtn.removeEventListener('click', onUpdate);
+      newBtn.removeEventListener('click', onNew);
+      cancelBtn.removeEventListener('click', onCancel);
+      resolve(result);
+    };
+    const updateBtn = document.getElementById('sameDayUpdate');
+    const newBtn = document.getElementById('sameDayNew');
+    const cancelBtn = document.getElementById('sameDayCancel');
+    const onUpdate = ()=>cleanup('update');
+    const onNew = ()=>cleanup('new');
+    const onCancel = ()=>cleanup('cancel');
+    updateBtn.addEventListener('click', onUpdate);
+    newBtn.addEventListener('click', onNew);
+    cancelBtn.addEventListener('click', onCancel);
+  });
+}
 function todayStr(){
   const d = new Date();
   const pad = n => n.toString().padStart(2,'0');
@@ -1215,8 +1270,9 @@ document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
   const existing = findTodayRecord(form.student.이름);
   let action = 'addRecord';
   if(existing){
-    const wantUpdate = confirm('오늘 이미 저장된 기록이 있습니다.\n확인 = 기존 기록 수정 (덮어쓰기)\n취소 = 새 기록으로 저장');
-    if(wantUpdate){
+    const choice = await askSameDayChoice();
+    if(choice === 'cancel') return;
+    if(choice === 'update'){
       action = 'updateRecord';
       payload.rowNum = existing._rowNum;
     }

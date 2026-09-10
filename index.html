@@ -336,6 +336,30 @@
   .tt-table td:hover{outline:2px solid var(--cobalt); outline-offset:-2px;}
   .tt-table td.tt-header{font-weight:700; text-align:center; cursor:default; background:var(--cobalt-soft);}
   .tt-table td.tt-header:hover{outline:none;}
+
+  .clock-ampm{display:flex; justify-content:center; gap:8px; margin-bottom:14px;}
+  .clock-ampm .btn.on{background:var(--cobalt); color:#fff; border-color:var(--cobalt);}
+  .clock-face{
+    position:relative; width:220px; height:220px; margin:0 auto;
+    border-radius:50%; background:var(--paper); border:1px solid var(--line-strong);
+  }
+  .clock-num{
+    position:absolute; width:32px; height:32px; margin-left:-16px; margin-top:-16px;
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:13px; color:var(--ink); cursor:pointer; user-select:none;
+  }
+  .clock-num:hover{background:var(--cobalt-soft);}
+  .clock-num.selected{background:var(--cobalt); color:#fff; font-weight:700;}
+  .clock-hand{
+    position:absolute; left:50%; top:50%; width:2px; height:0;
+    background:var(--cobalt); transform-origin:0 0; pointer-events:none;
+  }
+  .clock-center-dot{
+    position:absolute; left:50%; top:50%; width:8px; height:8px; margin-left:-4px; margin-top:-4px;
+    border-radius:50%; background:var(--cobalt); pointer-events:none;
+  }
+  .clock-display-part{cursor:pointer; padding:2px 8px; border-radius:6px;}
+  .clock-display-part.active{background:var(--cobalt-soft); color:var(--cobalt-dark);}
   .cal-dot{width:6px; height:6px; border-radius:50%;}
   .cal-dot.absent{background:var(--coral);}
   .cal-dot.makeup{background:var(--cobalt);}
@@ -747,28 +771,29 @@
     </div>
     <div id="dayDetailList" style="margin-bottom:14px;"></div>
 
-    <div id="dayAddAbsentForm" style="display:none; margin-bottom:10px; padding:12px; background:var(--coral-soft); border-radius:6px;">
-      <label style="margin-top:0;">학생</label>
-      <select id="dayAbsentStudent"></select>
-      <div class="row" style="margin-top:10px;">
-        <button class="btn ghost sm" id="dayAbsentCancel">취소</button>
-        <button class="btn primary sm" id="dayAbsentSave">결석으로 저장</button>
+    <hr class="divider">
+
+    <div style="margin-bottom:14px; padding:12px; background:var(--coral-soft); border-radius:6px;">
+      <label style="margin-top:0;">결석 학생 추가</label>
+      <div class="search-wrap">
+        <input type="text" id="dayAbsentStudentSearch" placeholder="학생 이름 검색" autocomplete="off">
+        <div class="dropdown" id="dayAbsentStudentDropdown" style="display:none;"></div>
       </div>
-    </div>
-    <div id="dayAddMakeupForm" style="display:none; margin-bottom:10px; padding:12px; background:var(--cobalt-soft); border-radius:6px;">
-      <label style="margin-top:0;">학생</label>
-      <select id="dayMakeupStudent"></select>
-      <label>시간</label>
-      <input type="time" id="dayMakeupTime">
-      <div class="row" style="margin-top:10px;">
-        <button class="btn ghost sm" id="dayMakeupCancel">취소</button>
-        <button class="btn primary sm" id="dayMakeupSave">보강으로 저장</button>
-      </div>
+      <div id="dayAbsentStudentChip"></div>
+      <button class="btn primary sm block-w" id="dayAbsentSave" style="margin-top:10px;">저장</button>
     </div>
 
-    <div class="row">
-      <button class="btn sm" id="dayShowAddAbsent">+ 결석 추가</button>
-      <button class="btn sm" id="dayShowAddMakeup">+ 보강 추가</button>
+    <div style="padding:12px; background:var(--cobalt-soft); border-radius:6px;">
+      <label style="margin-top:0;">보강 학생 추가</label>
+      <div class="search-wrap">
+        <input type="text" id="dayMakeupStudentSearch" placeholder="학생 이름 검색" autocomplete="off">
+        <div class="dropdown" id="dayMakeupStudentDropdown" style="display:none;"></div>
+      </div>
+      <div id="dayMakeupStudentChip"></div>
+      <label>시간</label>
+      <button type="button" class="btn" id="dayMakeupTimeTrigger" style="width:100%; justify-content:flex-start; background:#fff; font-weight:400;">🕐 시간 선택</button>
+      <input type="hidden" id="dayMakeupTime">
+      <button class="btn primary sm block-w" id="dayMakeupSave" style="margin-top:10px;">저장</button>
     </div>
   </div>
 </div>
@@ -783,12 +808,35 @@
     <div id="dpGrid" class="cal-grid"></div>
     <div id="dpTimeRow" style="display:none; margin-top:12px;">
       <label style="margin-top:0;">시간</label>
-      <input type="time" id="dpTimeInput">
+      <button type="button" class="btn" id="dpTimeTrigger" style="width:100%; justify-content:flex-start; background:#fff; font-weight:400;">🕐 시간 선택</button>
+      <input type="hidden" id="dpTimeInput">
     </div>
     <div class="row" style="margin-top:12px;">
       <button class="btn ghost sm" id="dpClear">선택 안함</button>
       <button class="btn ghost sm" id="dpCancel">취소</button>
       <button class="btn primary sm" id="dpConfirm" style="display:none;">확인</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="clockModal" style="display:none;">
+  <div class="modal-box" style="max-width:300px; text-align:center;">
+    <div id="clockStepLabel" style="font-size:13px; color:var(--ink-soft); margin-bottom:10px;">시(hour)를 눌러주세요</div>
+    <div class="clock-ampm">
+      <button type="button" class="btn sm" id="clockAM">오전</button>
+      <button type="button" class="btn sm" id="clockPM">오후</button>
+    </div>
+    <div class="clock-face" id="clockFace">
+      <div class="clock-hand" id="clockHand"></div>
+      <div class="clock-center-dot"></div>
+    </div>
+    <div id="clockTimeDisplay" style="font-size:28px; font-weight:700; margin:12px 0; color:var(--ink);">
+      <span class="clock-display-part" id="clockHourDisplay"></span><span>:</span><span class="clock-display-part" id="clockMinuteDisplay"></span>
+    </div>
+    <p class="hint" style="margin:-4px 0 10px;">시간을 다시 누르면 시(hour)를, 분을 다시 누르면 분(minute)을 고칠 수 있어요</p>
+    <div class="row">
+      <button class="btn ghost sm" id="clockCancel">취소</button>
+      <button class="btn primary sm" id="clockConfirm">확인</button>
     </div>
   </div>
 </div>
@@ -1874,18 +1922,175 @@ document.getElementById('calNextMonth').addEventListener('click', ()=>{
 
 // ---------------- 날짜별 상세(추가/수정/삭제) ----------------
 let dayDetailDate = null;
+let dayAbsentSelectedStudent = null;
+let dayMakeupSelectedStudent = null;
+let lastAddedStudentName = '';
+// ---------------- 시계 모양 시간 선택기 ----------------
+let clockTargetId = null;
+let clockOnConfirm = null;
+let clockStep = 'hour'; // 'hour' | 'minute'
+let clockHour = 4; // 1-12
+let clockMinute = 0; // 0,5,...,55
+let clockAmPm = 'PM';
+
+function timeToClockState(hhmm){
+  if(!hhmm){ clockHour = 4; clockMinute = 0; clockAmPm = 'PM'; return; }
+  const parts = hhmm.split(':');
+  let h = parseInt(parts[0], 10) || 0;
+  const m = parseInt(parts[1], 10) || 0;
+  clockAmPm = h >= 12 ? 'PM' : 'AM';
+  let h12 = h % 12;
+  if(h12 === 0) h12 = 12;
+  clockHour = h12;
+  clockMinute = Math.round(m/5)*5 % 60;
+}
+function clockStateToTime(){
+  let h = clockHour % 12;
+  if(clockAmPm === 'PM') h += 12;
+  const pad = n=>n.toString().padStart(2,'0');
+  return `${pad(h)}:${pad(clockMinute)}`;
+}
+function openClockPicker(targetId, onConfirm){
+  clockTargetId = targetId;
+  clockOnConfirm = onConfirm || null;
+  const cur = document.getElementById(targetId).value;
+  timeToClockState(cur);
+  clockStep = 'hour';
+  renderClockModal();
+  document.getElementById('clockModal').style.display = 'flex';
+}
+function renderClockModal(){
+  document.getElementById('clockStepLabel').textContent = clockStep === 'hour' ? '시(hour)를 눌러주세요' : '분(minute)을 눌러주세요';
+  document.getElementById('clockAM').classList.toggle('on', clockAmPm === 'AM');
+  document.getElementById('clockPM').classList.toggle('on', clockAmPm === 'PM');
+  const timeStr = clockStateToTime();
+  const [hh, mm] = timeStr.split(':');
+  document.getElementById('clockHourDisplay').textContent = hh;
+  document.getElementById('clockMinuteDisplay').textContent = mm;
+  document.getElementById('clockHourDisplay').classList.toggle('active', clockStep === 'hour');
+  document.getElementById('clockMinuteDisplay').classList.toggle('active', clockStep === 'minute');
+  renderClockFace();
+}
+document.getElementById('clockHourDisplay').addEventListener('click', ()=>{
+  clockStep = 'hour';
+  renderClockModal();
+});
+document.getElementById('clockMinuteDisplay').addEventListener('click', ()=>{
+  clockStep = 'minute';
+  renderClockModal();
+});
+function renderClockFace(){
+  const face = document.getElementById('clockFace');
+  face.querySelectorAll('.clock-num').forEach(el=>el.remove());
+  const size = 220, radius = size/2 - 24, center = size/2;
+  const items = clockStep === 'hour'
+    ? Array.from({length:12}, (_,i)=> i===0?12:i)
+    : Array.from({length:12}, (_,i)=> i*5);
+  let selectedIndex = -1;
+  items.forEach((val, i)=>{
+    const angleDeg = i*30; // 0deg = 12시 방향
+    const angleRad = (angleDeg - 90) * Math.PI/180;
+    const x = center + radius*Math.cos(angleRad);
+    const y = center + radius*Math.sin(angleRad);
+    const el = document.createElement('div');
+    el.className = 'clock-num';
+    const isSelected = clockStep === 'hour' ? val === clockHour : val === clockMinute;
+    if(isSelected){ el.classList.add('selected'); selectedIndex = i; }
+    el.textContent = clockStep === 'minute' ? val.toString().padStart(2,'0') : val;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    el.addEventListener('click', ()=>{
+      if(clockStep === 'hour'){
+        clockHour = val;
+        clockStep = 'minute';
+      }else{
+        clockMinute = val;
+      }
+      renderClockModal();
+    });
+    face.appendChild(el);
+  });
+  const hand = document.getElementById('clockHand');
+  const handAngle = selectedIndex >= 0 ? selectedIndex*30 : 0;
+  hand.style.height = `${radius}px`;
+  hand.style.transform = `rotate(${handAngle}deg)`;
+}
+document.getElementById('clockAM').addEventListener('click', ()=>{ clockAmPm='AM'; renderClockModal(); });
+document.getElementById('clockPM').addEventListener('click', ()=>{ clockAmPm='PM'; renderClockModal(); });
+document.getElementById('clockCancel').addEventListener('click', ()=>{
+  document.getElementById('clockModal').style.display = 'none';
+});
+document.getElementById('clockConfirm').addEventListener('click', ()=>{
+  const val = clockStateToTime();
+  document.getElementById(clockTargetId).value = val;
+  document.getElementById('clockModal').style.display = 'none';
+  if(clockOnConfirm) clockOnConfirm(val);
+});
+document.getElementById('dpTimeTrigger').addEventListener('click', ()=>{
+  openClockPicker('dpTimeInput', (val)=>{
+    document.getElementById('dpTimeTrigger').textContent = '🕐 ' + val;
+  });
+});
+document.getElementById('dayMakeupTimeTrigger').addEventListener('click', ()=>{
+  openClockPicker('dayMakeupTime', (val)=>{
+    document.getElementById('dayMakeupTimeTrigger').textContent = '🕐 ' + val;
+  });
+});
+
+function setDayAbsentStudent(name){
+  dayAbsentSelectedStudent = name;
+  document.getElementById('dayAbsentStudentSearch').value = '';
+  document.getElementById('dayAbsentStudentDropdown').style.display = 'none';
+  document.getElementById('dayAbsentStudentChip').innerHTML = name
+    ? `<div class="selected-chip">${name} <button id="clearDayAbsentStudent">✕</button></div>` : '';
+  const btn = document.getElementById('clearDayAbsentStudent');
+  if(btn) btn.addEventListener('click', ()=>setDayAbsentStudent(null));
+}
+function setDayMakeupStudent(name){
+  dayMakeupSelectedStudent = name;
+  document.getElementById('dayMakeupStudentSearch').value = '';
+  document.getElementById('dayMakeupStudentDropdown').style.display = 'none';
+  document.getElementById('dayMakeupStudentChip').innerHTML = name
+    ? `<div class="selected-chip">${name} <button id="clearDayMakeupStudent">✕</button></div>` : '';
+  const btn = document.getElementById('clearDayMakeupStudent');
+  if(btn) btn.addEventListener('click', ()=>setDayMakeupStudent(null));
+}
+function renderDaySearchDropdown(inputEl, dropdownEl, onSelect){
+  const q = inputEl.value.trim();
+  const results = fuzzySearch(q, DATA.students, s=>s.이름 + ' ' + (s.학교학년||'')).slice(0,8);
+  let html = '';
+  if(results.length===0){ html = '<div class="empty">일치하는 학생이 없습니다</div>'; }
+  else results.forEach(s=>{
+    html += `<div class="opt" data-name="${s.이름}">${s.이름}<div class="sub">${s.학교학년||''}</div></div>`;
+  });
+  dropdownEl.innerHTML = html;
+  dropdownEl.style.display = 'block';
+  dropdownEl.querySelectorAll('.opt').forEach(el=>{
+    el.addEventListener('click', ()=>onSelect(el.dataset.name));
+  });
+}
+document.getElementById('dayAbsentStudentSearch').addEventListener('input', function(){
+  renderDaySearchDropdown(this, document.getElementById('dayAbsentStudentDropdown'), setDayAbsentStudent);
+});
+document.getElementById('dayAbsentStudentSearch').addEventListener('focus', function(){
+  renderDaySearchDropdown(this, document.getElementById('dayAbsentStudentDropdown'), setDayAbsentStudent);
+});
+document.getElementById('dayMakeupStudentSearch').addEventListener('input', function(){
+  renderDaySearchDropdown(this, document.getElementById('dayMakeupStudentDropdown'), setDayMakeupStudent);
+});
+document.getElementById('dayMakeupStudentSearch').addEventListener('focus', function(){
+  renderDaySearchDropdown(this, document.getElementById('dayMakeupStudentDropdown'), setDayMakeupStudent);
+});
+
 function openDayDetail(dateKey){
   dayDetailDate = dateKey;
   document.getElementById('dayDetailTitle').textContent = dateKey;
-  document.getElementById('dayAddAbsentForm').style.display = 'none';
-  document.getElementById('dayAddMakeupForm').style.display = 'none';
-  populateStudentSelect(document.getElementById('dayAbsentStudent'));
-  populateStudentSelect(document.getElementById('dayMakeupStudent'));
+  setDayAbsentStudent(lastAddedStudentName || null);
+  setDayMakeupStudent(lastAddedStudentName || null);
+  document.getElementById('dayMakeupTime').value = '';
+  document.getElementById('dayMakeupTimeTrigger').textContent = '🕐 시간 선택';
   renderDayDetailList();
   document.getElementById('dayDetailModal').style.display = 'flex';
-}
-function populateStudentSelect(sel){
-  sel.innerHTML = DATA.students.map(s=>`<option value="${s.이름}">${s.이름}${s.학교학년 ? ' · ' + s.학교학년 : ''}</option>`).join('');
 }
 function renderDayDetailList(){
   const events = collectCalEvents();
@@ -1925,7 +2130,8 @@ function renderDayDetailList(){
         <label style="margin-top:0;">날짜 변경</label>
         <input type="date" id="editMakeupDate_${idx}" value="${dayDetailDate}">
         <label>시간 변경</label>
-        <input type="time" id="editMakeupTime_${idx}" value="${m.time||''}">
+        <button type="button" class="btn sm" id="editMakeupTimeTrigger_${idx}" style="width:100%; justify-content:flex-start; background:#fff; font-weight:400;">🕐 ${m.time || '시간 선택'}</button>
+        <input type="hidden" id="editMakeupTime_${idx}" value="${m.time||''}">
         <div class="row" style="margin-top:8px;">
           <button class="btn ghost sm" data-cancel-edit-makeup="${idx}">취소</button>
           <button class="btn primary sm" data-save-edit-makeup="${idx}">저장</button>
@@ -1935,21 +2141,30 @@ function renderDayDetailList(){
   });
   box.innerHTML = html;
 
+  ev.makeup.forEach((m,idx)=>{
+    document.getElementById(`editMakeupTimeTrigger_${idx}`).addEventListener('click', ()=>{
+      openClockPicker(`editMakeupTime_${idx}`, (val)=>{
+        document.getElementById(`editMakeupTimeTrigger_${idx}`).textContent = '🕐 ' + val;
+      });
+    });
+  });
+
   box.querySelectorAll('[data-del-absent]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const a = ev.absent[parseInt(btn.dataset.delAbsent)];
       if(!confirm(`${a.name}의 ${dayDetailDate} 결석 기록을 삭제할까요?`)) return;
-      await clearRecordField(a.record, 'absentDate');
-      await afterDayDetailChange();
+      btn.disabled = true;
+      const ok = await updateRecordFieldsApi(a.record, { absentDate: '' });
+      if(ok){ toast('삭제했습니다'); renderDayDetailList(); renderCalendar(); loadData(); }
     });
   });
   box.querySelectorAll('[data-del-makeup]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const m = ev.makeup[parseInt(btn.dataset.delMakeup)];
       if(!confirm(`${m.name}의 ${dayDetailDate} 보강 기록을 삭제할까요?`)) return;
-      await clearRecordField(m.record, 'makeupDate');
-      await clearRecordField(m.record, 'makeupTime');
-      await afterDayDetailChange();
+      btn.disabled = true;
+      const ok = await updateRecordFieldsApi(m.record, { makeupDate: '', makeupTime: '' });
+      if(ok){ toast('삭제했습니다'); renderDayDetailList(); renderCalendar(); loadData(); }
     });
   });
   box.querySelectorAll('[data-edit-absent]').forEach(btn=>{
@@ -1968,8 +2183,8 @@ function renderDayDetailList(){
       const a = ev.absent[parseInt(idx)];
       const newDate = document.getElementById(`editAbsentDate_${idx}`).value;
       if(!newDate){ toast('날짜를 입력해주세요'); return; }
-      await updateRecordFieldApi(a.record, 'absentDate', newDate);
-      await afterDayDetailChange();
+      const ok = await updateRecordFieldsApi(a.record, { absentDate: newDate });
+      if(ok){ toast('저장했습니다'); renderDayDetailList(); renderCalendar(); loadData(); }
     });
   });
   box.querySelectorAll('[data-edit-makeup]').forEach(btn=>{
@@ -1989,72 +2204,60 @@ function renderDayDetailList(){
       const newDate = document.getElementById(`editMakeupDate_${idx}`).value;
       const newTime = document.getElementById(`editMakeupTime_${idx}`).value;
       if(!newDate){ toast('날짜를 입력해주세요'); return; }
-      await updateRecordFieldApi(m.record, 'makeupDate', newDate);
-      await updateRecordFieldApi(m.record, 'makeupTime', newTime);
-      await afterDayDetailChange();
+      const ok = await updateRecordFieldsApi(m.record, { makeupDate: newDate, makeupTime: newTime });
+      if(ok){ toast('저장했습니다'); renderDayDetailList(); renderCalendar(); loadData(); }
     });
   });
 }
-async function updateRecordFieldApi(record, field, value){
+async function updateRecordFieldsApi(record, fields){
   try{
-    const res = await apiPost('updateRecordField', { rowNum: record._rowNum, studentName: record['학생이름'], field, value });
+    const res = await apiPost('updateRecordFields', { rowNum: record._rowNum, studentName: record['학생이름'], fields: JSON.stringify(fields) });
     if(res.error){ toast(res.error); return false; }
+    // 서버 응답을 기다리지 않고 화면에 바로 반영되도록 로컬 데이터도 갱신
+    const fieldNameMap = { absentDate:'결석일자', makeupDate:'보강일자', makeupTime:'보강시간' };
+    Object.keys(fields).forEach(k=>{
+      if(fieldNameMap[k]) record[fieldNameMap[k]] = fields[k];
+    });
     return true;
   }catch(err){ toast('저장 실패: ' + err.message); return false; }
-}
-async function clearRecordField(record, field){
-  return updateRecordFieldApi(record, field, '');
-}
-async function afterDayDetailChange(){
-  toast('저장했습니다');
-  await loadData();
-  renderDayDetailList();
 }
 
 document.getElementById('dayDetailClose').addEventListener('click', ()=>{
   document.getElementById('dayDetailModal').style.display = 'none';
 });
-document.getElementById('dayShowAddAbsent').addEventListener('click', ()=>{
-  document.getElementById('dayAddAbsentForm').style.display = 'block';
-  document.getElementById('dayAddMakeupForm').style.display = 'none';
-});
-document.getElementById('dayAbsentCancel').addEventListener('click', ()=>{
-  document.getElementById('dayAddAbsentForm').style.display = 'none';
-});
 document.getElementById('dayAbsentSave').addEventListener('click', async ()=>{
-  const studentName = document.getElementById('dayAbsentStudent').value;
-  if(!studentName){ toast('학생을 선택해주세요'); return; }
+  const studentName = dayAbsentSelectedStudent;
+  if(!studentName){ toast('학생을 검색해서 선택해주세요'); return; }
   try{
     const res = await apiPost('addRecord', { studentName, absentDate: dayDetailDate });
     if(res.error){ toast(res.error); return; }
-    document.getElementById('dayAddAbsentForm').style.display = 'none';
+    lastAddedStudentName = studentName;
+    setDayAbsentStudent(null);
+    if(!dayMakeupSelectedStudent) setDayMakeupStudent(studentName);
+    toast('결석을 등록했습니다');
+    const info = makeEventInfo(dayDetailDate, '', studentName, '결석');
+    createGcalEventIfConnected(info);
     await loadData();
     renderDayDetailList();
-    const info = makeEventInfo(dayDetailDate, '', studentName, '결석');
-    await createGcalEventIfConnected(info);
-    toast('결석을 등록했습니다');
   }catch(err){ toast('저장 실패: ' + err.message); }
 });
-document.getElementById('dayShowAddMakeup').addEventListener('click', ()=>{
-  document.getElementById('dayAddMakeupForm').style.display = 'block';
-  document.getElementById('dayAddAbsentForm').style.display = 'none';
-});
-document.getElementById('dayMakeupCancel').addEventListener('click', ()=>{
-  document.getElementById('dayAddMakeupForm').style.display = 'none';
-});
 document.getElementById('dayMakeupSave').addEventListener('click', async ()=>{
-  const studentName = document.getElementById('dayMakeupStudent').value;
+  const studentName = dayMakeupSelectedStudent;
   const time = document.getElementById('dayMakeupTime').value;
-  if(!studentName){ toast('학생을 선택해주세요'); return; }
+  if(!studentName){ toast('학생을 검색해서 선택해주세요'); return; }
   try{
     const res = await apiPost('addRecord', { studentName, makeupDate: dayDetailDate, makeupTime: time });
     if(res.error){ toast(res.error); return; }
-    document.getElementById('dayAddMakeupForm').style.display = 'none';
+    lastAddedStudentName = studentName;
+    setDayMakeupStudent(null);
+    if(!dayAbsentSelectedStudent) setDayAbsentStudent(studentName);
+    document.getElementById('dayMakeupTime').value = '';
+    document.getElementById('dayMakeupTimeTrigger').textContent = '🕐 시간 선택';
+    toast('보강을 등록했습니다');
+    const info = makeEventInfo(dayDetailDate, time, studentName, '보강');
+    createGcalEventIfConnected(info);
     await loadData();
     renderDayDetailList();
-    const info = makeEventInfo(dayDetailDate, time, studentName, '보강');
-    await createGcalEventIfConnected(info);
-    toast('보강을 등록했습니다');
   }catch(err){ toast('저장 실패: ' + err.message); }
 });
 
@@ -2081,7 +2284,9 @@ function openDatePicker(target){
   dpMonth = base.getMonth();
   dpSelectedDate = existingVal || null;
   document.getElementById('dpTimeRow').style.display = target === 'makeup' ? 'block' : 'none';
-  document.getElementById('dpTimeInput').value = target === 'makeup' ? document.getElementById('makeupTime').value : '';
+  const existingTime = target === 'makeup' ? document.getElementById('makeupTime').value : '';
+  document.getElementById('dpTimeInput').value = existingTime;
+  document.getElementById('dpTimeTrigger').textContent = existingTime ? '🕐 ' + existingTime : '🕐 시간 선택';
   document.getElementById('dpConfirm').style.display = target === 'makeup' ? 'inline-flex' : 'none';
   renderDatePicker();
   document.getElementById('datePickerModal').style.display = 'flex';
@@ -2478,6 +2683,7 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
   renderCalendar();
   updateDateDisplay('absent');
   updateDateDisplay('makeup');
+
   // 구글 로그인 라이브러리는 비동기로 로드되므로 약간의 지연 후 초기화 시도
   setTimeout(()=>{ if(CONFIG.gcalClientId) initGcalTokenClient(); }, 500);
   try{

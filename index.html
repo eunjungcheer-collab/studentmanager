@@ -303,11 +303,39 @@
   .cal-cell{
     aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
     font-size:12px; color:var(--ink-soft); border-radius:5px; position:relative;
-    background:#fff; border:1px solid var(--line);
+    background:#fff; border:1px solid var(--line); cursor:pointer;
   }
-  .cal-cell.empty{background:transparent; border:none;}
+  .cal-cell:active{background:var(--cobalt-soft);}
+  .cal-cell.empty{background:transparent; border:none; cursor:default;}
   .cal-cell.today{border-color:var(--cobalt); border-width:2px; font-weight:700; color:var(--ink);}
+  .cal-cell.holiday{color:var(--coral); font-weight:700;}
+  .cal-cell.selected{background:var(--cobalt); border-color:var(--cobalt); color:#fff !important;}
   .cal-cell .dots{display:flex; gap:2px; margin-top:2px;}
+
+  .cal-grid-detailed{ grid-auto-rows:min-content; }
+  .cal-grid-detailed .cal-cell{
+    aspect-ratio:auto; min-height:44px; align-items:stretch; justify-content:flex-start;
+    padding:3px 2px;
+  }
+  .cal-grid-detailed .cal-cell.empty{min-height:0;}
+  .cal-daynum{font-size:11px; text-align:center; display:block;}
+  .cal-cell .names{display:flex; flex-direction:column; gap:1px; margin-top:2px; width:100%;}
+  .cal-name{
+    font-size:8px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    text-align:center; border-radius:3px; padding:0 1px;
+  }
+  .cal-name.absent{background:var(--coral-soft); color:var(--coral);}
+  .cal-name.makeup{background:var(--cobalt-soft); color:var(--cobalt-dark);}
+  .cal-name.more{color:var(--ink-soft); background:none;}
+
+  .tt-table{border-collapse:collapse; font-size:11px; min-width:640px;}
+  .tt-table td{
+    border:1px solid var(--line-strong); padding:4px 5px; vertical-align:top;
+    white-space:pre-wrap; line-height:1.4; cursor:pointer; min-width:70px;
+  }
+  .tt-table td:hover{outline:2px solid var(--cobalt); outline-offset:-2px;}
+  .tt-table td.tt-header{font-weight:700; text-align:center; cursor:default; background:var(--cobalt-soft);}
+  .tt-table td.tt-header:hover{outline:none;}
   .cal-dot{width:6px; height:6px; border-radius:50%;}
   .cal-dot.absent{background:var(--coral);}
   .cal-dot.makeup{background:var(--cobalt);}
@@ -374,6 +402,7 @@
 <nav class="tabs">
   <button class="tab-btn active" data-view="record">오늘 수업기록</button>
   <button class="tab-btn" data-view="manage">학생 관리</button>
+  <button class="tab-btn" data-view="timetable">시간표</button>
   <button class="tab-btn" data-view="settings">설정</button>
 </nav>
 
@@ -518,23 +547,20 @@
   <div class="block">
     <div class="block-title"><span class="n c-teal">6</span>결석 &amp; 보강</div>
     <label>결석일자</label>
-    <input type="date" id="absentDate">
+    <button type="button" class="btn" id="absentDatePicker" style="width:100%; justify-content:flex-start; background:#fff; font-weight:400;">결석일자 선택 (달력)</button>
+    <input type="hidden" id="absentDate">
 
-    <div class="row" style="margin-top:14px;">
-      <div>
-        <label>보강일자</label>
-        <input type="date" id="makeupDate">
-      </div>
-      <div>
-        <label>보강시간</label>
-        <input type="time" id="makeupTime">
-      </div>
-    </div>
-    <div class="row" style="margin-top:10px;">
+    <label style="margin-top:14px;">보강일정</label>
+    <button type="button" class="btn" id="makeupDatePicker" style="width:100%; justify-content:flex-start; background:#fff; font-weight:400;">보강일정 선택 (달력)</button>
+    <input type="hidden" id="makeupDate">
+    <input type="hidden" id="makeupTime">
+
+    <p class="hint" id="manualCalHint" style="display:none;">구글 캘린더 자동 연동이 켜져 있어서, "오늘 수업기록 저장"을 누르면 팝업 없이 자동으로 캘린더에 등록됩니다.</p>
+    <div class="row" id="manualCalButtons" style="margin-top:10px;">
       <button class="btn primary sm" id="addBothGoogleCal">결석·보강 한번에 캘린더에 추가</button>
       <button class="btn sm" id="downloadBothIcs">한번에 .ics 다운로드</button>
     </div>
-    <p class="hint">입력된 날짜만큼 자동으로 처리합니다 (결석만 있으면 결석만, 둘 다 있으면 둘 다). 구글 캘린더 연동이 켜져 있으면 저장 시 자동으로도 등록됩니다.</p>
+    <p class="hint" id="manualCalSubHint">입력된 날짜만큼 자동으로 처리합니다 (결석만 있으면 결석만, 둘 다 있으면 둘 다). 구글 캘린더 연동이 켜져 있으면 저장 시 자동으로도 등록됩니다.</p>
   </div>
 
   <div class="record-actions">
@@ -546,17 +572,6 @@
 
 <!-- ============ 학생 관리 ============ -->
 <section class="view" id="view-manage">
-
-  <div class="block">
-    <div class="block-title"><span class="n c-violet">📅</span>결석·보강 달력</div>
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-      <button class="btn sm" id="calPrevMonth">‹ 이전달</button>
-      <b id="calMonthLabel" style="font-size:14px;"></b>
-      <button class="btn sm" id="calNextMonth">다음달 ›</button>
-    </div>
-    <div id="calGrid" class="cal-grid"></div>
-    <div id="calEventList" style="margin-top:10px;"></div>
-  </div>
 
   <div class="block">
     <div class="block-title"><span class="n c-cobalt">Q</span>학생 검색</div>
@@ -577,6 +592,18 @@
         <button class="btn primary sm" id="ns_save">학생DB에 저장</button>
       </div>
     </div>
+  </div>
+
+  <div class="block">
+    <div class="block-title"><span class="n c-violet">📅</span>결석·보강 달력</div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <button class="btn sm" id="calPrevMonth">‹ 이전달</button>
+      <b id="calMonthLabel" style="font-size:14px;"></b>
+      <button class="btn sm" id="calNextMonth">다음달 ›</button>
+    </div>
+    <div id="calGrid" class="cal-grid cal-grid-detailed"></div>
+    <div id="calEventList" style="margin-top:10px;"></div>
+    <p class="hint">날짜를 누르면 그날의 결석·보강을 확인하거나 새로 추가·수정·삭제할 수 있습니다.</p>
   </div>
   <div id="manageResults"></div>
 
@@ -624,8 +651,38 @@
   </div>
 </section>
 
+<!-- ============ 시간표 ============ -->
+<section class="view" id="view-timetable">
+  <div class="block">
+    <div class="block-title"><span class="n c-violet">🗓️</span>주간 시간표</div>
+    <div id="timetableEmpty" style="display:none;">
+      <p class="hint">아직 시간표 시트가 연결되지 않았습니다. 설정 탭에서 시간표 구글 시트 링크를 입력해주세요.</p>
+    </div>
+    <div id="timetableWrap" style="display:none; overflow-x:auto;">
+      <button class="btn sm" id="timetableRefresh" style="margin-bottom:10px;">새로고침</button>
+      <div id="timetableGrid"></div>
+    </div>
+    <div id="timetableCellEdit" class="inline-new" style="display:none; margin-top:12px;">
+      <p class="hint" id="timetableCellLabel" style="margin:0 0 8px;"></p>
+      <textarea id="timetableCellInput" style="min-height:80px;"></textarea>
+      <div class="row" style="margin-top:10px;">
+        <button class="btn ghost sm" id="timetableCellCancel">취소</button>
+        <button class="btn primary sm" id="timetableCellSave">저장</button>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ============ 설정 ============ -->
 <section class="view" id="view-settings">
+  <div class="block">
+    <div class="block-title"><span class="n c-violet">🗓️</span>공유 시간표 연결</div>
+    <label>시간표 구글 시트 링크</label>
+    <input type="text" id="timetableUrl" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+    <p class="hint">다른 선생님들과 같이 쓰시는 시간표 구글 시트 주소를 붙여넣으세요. 지금은 보기 전용입니다. 이 값은 이 기기에만 저장됩니다.</p>
+    <button class="btn primary" id="saveTimetableUrl" style="margin-top:10px;">저장</button>
+    <p class="hint" id="timetableStatus" style="margin-top:10px;"></p>
+  </div>
   <div class="block">
     <div class="block-title"><span class="n c-teal">📅</span>구글 캘린더 자동 연동</div>
     <label>구글 OAuth 클라이언트 ID</label>
@@ -682,9 +739,63 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="dayDetailModal" style="display:none;">
+  <div class="modal-box" style="max-width:400px; max-height:85vh; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <b id="dayDetailTitle" style="font-size:15px;"></b>
+      <button class="btn sm" id="dayDetailClose">닫기</button>
+    </div>
+    <div id="dayDetailList" style="margin-bottom:14px;"></div>
+
+    <div id="dayAddAbsentForm" style="display:none; margin-bottom:10px; padding:12px; background:var(--coral-soft); border-radius:6px;">
+      <label style="margin-top:0;">학생</label>
+      <select id="dayAbsentStudent"></select>
+      <div class="row" style="margin-top:10px;">
+        <button class="btn ghost sm" id="dayAbsentCancel">취소</button>
+        <button class="btn primary sm" id="dayAbsentSave">결석으로 저장</button>
+      </div>
+    </div>
+    <div id="dayAddMakeupForm" style="display:none; margin-bottom:10px; padding:12px; background:var(--cobalt-soft); border-radius:6px;">
+      <label style="margin-top:0;">학생</label>
+      <select id="dayMakeupStudent"></select>
+      <label>시간</label>
+      <input type="time" id="dayMakeupTime">
+      <div class="row" style="margin-top:10px;">
+        <button class="btn ghost sm" id="dayMakeupCancel">취소</button>
+        <button class="btn primary sm" id="dayMakeupSave">보강으로 저장</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <button class="btn sm" id="dayShowAddAbsent">+ 결석 추가</button>
+      <button class="btn sm" id="dayShowAddMakeup">+ 보강 추가</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="datePickerModal" style="display:none;">
+  <div class="modal-box" style="max-width:360px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <button class="btn sm" id="dpPrevMonth">‹</button>
+      <b id="dpMonthLabel" style="font-size:14px;"></b>
+      <button class="btn sm" id="dpNextMonth">›</button>
+    </div>
+    <div id="dpGrid" class="cal-grid"></div>
+    <div id="dpTimeRow" style="display:none; margin-top:12px;">
+      <label style="margin-top:0;">시간</label>
+      <input type="time" id="dpTimeInput">
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <button class="btn ghost sm" id="dpClear">선택 안함</button>
+      <button class="btn ghost sm" id="dpCancel">취소</button>
+      <button class="btn primary sm" id="dpConfirm" style="display:none;">확인</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ---------------- 상태 ----------------
-let CONFIG = { webAppUrl: 'https://script.google.com/macros/s/AKfycbypEPpo_ah7GwsKXHm7K8gnrWkhHtJcSyafLysb2_-5B5Wq9tf1rdc8NQXmG22YvOUg/exec', gcalClientId: '124712258994-ffgquqflaomcds1p46m72ppic8qlcb9v.apps.googleusercontent.com' };
+let CONFIG = { webAppUrl: 'https://script.google.com/macros/s/AKfycbypEPpo_ah7GwsKXHm7K8gnrWkhHtJcSyafLysb2_-5B5Wq9tf1rdc8NQXmG22YvOUg/exec', gcalClientId: '124712258994-ffgquqflaomcds1p46m72ppic8qlcb9v.apps.googleusercontent.com', timetableSheetId: '' };
 let DATA = { students: [], curriculum: {}, records: [] };
 let form = {
   student: null,
@@ -748,6 +859,12 @@ async function apiGet(){
   const res = await fetch(CONFIG.webAppUrl + '?action=getData');
   return res.json();
 }
+async function apiGetAction(action, params){
+  if(!CONFIG.webAppUrl) throw new Error('설정 탭에서 웹앱 URL을 먼저 입력해주세요');
+  const qs = new URLSearchParams({ action, ...params });
+  const res = await fetch(CONFIG.webAppUrl + '?' + qs.toString());
+  return res.json();
+}
 async function apiPost(action, params){
   if(!CONFIG.webAppUrl) throw new Error('설정 탭에서 웹앱 URL을 먼저 입력해주세요');
   const body = new URLSearchParams({ action, ...params });
@@ -755,8 +872,117 @@ async function apiPost(action, params){
   return res.json();
 }
 
+// ---------------- 공유 시간표 ----------------
+function extractSheetId(input){
+  if(!input) return '';
+  const m = input.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  return m ? m[1] : input.trim();
+}
+let timetableData = null;
+async function loadTimetable(){
+  const empty = document.getElementById('timetableEmpty');
+  const wrap = document.getElementById('timetableWrap');
+  if(!CONFIG.timetableSheetId){
+    empty.style.display = 'block';
+    wrap.style.display = 'none';
+    return;
+  }
+  try{
+    const res = await apiGetAction('getTimetable', { sheetId: CONFIG.timetableSheetId });
+    if(res.error){
+      empty.style.display = 'block';
+      wrap.style.display = 'none';
+      empty.querySelector('p').textContent = res.error;
+      return;
+    }
+    timetableData = res;
+    empty.style.display = 'none';
+    wrap.style.display = 'block';
+    renderTimetable(res);
+  }catch(err){
+    empty.style.display = 'block';
+    wrap.style.display = 'none';
+    empty.querySelector('p').textContent = '시간표를 불러오지 못했습니다: ' + err.message;
+  }
+}
+function renderTimetable(data){
+  const { values, merges, colors, numRows, numCols } = data;
+  // 이미 병합에 포함되어(앵커가 아닌) 건너뛸 셀 좌표 집합, 앵커 셀의 rowspan/colspan 맵
+  const skip = new Set();
+  const spanMap = {};
+  merges.forEach(m=>{
+    spanMap[`${m.row}_${m.col}`] = { rowSpan: m.numRows, colSpan: m.numCols };
+    for(let r=m.row; r<m.row+m.numRows; r++){
+      for(let c=m.col; c<m.col+m.numCols; c++){
+        if(r===m.row && c===m.col) continue;
+        skip.add(`${r}_${c}`);
+      }
+    }
+  });
+  let html = '<table class="tt-table">';
+  for(let r=1; r<=numRows; r++){
+    html += '<tr>';
+    for(let c=1; c<=numCols; c++){
+      const key = `${r}_${c}`;
+      if(skip.has(key)) continue;
+      const span = spanMap[key];
+      const rowSpanAttr = span && span.rowSpan > 1 ? ` rowspan="${span.rowSpan}"` : '';
+      const colSpanAttr = span && span.colSpan > 1 ? ` colspan="${span.colSpan}"` : '';
+      const text = (values[r-1] && values[r-1][c-1]) ? values[r-1][c-1] : '';
+      const bg = (colors[r-1] && colors[r-1][c-1]) ? colors[r-1][c-1] : '';
+      const isHeaderRow = r <= 4; // 요일/과목/강사 헤더로 추정되는 상단 몇 줄
+      const cls = isHeaderRow ? ' tt-header' : '';
+      const styleAttr = bg && bg !== '#ffffff' ? ` style="background:${bg};"` : '';
+      html += `<td${rowSpanAttr}${colSpanAttr} class="tt${cls}" data-row="${r}" data-col="${c}"${styleAttr}>${escapeHtml(text)}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  document.getElementById('timetableGrid').innerHTML = html;
+  document.querySelectorAll('.tt-table td.tt:not(.tt-header)').forEach(td=>{
+    td.addEventListener('click', ()=>openTimetableCellEdit(td));
+  });
+}
+function escapeHtml(s){
+  return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+let ttEditCell = null;
+function openTimetableCellEdit(td){
+  ttEditCell = td;
+  const row = td.dataset.row, col = td.dataset.col;
+  document.getElementById('timetableCellLabel').textContent = `${row}행 ${col}열 내용 수정`;
+  document.getElementById('timetableCellInput').value = td.textContent;
+  document.getElementById('timetableCellEdit').style.display = 'block';
+  document.getElementById('timetableCellEdit').scrollIntoView({behavior:'smooth', block:'center'});
+}
+document.getElementById('timetableCellCancel').addEventListener('click', ()=>{
+  document.getElementById('timetableCellEdit').style.display = 'none';
+});
+document.getElementById('timetableCellSave').addEventListener('click', async ()=>{
+  if(!ttEditCell) return;
+  const row = ttEditCell.dataset.row, col = ttEditCell.dataset.col;
+  const value = document.getElementById('timetableCellInput').value;
+  try{
+    const res = await apiPost('updateTimetableCell', { sheetId: CONFIG.timetableSheetId, row, col, value });
+    if(res.error){ toast(res.error); return; }
+    toast('시간표를 저장했습니다');
+    document.getElementById('timetableCellEdit').style.display = 'none';
+    await loadTimetable();
+  }catch(err){ toast('저장 실패: ' + err.message); }
+});
+document.getElementById('timetableRefresh').addEventListener('click', loadTimetable);
+document.getElementById('saveTimetableUrl').addEventListener('click', async ()=>{
+  const raw = document.getElementById('timetableUrl').value.trim();
+  const id = extractSheetId(raw);
+  CONFIG.timetableSheetId = id;
+  try{ await localStore.set('timetableSheetId', id); }catch(e){}
+  toast('저장했습니다');
+  if(document.getElementById('view-timetable').classList.contains('active')) loadTimetable();
+});
+
 async function loadData(){
   const status = document.getElementById('connStatus');
+  setSearchEnabled(false);
   if(!CONFIG.webAppUrl){
     if(status) status.innerHTML = '<span class="status-dot no"></span>웹앱 URL이 설정되지 않았습니다';
     return;
@@ -767,15 +993,23 @@ async function loadData(){
     DATA = data;
     if(status) status.innerHTML = '<span class="status-dot ok"></span>연결됨 · 학생 ' + DATA.students.length + '명, 교재 ' + Object.keys(DATA.curriculum).length + '종';
     renderCalendar();
+    setSearchEnabled(true);
   }catch(err){
     if(status) status.innerHTML = '<span class="status-dot no"></span>연결 실패: ' + err.message;
   }
+}
+function setSearchEnabled(enabled){
+  const s = document.getElementById('studentSearch');
+  const b = document.getElementById('bookSearch');
+  if(s){ s.disabled = !enabled; s.placeholder = enabled ? '학생 이름 검색' : '데이터 불러오는 중...'; }
+  if(b){ b.disabled = !enabled; b.placeholder = enabled ? '교재명 검색 또는 새 교재명 입력' : '데이터 불러오는 중...'; }
 }
 
 // ---------------- 탭 ----------------
 function activateTab(view){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id === 'view-' + view));
+  if(view === 'timetable') loadTimetable();
 }
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>activateTab(btn.dataset.view));
@@ -857,6 +1091,8 @@ function resetRecordForm(){
   document.getElementById('absentDate').value = '';
   document.getElementById('makeupDate').value = '';
   document.getElementById('makeupTime').value = '';
+  updateDateDisplay('absent');
+  updateDateDisplay('makeup');
 }
 document.getElementById('clearAllBtn').addEventListener('click', ()=>{
   const ok = confirm('현재 입력한 내용을 전부 지우고 새로 시작할까요?');
@@ -908,6 +1144,8 @@ function selectStudent(name){
     document.getElementById('absentDate').value = toDateInputValue(existing['결석일자']);
     document.getElementById('makeupDate').value = toDateInputValue(existing['보강일자']);
     document.getElementById('makeupTime').value = toTimeInputValue(existing['보강시간']);
+    updateDateDisplay('absent');
+    updateDateDisplay('makeup');
     toast('오늘 이미 저장된 기록을 불러왔습니다');
   }else if(s.교과서 && DATA.curriculum[s.교과서]){
     selectBook(s.교과서);
@@ -1344,14 +1582,10 @@ document.getElementById('shareBtn').addEventListener('click', async ()=>{
 
 // ---------------- 결석/보강 일정 캘린더 연동 ----------------
 function pad2(n){ return n.toString().padStart(2, '0'); }
-function buildEventInfo(dateFieldId, timeFieldId, label){
-  const date = document.getElementById(dateFieldId).value;
+function makeEventInfo(date, time, studentName, label, extraDesc){
   if(!date) return null;
-  const time = timeFieldId ? document.getElementById(timeFieldId).value : '';
-  const name = form.student ? form.student.이름 : '학생';
-  const bl = form.book && form.lesson ? `${form.book} ${form.lesson.lesson}` : (form.book || '');
-  const title = `${label} - ${name}`;
-  const desc = `${name} ${label}${bl ? ' · ' + bl : ''}`;
+  const title = `${label} - ${studentName}`;
+  const desc = `${studentName} ${label}${extraDesc ? ' · ' + extraDesc : ''}`;
   if(time){
     const start = new Date(`${date}T${time}:00`);
     const end = new Date(start.getTime() + 60*60*1000);
@@ -1369,6 +1603,14 @@ function buildEventInfo(dateFieldId, timeFieldId, label){
     const nextDateStr = `${next.getFullYear()}-${pad2(next.getMonth()+1)}-${pad2(next.getDate())}`;
     return { title, desc, allDay:true, startStr:d0, endStr:d1, startDate:date, endDate:nextDateStr };
   }
+}
+function buildEventInfo(dateFieldId, timeFieldId, label){
+  const date = document.getElementById(dateFieldId).value;
+  if(!date) return null;
+  const time = timeFieldId ? document.getElementById(timeFieldId).value : '';
+  const name = form.student ? form.student.이름 : '학생';
+  const bl = form.book && form.lesson ? `${form.book} ${form.lesson.lesson}` : (form.book || '');
+  return makeEventInfo(date, time, name, label, bl);
 }
 function makeupEventInfo(){ return buildEventInfo('makeupDate', 'makeupTime', '보강'); }
 function absentEventInfo(){ return buildEventInfo('absentDate', null, '결석'); }
@@ -1428,6 +1670,16 @@ function renderGcalStatus(){
   }else{
     gcalStatus.innerHTML = '<span class="status-dot no"></span>클라이언트 ID는 저장됨 · "구글 계정 연결" 버튼을 눌러주세요';
   }
+  updateManualCalButtonsVisibility();
+}
+function updateManualCalButtonsVisibility(){
+  const connected = !!gcalAccessToken;
+  const hint = document.getElementById('manualCalHint');
+  const buttons = document.getElementById('manualCalButtons');
+  const subHint = document.getElementById('manualCalSubHint');
+  if(hint) hint.style.display = connected ? 'block' : 'none';
+  if(buttons) buttons.style.display = connected ? 'none' : 'flex';
+  if(subHint) subHint.style.display = connected ? 'none' : 'block';
 }
 
 function initGcalTokenClient(){
@@ -1503,8 +1755,27 @@ let calYear, calMonth; // calMonth: 0-11
   calMonth = d.getMonth();
 })();
 
+// ---------------- 공휴일 ----------------
+const FIXED_HOLIDAYS = {
+  '01-01':'신정', '03-01':'삼일절', '05-05':'어린이날', '06-06':'현충일',
+  '07-17':'제헌절', '08-15':'광복절', '10-03':'개천절', '10-09':'한글날', '12-25':'크리스마스'
+};
+const SPECIFIC_HOLIDAYS = {
+  '2026-02-16':'설날연휴', '2026-02-17':'설날', '2026-02-18':'설날연휴',
+  '2026-03-02':'대체공휴일(삼일절)',
+  '2026-05-24':'부처님오신날', '2026-05-25':'대체공휴일(부처님오신날)',
+  '2026-08-17':'대체공휴일(광복절)',
+  '2026-09-24':'추석연휴', '2026-09-25':'추석', '2026-09-26':'추석연휴',
+  '2026-10-05':'대체공휴일(개천절)'
+};
+function getHolidayName(key){
+  if(SPECIFIC_HOLIDAYS[key]) return SPECIFIC_HOLIDAYS[key];
+  const md = key.slice(5);
+  return FIXED_HOLIDAYS[md] || null;
+}
+
 function collectCalEvents(){
-  // key "YYYY-MM-DD" -> { absent:[names], makeup:[{name,time}] }
+  // key "YYYY-MM-DD" -> { absent:[{name,record}], makeup:[{name,time,record}] }
   const map = {};
   DATA.records.forEach(r=>{
     const name = r['학생이름'];
@@ -1512,13 +1783,13 @@ function collectCalEvents(){
     const ad = toDateInputValue(r['결석일자']);
     if(ad){
       if(!map[ad]) map[ad] = { absent:[], makeup:[] };
-      map[ad].absent.push(name);
+      map[ad].absent.push({ name, record:r });
     }
     const md = toDateInputValue(r['보강일자']);
     if(md){
       if(!map[md]) map[md] = { absent:[], makeup:[] };
       const t = toTimeInputValue(r['보강시간']);
-      map[md].makeup.push({ name, time:t });
+      map[md].makeup.push({ name, time:t, record:r });
     }
   });
   return map;
@@ -1542,30 +1813,53 @@ function renderCalendar(){
   for(let day=1; day<=daysInMonth; day++){
     const key = `${calYear}-${pad(calMonth+1)}-${pad(day)}`;
     const ev = events[key];
-    let dots = '';
+    let namesHtml = '';
     if(ev){
-      if(ev.absent.length) dots += '<span class="cal-dot absent"></span>';
-      if(ev.makeup.length) dots += '<span class="cal-dot makeup"></span>';
+      const entries = [];
+      ev.absent.forEach(a=>entries.push({cls:'absent', text: a.name}));
+      ev.makeup.forEach(m=>entries.push({cls:'makeup', text: m.time ? `${m.name} ${m.time}` : m.name}));
+      const shown = entries.slice(0, 3);
+      namesHtml = '<div class="names">' + shown.map(e=>`<span class="cal-name ${e.cls}">${e.text}</span>`).join('') +
+        (entries.length > 3 ? `<span class="cal-name more">+${entries.length - 3}</span>` : '') + '</div>';
     }
     const isToday = key === todayKey ? ' today' : '';
-    html += `<div class="cal-cell${isToday}">${day}<div class="dots">${dots}</div></div>`;
+    const holidayName = getHolidayName(key);
+    const isHoliday = holidayName ? ' holiday' : '';
+    const titleAttr = holidayName ? ` title="${holidayName}"` : '';
+    html += `<div class="cal-cell${isToday}${isHoliday}" data-date="${key}"${titleAttr}><span class="cal-daynum">${day}</span>${namesHtml}</div>`;
   }
   grid.innerHTML = html;
+  grid.querySelectorAll('.cal-cell[data-date]').forEach(cell=>{
+    cell.addEventListener('click', ()=>openDayDetail(cell.dataset.date));
+  });
 
-  // 이번 달 이벤트 목록
+  // 이번 달 공휴일 목록
   const monthPrefix = `${calYear}-${pad(calMonth+1)}-`;
+  const holidayRows = [];
+  for(let day=1; day<=daysInMonth; day++){
+    const key = `${monthPrefix}${pad(day)}`;
+    const hn = getHolidayName(key);
+    if(hn) holidayRows.push(`<div class="cal-event-row"><span style="color:var(--coral); font-weight:700;">●</span><span>${calMonth+1}/${day} ${hn}</span></div>`);
+  }
+
+  // 이번 달 결석·보강 목록
   const rows = [];
   Object.keys(events).filter(k=>k.startsWith(monthPrefix)).sort().forEach(key=>{
     const ev = events[key];
     const day = parseInt(key.slice(8,10),10);
-    ev.absent.forEach(name=>{
-      rows.push(`<div class="cal-event-row"><span class="cal-dot absent"></span><span>${calMonth+1}/${day} 결석 - ${name}</span></div>`);
+    ev.absent.forEach(a=>{
+      rows.push(`<div class="cal-event-row"><span class="cal-dot absent"></span><span>${calMonth+1}/${day} 결석 - ${a.name}</span></div>`);
     });
     ev.makeup.forEach(m=>{
       rows.push(`<div class="cal-event-row"><span class="cal-dot makeup"></span><span>${calMonth+1}/${day} 보강${m.time ? ' ' + m.time : ''} - ${m.name}</span></div>`);
     });
   });
-  listBox.innerHTML = rows.length ? rows.join('') : '<p class="hint">이번 달 결석·보강 일정이 없습니다</p>';
+
+  let finalHtml = '';
+  if(holidayRows.length) finalHtml += `<b style="font-size:12px; color:var(--ink-soft);">공휴일</b>` + holidayRows.join('');
+  if(rows.length) finalHtml += `<b style="font-size:12px; color:var(--ink-soft); display:block; margin-top:${holidayRows.length?'10px':'0'};">결석·보강</b>` + rows.join('');
+  if(!holidayRows.length && !rows.length) finalHtml = '<p class="hint">이번 달 결석·보강 일정이 없습니다</p>';
+  listBox.innerHTML = finalHtml;
 }
 document.getElementById('calPrevMonth').addEventListener('click', ()=>{
   calMonth--;
@@ -1577,6 +1871,300 @@ document.getElementById('calNextMonth').addEventListener('click', ()=>{
   if(calMonth > 11){ calMonth = 0; calYear++; }
   renderCalendar();
 });
+
+// ---------------- 날짜별 상세(추가/수정/삭제) ----------------
+let dayDetailDate = null;
+function openDayDetail(dateKey){
+  dayDetailDate = dateKey;
+  document.getElementById('dayDetailTitle').textContent = dateKey;
+  document.getElementById('dayAddAbsentForm').style.display = 'none';
+  document.getElementById('dayAddMakeupForm').style.display = 'none';
+  populateStudentSelect(document.getElementById('dayAbsentStudent'));
+  populateStudentSelect(document.getElementById('dayMakeupStudent'));
+  renderDayDetailList();
+  document.getElementById('dayDetailModal').style.display = 'flex';
+}
+function populateStudentSelect(sel){
+  sel.innerHTML = DATA.students.map(s=>`<option value="${s.이름}">${s.이름}${s.학교학년 ? ' · ' + s.학교학년 : ''}</option>`).join('');
+}
+function renderDayDetailList(){
+  const events = collectCalEvents();
+  const ev = events[dayDetailDate] || { absent:[], makeup:[] };
+  const box = document.getElementById('dayDetailList');
+  let html = '';
+  if(ev.absent.length === 0 && ev.makeup.length === 0){
+    html = '<p class="hint">이 날짜에 등록된 결석·보강이 없습니다</p>';
+  }
+  ev.absent.forEach((a,idx)=>{
+    html += `
+      <div class="cal-event-row" style="align-items:center;">
+        <span class="cal-dot absent"></span>
+        <span style="flex:1;">${a.name} · 결석</span>
+        <button class="btn sm" data-edit-absent="${idx}">수정</button>
+        <button class="btn sm" data-del-absent="${idx}" style="color:var(--coral); border-color:var(--coral);">삭제</button>
+      </div>
+      <div id="editAbsentRow_${idx}" style="display:none; margin:6px 0 10px; padding:10px; background:var(--coral-soft); border-radius:6px;">
+        <label style="margin-top:0;">날짜 변경</label>
+        <input type="date" id="editAbsentDate_${idx}" value="${dayDetailDate}">
+        <div class="row" style="margin-top:8px;">
+          <button class="btn ghost sm" data-cancel-edit-absent="${idx}">취소</button>
+          <button class="btn primary sm" data-save-edit-absent="${idx}">저장</button>
+        </div>
+      </div>
+    `;
+  });
+  ev.makeup.forEach((m,idx)=>{
+    html += `
+      <div class="cal-event-row" style="align-items:center;">
+        <span class="cal-dot makeup"></span>
+        <span style="flex:1;">${m.name} · 보강${m.time ? ' ' + m.time : ''}</span>
+        <button class="btn sm" data-edit-makeup="${idx}">수정</button>
+        <button class="btn sm" data-del-makeup="${idx}" style="color:var(--coral); border-color:var(--coral);">삭제</button>
+      </div>
+      <div id="editMakeupRow_${idx}" style="display:none; margin:6px 0 10px; padding:10px; background:var(--cobalt-soft); border-radius:6px;">
+        <label style="margin-top:0;">날짜 변경</label>
+        <input type="date" id="editMakeupDate_${idx}" value="${dayDetailDate}">
+        <label>시간 변경</label>
+        <input type="time" id="editMakeupTime_${idx}" value="${m.time||''}">
+        <div class="row" style="margin-top:8px;">
+          <button class="btn ghost sm" data-cancel-edit-makeup="${idx}">취소</button>
+          <button class="btn primary sm" data-save-edit-makeup="${idx}">저장</button>
+        </div>
+      </div>
+    `;
+  });
+  box.innerHTML = html;
+
+  box.querySelectorAll('[data-del-absent]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const a = ev.absent[parseInt(btn.dataset.delAbsent)];
+      if(!confirm(`${a.name}의 ${dayDetailDate} 결석 기록을 삭제할까요?`)) return;
+      await clearRecordField(a.record, 'absentDate');
+      await afterDayDetailChange();
+    });
+  });
+  box.querySelectorAll('[data-del-makeup]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const m = ev.makeup[parseInt(btn.dataset.delMakeup)];
+      if(!confirm(`${m.name}의 ${dayDetailDate} 보강 기록을 삭제할까요?`)) return;
+      await clearRecordField(m.record, 'makeupDate');
+      await clearRecordField(m.record, 'makeupTime');
+      await afterDayDetailChange();
+    });
+  });
+  box.querySelectorAll('[data-edit-absent]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.getElementById(`editAbsentRow_${btn.dataset.editAbsent}`).style.display = 'block';
+    });
+  });
+  box.querySelectorAll('[data-cancel-edit-absent]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.getElementById(`editAbsentRow_${btn.dataset.cancelEditAbsent}`).style.display = 'none';
+    });
+  });
+  box.querySelectorAll('[data-save-edit-absent]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const idx = btn.dataset.saveEditAbsent;
+      const a = ev.absent[parseInt(idx)];
+      const newDate = document.getElementById(`editAbsentDate_${idx}`).value;
+      if(!newDate){ toast('날짜를 입력해주세요'); return; }
+      await updateRecordFieldApi(a.record, 'absentDate', newDate);
+      await afterDayDetailChange();
+    });
+  });
+  box.querySelectorAll('[data-edit-makeup]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.getElementById(`editMakeupRow_${btn.dataset.editMakeup}`).style.display = 'block';
+    });
+  });
+  box.querySelectorAll('[data-cancel-edit-makeup]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.getElementById(`editMakeupRow_${btn.dataset.cancelEditMakeup}`).style.display = 'none';
+    });
+  });
+  box.querySelectorAll('[data-save-edit-makeup]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const idx = btn.dataset.saveEditMakeup;
+      const m = ev.makeup[parseInt(idx)];
+      const newDate = document.getElementById(`editMakeupDate_${idx}`).value;
+      const newTime = document.getElementById(`editMakeupTime_${idx}`).value;
+      if(!newDate){ toast('날짜를 입력해주세요'); return; }
+      await updateRecordFieldApi(m.record, 'makeupDate', newDate);
+      await updateRecordFieldApi(m.record, 'makeupTime', newTime);
+      await afterDayDetailChange();
+    });
+  });
+}
+async function updateRecordFieldApi(record, field, value){
+  try{
+    const res = await apiPost('updateRecordField', { rowNum: record._rowNum, studentName: record['학생이름'], field, value });
+    if(res.error){ toast(res.error); return false; }
+    return true;
+  }catch(err){ toast('저장 실패: ' + err.message); return false; }
+}
+async function clearRecordField(record, field){
+  return updateRecordFieldApi(record, field, '');
+}
+async function afterDayDetailChange(){
+  toast('저장했습니다');
+  await loadData();
+  renderDayDetailList();
+}
+
+document.getElementById('dayDetailClose').addEventListener('click', ()=>{
+  document.getElementById('dayDetailModal').style.display = 'none';
+});
+document.getElementById('dayShowAddAbsent').addEventListener('click', ()=>{
+  document.getElementById('dayAddAbsentForm').style.display = 'block';
+  document.getElementById('dayAddMakeupForm').style.display = 'none';
+});
+document.getElementById('dayAbsentCancel').addEventListener('click', ()=>{
+  document.getElementById('dayAddAbsentForm').style.display = 'none';
+});
+document.getElementById('dayAbsentSave').addEventListener('click', async ()=>{
+  const studentName = document.getElementById('dayAbsentStudent').value;
+  if(!studentName){ toast('학생을 선택해주세요'); return; }
+  try{
+    const res = await apiPost('addRecord', { studentName, absentDate: dayDetailDate });
+    if(res.error){ toast(res.error); return; }
+    document.getElementById('dayAddAbsentForm').style.display = 'none';
+    await loadData();
+    renderDayDetailList();
+    const info = makeEventInfo(dayDetailDate, '', studentName, '결석');
+    await createGcalEventIfConnected(info);
+    toast('결석을 등록했습니다');
+  }catch(err){ toast('저장 실패: ' + err.message); }
+});
+document.getElementById('dayShowAddMakeup').addEventListener('click', ()=>{
+  document.getElementById('dayAddMakeupForm').style.display = 'block';
+  document.getElementById('dayAddAbsentForm').style.display = 'none';
+});
+document.getElementById('dayMakeupCancel').addEventListener('click', ()=>{
+  document.getElementById('dayAddMakeupForm').style.display = 'none';
+});
+document.getElementById('dayMakeupSave').addEventListener('click', async ()=>{
+  const studentName = document.getElementById('dayMakeupStudent').value;
+  const time = document.getElementById('dayMakeupTime').value;
+  if(!studentName){ toast('학생을 선택해주세요'); return; }
+  try{
+    const res = await apiPost('addRecord', { studentName, makeupDate: dayDetailDate, makeupTime: time });
+    if(res.error){ toast(res.error); return; }
+    document.getElementById('dayAddMakeupForm').style.display = 'none';
+    await loadData();
+    renderDayDetailList();
+    const info = makeEventInfo(dayDetailDate, time, studentName, '보강');
+    await createGcalEventIfConnected(info);
+    toast('보강을 등록했습니다');
+  }catch(err){ toast('저장 실패: ' + err.message); }
+});
+
+// ---------------- 오늘수업기록 탭의 결석·보강 날짜를 달력으로 선택 ----------------
+let dpTarget = null; // 'absent' | 'makeup'
+let dpYear, dpMonth, dpSelectedDate = null;
+
+function updateDateDisplay(target){
+  if(target === 'absent'){
+    const v = document.getElementById('absentDate').value;
+    document.getElementById('absentDatePicker').textContent = v ? `결석일자: ${v}` : '결석일자 선택 (달력)';
+  }else{
+    const v = document.getElementById('makeupDate').value;
+    const t = document.getElementById('makeupTime').value;
+    document.getElementById('makeupDatePicker').textContent = v ? `보강일정: ${v}${t ? ' ' + t : ''}` : '보강일정 선택 (달력)';
+  }
+}
+
+function openDatePicker(target){
+  dpTarget = target;
+  const existingVal = target === 'absent' ? document.getElementById('absentDate').value : document.getElementById('makeupDate').value;
+  const base = existingVal ? new Date(existingVal + 'T00:00:00') : new Date();
+  dpYear = base.getFullYear();
+  dpMonth = base.getMonth();
+  dpSelectedDate = existingVal || null;
+  document.getElementById('dpTimeRow').style.display = target === 'makeup' ? 'block' : 'none';
+  document.getElementById('dpTimeInput').value = target === 'makeup' ? document.getElementById('makeupTime').value : '';
+  document.getElementById('dpConfirm').style.display = target === 'makeup' ? 'inline-flex' : 'none';
+  renderDatePicker();
+  document.getElementById('datePickerModal').style.display = 'flex';
+}
+
+function renderDatePicker(){
+  const label = document.getElementById('dpMonthLabel');
+  const grid = document.getElementById('dpGrid');
+  label.textContent = `${dpYear}년 ${dpMonth+1}월`;
+
+  const events = collectCalEvents();
+  const firstDay = new Date(dpYear, dpMonth, 1);
+  const startWeekday = firstDay.getDay();
+  const daysInMonth = new Date(dpYear, dpMonth+1, 0).getDate();
+  const pad = n=>n.toString().padStart(2,'0');
+  const todayKey = todayStr();
+
+  let html = ['일','월','화','수','목','금','토'].map(d=>`<div class="cal-head">${d}</div>`).join('');
+  for(let i=0;i<startWeekday;i++) html += '<div class="cal-cell empty"></div>';
+  for(let day=1; day<=daysInMonth; day++){
+    const key = `${dpYear}-${pad(dpMonth+1)}-${pad(day)}`;
+    const ev = events[key];
+    let dots = '';
+    if(ev){
+      if(ev.absent.length) dots += '<span class="cal-dot absent"></span>';
+      if(ev.makeup.length) dots += '<span class="cal-dot makeup"></span>';
+    }
+    const holidayName = getHolidayName(key);
+    let cls = '';
+    if(key === todayKey) cls += ' today';
+    if(holidayName) cls += ' holiday';
+    if(key === dpSelectedDate) cls += ' selected';
+    const titleAttr = holidayName ? ` title="${holidayName}"` : '';
+    html += `<div class="cal-cell${cls}" data-date="${key}"${titleAttr}>${day}<div class="dots">${dots}</div></div>`;
+  }
+  grid.innerHTML = html;
+  grid.querySelectorAll('.cal-cell[data-date]').forEach(cell=>{
+    cell.addEventListener('click', ()=>{
+      dpSelectedDate = cell.dataset.date;
+      if(dpTarget === 'absent'){
+        document.getElementById('absentDate').value = dpSelectedDate;
+        updateDateDisplay('absent');
+        document.getElementById('datePickerModal').style.display = 'none';
+        updateCopyPreview();
+      }else{
+        renderDatePicker();
+      }
+    });
+  });
+}
+document.getElementById('dpPrevMonth').addEventListener('click', ()=>{
+  dpMonth--; if(dpMonth < 0){ dpMonth = 11; dpYear--; }
+  renderDatePicker();
+});
+document.getElementById('dpNextMonth').addEventListener('click', ()=>{
+  dpMonth++; if(dpMonth > 11){ dpMonth = 0; dpYear++; }
+  renderDatePicker();
+});
+document.getElementById('dpCancel').addEventListener('click', ()=>{
+  document.getElementById('datePickerModal').style.display = 'none';
+});
+document.getElementById('dpClear').addEventListener('click', ()=>{
+  if(dpTarget === 'absent'){
+    document.getElementById('absentDate').value = '';
+    updateDateDisplay('absent');
+  }else{
+    document.getElementById('makeupDate').value = '';
+    document.getElementById('makeupTime').value = '';
+    updateDateDisplay('makeup');
+  }
+  document.getElementById('datePickerModal').style.display = 'none';
+  updateCopyPreview();
+});
+document.getElementById('dpConfirm').addEventListener('click', ()=>{
+  if(!dpSelectedDate){ toast('날짜를 선택해주세요'); return; }
+  document.getElementById('makeupDate').value = dpSelectedDate;
+  document.getElementById('makeupTime').value = document.getElementById('dpTimeInput').value;
+  updateDateDisplay('makeup');
+  document.getElementById('datePickerModal').style.display = 'none';
+  updateCopyPreview();
+});
+document.getElementById('absentDatePicker').addEventListener('click', ()=>openDatePicker('absent'));
+document.getElementById('makeupDatePicker').addEventListener('click', ()=>openDatePicker('makeup'));
 
 // ---------------- 학생 관리 ----------------
 function substringSearch(query, items, keyFn){
@@ -1877,10 +2465,19 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
       document.getElementById('gcalClientId').value = savedId.value;
     }
   }catch(e){}
+  try{
+    const savedTt = await localStore.get('timetableSheetId');
+    if(savedTt && savedTt.value){
+      CONFIG.timetableSheetId = savedTt.value;
+      document.getElementById('timetableUrl').value = savedTt.value;
+    }
+  }catch(e){}
   renderConceptToggle();
   renderStudentChip();
   renderGcalStatus();
   renderCalendar();
+  updateDateDisplay('absent');
+  updateDateDisplay('makeup');
   // 구글 로그인 라이브러리는 비동기로 로드되므로 약간의 지연 후 초기화 시도
   setTimeout(()=>{ if(CONFIG.gcalClientId) initGcalTokenClient(); }, 500);
   try{

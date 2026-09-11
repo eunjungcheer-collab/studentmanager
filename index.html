@@ -1730,7 +1730,7 @@ function updateManualCalButtonsVisibility(){
   if(subHint) subHint.style.display = connected ? 'none' : 'block';
 }
 
-function initGcalTokenClient(){
+function initGcalTokenClient(silentAttempt){
   if(!CONFIG.gcalClientId || typeof google === 'undefined' || !google.accounts) return;
   gcalTokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CONFIG.gcalClientId,
@@ -1738,11 +1738,20 @@ function initGcalTokenClient(){
     callback: (resp)=>{
       if(resp && resp.access_token){
         gcalAccessToken = resp.access_token;
+        localStore.set('gcalWasConnected', 'true').catch(()=>{});
         toast('구글 캘린더 연결됨');
         renderGcalStatus();
       }
-    }
+    },
+    error_callback: ()=>{ /* 조용한(silent) 재연결 시도가 실패해도 사용자에게 에러를 띄우지 않음 */ }
   });
+  if(silentAttempt){
+    localStore.get('gcalWasConnected').then(saved=>{
+      if(saved && saved.value === 'true'){
+        try{ gcalTokenClient.requestAccessToken({ prompt: '' }); }catch(e){}
+      }
+    }).catch(()=>{});
+  }
 }
 
 document.getElementById('gcalSaveClientId').addEventListener('click', async ()=>{
@@ -2155,7 +2164,7 @@ function renderDayDetailList(){
       if(!confirm(`${a.name}의 ${dayDetailDate} 결석 기록을 삭제할까요?`)) return;
       btn.disabled = true;
       const ok = await updateRecordFieldsApi(a.record, { absentDate: '' });
-      if(ok){ toast('삭제했습니다'); renderDayDetailList(); renderCalendar(); loadData(); }
+      if(ok){ toast('삭제했습니다'); renderDayDetailList(); renderCalendar(); }
     });
   });
   box.querySelectorAll('[data-del-makeup]').forEach(btn=>{
@@ -2164,7 +2173,7 @@ function renderDayDetailList(){
       if(!confirm(`${m.name}의 ${dayDetailDate} 보강 기록을 삭제할까요?`)) return;
       btn.disabled = true;
       const ok = await updateRecordFieldsApi(m.record, { makeupDate: '', makeupTime: '' });
-      if(ok){ toast('삭제했습니다'); renderDayDetailList(); renderCalendar(); loadData(); }
+      if(ok){ toast('삭제했습니다'); renderDayDetailList(); renderCalendar(); }
     });
   });
   box.querySelectorAll('[data-edit-absent]').forEach(btn=>{
@@ -2184,7 +2193,7 @@ function renderDayDetailList(){
       const newDate = document.getElementById(`editAbsentDate_${idx}`).value;
       if(!newDate){ toast('날짜를 입력해주세요'); return; }
       const ok = await updateRecordFieldsApi(a.record, { absentDate: newDate });
-      if(ok){ toast('저장했습니다'); renderDayDetailList(); renderCalendar(); loadData(); }
+      if(ok){ toast('저장했습니다'); renderDayDetailList(); renderCalendar(); }
     });
   });
   box.querySelectorAll('[data-edit-makeup]').forEach(btn=>{
@@ -2205,7 +2214,7 @@ function renderDayDetailList(){
       const newTime = document.getElementById(`editMakeupTime_${idx}`).value;
       if(!newDate){ toast('날짜를 입력해주세요'); return; }
       const ok = await updateRecordFieldsApi(m.record, { makeupDate: newDate, makeupTime: newTime });
-      if(ok){ toast('저장했습니다'); renderDayDetailList(); renderCalendar(); loadData(); }
+      if(ok){ toast('저장했습니다'); renderDayDetailList(); renderCalendar(); }
     });
   });
 }
@@ -2685,7 +2694,7 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
   updateDateDisplay('makeup');
 
   // 구글 로그인 라이브러리는 비동기로 로드되므로 약간의 지연 후 초기화 시도
-  setTimeout(()=>{ if(CONFIG.gcalClientId) initGcalTokenClient(); }, 500);
+  setTimeout(()=>{ if(CONFIG.gcalClientId) initGcalTokenClient(true); }, 500);
   try{
     const wasUnlocked = await localStore.get('unlocked');
     if(wasUnlocked && wasUnlocked.value === 'true'){

@@ -480,13 +480,14 @@
     </div>
 
     <div id="newCurriForm" class="inline-new" style="display:none;">
-      <p class="hint" style="margin:0 0 8px;">위 진도 칸의 내용으로 새 항목을 대기 목록에 담습니다 (교재: <span id="nc_bookLabel"></span>).</p>
+      <p class="hint" style="margin:0 0 8px;">위 진도 칸의 내용으로 새 항목을 만듭니다 (교재: <span id="nc_bookLabel"></span>).<br>일회성 수업이면 <b>이번 수업에만 사용</b>을 누르세요. 과제DB에는 저장되지 않고, 아카2000 붙여넣기 칸과 수업기록에만 들어갑니다.</p>
       <label>과제</label>
       <textarea id="nc_homework" placeholder="예) 책 4-6, 시험대비교재 4-7"></textarea>
       <label>공통알림장</label>
       <textarea id="nc_notice" placeholder="예) 금일 %%학생 과학 수업 시간에는 ..."></textarea>
       <div class="row" style="margin-top:10px;">
         <button class="btn ghost sm" id="nc_cancel">취소</button>
+        <button class="btn teal sm" id="nc_useOnce">이번 수업에만 사용</button>
         <button class="btn primary sm" id="nc_addToPending">대기 목록에 담기</button>
       </div>
     </div>
@@ -653,6 +654,7 @@
     <div class="row" id="md_actionsRow" style="margin-top:10px;">
       <button class="btn sm" id="md_editToggle">정보 수정</button>
       <button class="btn teal sm" id="md_pickForToday">오늘 수업기록 작성</button>
+      <button class="btn sm" id="md_delete" style="color:var(--coral); border-color:var(--coral);">학생 삭제</button>
     </div>
 
     <div id="editForm" class="inline-new" style="display:none;">
@@ -1144,6 +1146,8 @@ function resetRecordForm(){
   bookChip.innerHTML = '';
   lessonArea.style.display = 'none';
   document.getElementById('lessonChip').innerHTML = '';
+  lessonSearch.value = '';
+  newCurriForm.style.display = 'none';
   document.getElementById('homeworkText').value = '';
   document.getElementById('commonNoticeText').value = '';
   document.getElementById('personalNoteText').value = '';
@@ -1183,11 +1187,8 @@ function selectStudent(name){
       if(idx !== -1){
         selectLesson(idx);
       }else if(existing['오늘진도']){
-        form.lesson = { lesson: existing['오늘진도'], homework:'', commonNotice:'' };
-        document.getElementById('lessonChip').innerHTML = `<div class="selected-chip">${existing['오늘진도']} <button id="clearLesson">✕</button></div>`;
-        document.getElementById('clearLesson').addEventListener('click', ()=>{
-          form.lesson=null; document.getElementById('lessonChip').innerHTML=''; updateCopyPreview(); updateCurriButtonVisibility();
-        });
+        form.lesson = { lesson: existing['오늘진도'], homework:'', commonNotice:'', oneOff:true };
+        renderLessonChip();
       }
     }else if(existing['교재명']){
       form.book = existing['교재명'];
@@ -1197,6 +1198,11 @@ function selectStudent(name){
         document.getElementById('lessonChip').innerHTML='';
         updateCopyPreview(); updateCurriButtonVisibility();
       });
+      lessonArea.style.display = 'block';
+      if(existing['오늘진도']){
+        form.lesson = { lesson: existing['오늘진도'], homework:'', commonNotice:'', oneOff:true };
+        renderLessonChip();
+      }
     }
     document.getElementById('homeworkText').value = existing['오늘과제'] || '';
     document.getElementById('commonNoticeText').value = existing['알림장내용'] || '';
@@ -1290,14 +1296,21 @@ function renderLessonDropdown(){
     html += `<div class="opt" data-idx="${realIdx}">${l.lesson}<div class="sub">${(l.homework||'').slice(0,40)}</div></div>`;
   });
   const exists = lessons.some(l=>l.lesson===q);
-  if(q && !exists) html += `<div class="add-new" id="addNewLessonBtn">+ "${q}" 새 진도로 추가</div>`;
+  if(q && !exists){
+    html += `<div class="add-new" id="useOnceLessonBtn">✓ "${q}" 이번 수업에만 사용 (목록 저장 안 함)</div>`;
+    html += `<div class="add-new" id="addNewLessonBtn">+ "${q}" 새 진도로 추가</div>`;
+  }
   lessonDropdown.innerHTML = html;
   lessonDropdown.style.display = 'block';
   lessonDropdown.querySelectorAll('.opt').forEach(el=>el.addEventListener('click', ()=>selectLesson(parseInt(el.dataset.idx))));
   const addBtn = document.getElementById('addNewLessonBtn');
   if(addBtn) addBtn.addEventListener('click', ()=>openNewCurriForm(q));
+  const onceBtn = document.getElementById('useOnceLessonBtn');
+  if(onceBtn) onceBtn.addEventListener('click', ()=>{
+    setOneOffLesson(q, document.getElementById('homeworkText').value, document.getElementById('commonNoticeText').value);
+  });
 }
-lessonSearch.addEventListener('input', ()=>{ newCurriForm.style.display='none'; renderLessonDropdown(); });
+lessonSearch.addEventListener('input', ()=>{ newCurriForm.style.display='none'; renderLessonDropdown(); updateCopyPreview(); });
 lessonSearch.addEventListener('focus', renderLessonDropdown);
 lessonSearch.addEventListener('keydown', (e)=>{
   if(e.key !== 'Enter' || !form.book) return;
@@ -1314,8 +1327,30 @@ function isPendingLesson(){
   if(!form.book || !form.lesson) return false;
   return form.pendingCurri.some(item => item.book === form.book && item.lesson === form.lesson.lesson);
 }
+// 일회성 진도: 과제DB(목록)에는 저장하지 않고, 이번 수업의 붙여넣기 칸·수업기록에만 사용
+function setOneOffLesson(lessonName, homework, notice){
+  lessonName = (lessonName||'').trim();
+  if(!lessonName){ toast('진도를 입력해주세요'); return; }
+  form.lesson = { lesson: lessonName, homework: homework||'', commonNotice: notice||'', oneOff: true };
+  lessonSearch.value = '';
+  lessonDropdown.style.display = 'none';
+  newCurriForm.style.display = 'none';
+  renderLessonChip();
+  if(homework !== undefined) document.getElementById('homeworkText').value = homework || '';
+  if(notice !== undefined) document.getElementById('commonNoticeText').value = notice || '';
+  updateCopyPreview();
+  updateCurriButtonVisibility();
+}
+function renderLessonChip(){
+  if(!form.lesson){ lessonChip.innerHTML=''; return; }
+  const badge = form.lesson.oneOff ? ' <span style="font-size:11px; opacity:.75; font-weight:400;">(일회성·목록 저장 안 함)</span>' : '';
+  lessonChip.innerHTML = `<div class="selected-chip">${escapeHtml(form.lesson.lesson)}${badge} <button id="clearLesson">✕</button></div>`;
+  document.getElementById('clearLesson').addEventListener('click', ()=>{
+    form.lesson=null; lessonChip.innerHTML=''; updateCopyPreview(); updateCurriButtonVisibility();
+  });
+}
 function updateCurriButtonVisibility(){
-  const show = form.lesson && !isPendingLesson();
+  const show = form.lesson && !form.lesson.oneOff && !isPendingLesson();
   document.getElementById('updateHomeworkBtn').style.display = show ? 'inline-flex' : 'none';
   document.getElementById('updateNoticeBtn').style.display = show ? 'inline-flex' : 'none';
   document.getElementById('updateAllCurriBtn').style.display = show ? 'inline-flex' : 'none';
@@ -1435,6 +1470,24 @@ function openNewCurriForm(lessonPrefill){
   document.getElementById('nc_notice').value = '';
 }
 document.getElementById('nc_cancel').addEventListener('click', ()=>{ newCurriForm.style.display='none'; });
+document.getElementById('nc_useOnce').addEventListener('click', ()=>{
+  if(!form.book){ toast('교재를 먼저 선택해주세요'); return; }
+  setOneOffLesson(
+    lessonSearch.value,
+    document.getElementById('nc_homework').value.trim(),
+    document.getElementById('nc_notice').value.trim()
+  );
+  toast('이번 수업에만 사용합니다 (목록 저장 안 함)');
+});
+// 새 진도 폼에 적는 과제·알림장이 바로 오늘 과제/알림장/붙여넣기 칸에 반영되도록
+document.getElementById('nc_homework').addEventListener('input', function(){
+  document.getElementById('homeworkText').value = this.value;
+  updateCopyPreview();
+});
+document.getElementById('nc_notice').addEventListener('input', function(){
+  document.getElementById('commonNoticeText').value = this.value;
+  updateCopyPreview();
+});
 document.getElementById('nc_addToPending').addEventListener('click', ()=>{
   const book = form.book;
   const lesson = lessonSearch.value.trim();
@@ -1508,7 +1561,8 @@ function buildNoticeContent(){
 }
 function updateCopyPreview(){
   setIfNotFocused('copy_book', form.book || '교재를 선택하면 여기 채워집니다');
-  setIfNotFocused('copy_lesson', form.lesson ? form.lesson.lesson : '진도를 선택하면 여기 채워집니다');
+  const typedLesson = lessonSearch.value.trim();
+  setIfNotFocused('copy_lesson', form.lesson ? form.lesson.lesson : (typedLesson || '진도를 선택하면 여기 채워집니다'));
   setIfNotFocused('copy_homeworkTitle', form.book ? `${form.book} 과제` : '교재를 선택하면 여기 채워집니다');
 
   const hw = document.getElementById('homeworkText').value.trim();
@@ -1614,18 +1668,45 @@ document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
     if(res.error){ toast(res.error); return; }
     toast(action === 'updateRecord' ? '기존 수업기록을 수정했습니다' : '오늘 수업기록을 저장했습니다');
     await loadData();
-    if(payload.absentDate){
-      await createGcalEventIfConnected(absentEventInfo());
+    // 방금 저장된 행 찾기
+    let savedRec = null;
+    if(action === 'updateRecord'){
+      savedRec = DATA.records.find(r => String(r._rowNum) === String(payload.rowNum));
+    }else if(res.rowNum){
+      savedRec = DATA.records.find(r => String(r._rowNum) === String(res.rowNum));
     }
-    if(payload.makeupDate){
-      await createGcalEventIfConnected(makeupEventInfo());
+    if(!savedRec && action !== 'updateRecord'){
+      savedRec = DATA.records
+        .filter(r => r['학생이름']===payload.studentName && (r['작성일시']||'').toString().slice(0,10)===todayStr())
+        .sort((a,b)=> Number(b._rowNum) - Number(a._rowNum))[0] || null;
+    }
+    const prev = action === 'updateRecord' ? existing : null;
+    // 결석
+    const prevAbsentId = prev ? (prev['결석캘린더ID']||'') : '';
+    const prevAbsentDate = prev ? toDateInputValue(prev['결석일자']) : '';
+    if(payload.absentDate !== prevAbsentDate || (payload.absentDate && !prevAbsentId)){
+      if(prevAbsentId) await deleteGcalEventIfExists(prevAbsentId);
+      let newId = '';
+      if(payload.absentDate) newId = (await createGcalEventIfConnected(absentEventInfo())) || '';
+      if(savedRec && gcalAccessToken && (newId || prevAbsentId)) await updateRecordFieldsApi(savedRec, { absentEventId: newId });
+    }
+    // 보강
+    const prevMakeupId = prev ? (prev['보강캘린더ID']||'') : '';
+    const prevMakeupKey = prev ? toDateInputValue(prev['보강일자']) + ' ' + toTimeInputValue(prev['보강시간']) : ' ';
+    const newMakeupKey = payload.makeupDate + ' ' + (payload.makeupDate ? payload.makeupTime : '');
+    if(newMakeupKey !== prevMakeupKey || (payload.makeupDate && !prevMakeupId)){
+      if(prevMakeupId) await deleteGcalEventIfExists(prevMakeupId);
+      let newId = '';
+      if(payload.makeupDate) newId = (await createGcalEventIfConnected(makeupEventInfo())) || '';
+      if(savedRec && gcalAccessToken && (newId || prevMakeupId)) await updateRecordFieldsApi(savedRec, { makeupEventId: newId });
     }
   }catch(err){ toast('저장 실패: ' + err.message); }
 });
 
 document.getElementById('shareBtn').addEventListener('click', async ()=>{
   if(!form.student){ toast('학생을 먼저 선택해주세요'); return; }
-  const bl = form.book && form.lesson ? `${form.book} ${form.lesson.lesson}` : (form.book || '');
+  const lessonName = form.lesson ? form.lesson.lesson : lessonSearch.value.trim();
+  const bl = [form.book, lessonName].filter(Boolean).join(' ');
   const hw = document.getElementById('homeworkText').value.trim();
   const absent = document.getElementById('absentDate').value;
   const makeD = document.getElementById('makeupDate').value;
@@ -1671,7 +1752,8 @@ function buildEventInfo(dateFieldId, timeFieldId, label){
   if(!date) return null;
   const time = timeFieldId ? document.getElementById(timeFieldId).value : '';
   const name = form.student ? form.student.이름 : '학생';
-  const bl = form.book && form.lesson ? `${form.book} ${form.lesson.lesson}` : (form.book || '');
+  const lessonName = form.lesson ? form.lesson.lesson : lessonSearch.value.trim();
+  const bl = [form.book, lessonName].filter(Boolean).join(' ');
   return makeEventInfo(date, time, name, label, bl);
 }
 function makeupEventInfo(){ return buildEventInfo('makeupDate', 'makeupTime', '보강'); }
@@ -1859,6 +1941,15 @@ function getHolidayName(key){
   return FIXED_HOLIDAYS[md] || null;
 }
 
+function getGeneralEventGcalId(ev){
+  if(!ev) return '';
+  return ev['구글캘린더ID'] || ev['캘린더ID'] || ev['eventId'] || '';
+}
+function generalEventGcalInfo(o){
+  const d = toDateInputValue(o.record['날짜']);
+  const info = makeEventInfo(d, o.time || '', '', o.title, '');
+  return info ? { ...info, title: o.title, desc: o.title } : null;
+}
 function collectCalEvents(){
   // key "YYYY-MM-DD" -> { absent:[{name,record}], makeup:[{name,time,record}], other:[{title,time,record}] }
   const map = {};
@@ -2198,7 +2289,8 @@ function renderDayDetailList(){
     html += `
       <div class="cal-event-row" style="align-items:center;">
         <span class="cal-dot other"></span>
-        <span style="flex:1;">${o.title}${o.time ? ' · ' + o.time : ''}</span>
+        <span style="flex:1;">${o.title}${o.time ? ' · ' + o.time : ''}${getGeneralEventGcalId(o.record) ? ' <span title="구글 캘린더에 등록됨" style="font-size:11px; opacity:.7;">✓캘린더</span>' : ''}</span>
+        ${getGeneralEventGcalId(o.record) ? '' : `<button class="btn sm" data-gcal-other="${idx}" title="구글 캘린더에 직접 추가">📅 캘린더</button>`}
         <button class="btn sm" data-del-other="${idx}" style="color:var(--coral); border-color:var(--coral);">삭제</button>
       </div>
     `;
@@ -2208,15 +2300,30 @@ function renderDayDetailList(){
   ev.other.forEach((o,idx)=>{
     box.querySelector(`[data-del-other="${idx}"]`).addEventListener('click', async ()=>{
       if(!confirm(`"${o.title}" 일정을 삭제할까요?`)) return;
-      if(o.record['구글캘린더ID']) deleteGcalEventIfExists(o.record['구글캘린더ID']);
+      const gid = getGeneralEventGcalId(o.record);
       try{
         const res = await apiPost('deleteGeneralEvent', { rowNum: o.record._rowNum });
         if(res.error){ toast(res.error); return; }
-        toast('삭제했습니다');
+        if(gid && gcalAccessToken){
+          await deleteGcalEventIfExists(gid);
+          toast('앱과 구글 캘린더에서 삭제했습니다');
+        }else if(gid){
+          toast('앱에서 삭제했습니다. 구글 캘린더가 연결되어 있지 않아 캘린더 쪽 일정은 직접 지워주세요');
+        }else{
+          toast('삭제했습니다');
+        }
         await loadData();
         renderDayDetailList();
         renderCalendar();
       }catch(err){ toast('삭제 실패: ' + err.message); }
+    });
+  });
+
+  box.querySelectorAll('[data-gcal-other]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const o = ev.other[parseInt(btn.dataset.gcalOther)];
+      const info = generalEventGcalInfo(o);
+      if(info) openGoogleCalLink(info);
     });
   });
 
@@ -2334,7 +2441,9 @@ document.getElementById('dayAbsentSave').addEventListener('click', async ()=>{
     const eventId = await createGcalEventIfConnected(info);
     await loadData();
     if(eventId){
-      const newRec = DATA.records.find(r => r['학생이름']===studentName && toDateInputValue(r['결석일자'])===dayDetailDate);
+      const newRec = (res.rowNum && DATA.records.find(r => String(r._rowNum) === String(res.rowNum)))
+        || DATA.records.filter(r => r['학생이름']===studentName && toDateInputValue(r['결석일자'])===dayDetailDate)
+             .sort((a,b)=> Number(b._rowNum) - Number(a._rowNum))[0];
       if(newRec) updateRecordFieldsApi(newRec, { absentEventId: eventId });
     }
     renderDayDetailList();
@@ -2357,7 +2466,9 @@ document.getElementById('dayMakeupSave').addEventListener('click', async ()=>{
     const eventId = await createGcalEventIfConnected(info);
     await loadData();
     if(eventId){
-      const newRec = DATA.records.find(r => r['학생이름']===studentName && toDateInputValue(r['보강일자'])===dayDetailDate);
+      const newRec = (res.rowNum && DATA.records.find(r => String(r._rowNum) === String(res.rowNum)))
+        || DATA.records.filter(r => r['학생이름']===studentName && toDateInputValue(r['보강일자'])===dayDetailDate)
+             .sort((a,b)=> Number(b._rowNum) - Number(a._rowNum))[0];
       if(newRec) updateRecordFieldsApi(newRec, { makeupEventId: eventId });
     }
     renderDayDetailList();
@@ -2378,8 +2489,26 @@ document.getElementById('dayOtherSave').addEventListener('click', async ()=>{
     const eventId = await createGcalEventIfConnected({ ...info, title: title, desc: title });
     await loadData();
     if(eventId){
-      const newEv = (DATA.generalEvents||[]).find(e => e['제목']===title && toDateInputValue(e['날짜'])===dayDetailDate);
-      if(newEv) await apiPost('updateGeneralEventFields', { rowNum: newEv._rowNum, fields: JSON.stringify({ eventId }) });
+      // 같은 날 같은 제목의 일정이 이미 있어도, 방금 추가된 행(가장 아래 행)을 고르도록
+      let newEv = null;
+      if(res.rowNum) newEv = (DATA.generalEvents||[]).find(e => String(e._rowNum) === String(res.rowNum));
+      if(!newEv){
+        newEv = (DATA.generalEvents||[])
+          .filter(e => e['제목']===title && toDateInputValue(e['날짜'])===dayDetailDate && !getGeneralEventGcalId(e))
+          .sort((a,b)=> Number(b._rowNum) - Number(a._rowNum))[0] || null;
+      }
+      if(newEv){
+        try{
+          const r2 = await apiPost('updateGeneralEventFields', { rowNum: newEv._rowNum, fields: JSON.stringify({ eventId }) });
+          if(r2 && r2.error){
+            toast('캘린더 ID 저장 실패: ' + r2.error + ' (앱에서 삭제해도 캘린더 일정은 남을 수 있습니다)');
+          }else{
+            newEv['구글캘린더ID'] = eventId;
+          }
+        }catch(e2){
+          toast('캘린더 ID 저장 실패 (앱에서 삭제해도 캘린더 일정은 남을 수 있습니다)');
+        }
+      }
     }
     renderDayDetailList();
     renderCalendar();
@@ -2689,6 +2818,34 @@ document.getElementById('md_save').addEventListener('click', async ()=>{
     if(updated) renderCompactInfo(updated);
     showCompactView();
   }catch(err){ toast('저장 실패: ' + err.message); }
+});
+document.getElementById('md_delete').addEventListener('click', async ()=>{
+  const name = document.getElementById('md_originalName').value;
+  if(!name) return;
+  const recCount = DATA.records.filter(r => r['학생이름']===name).length;
+  const ok = confirm(`${name} 학생을 학생DB에서 삭제할까요?\n\n· 수업기록 ${recCount}건은 기록 시트에 그대로 남습니다.\n· 삭제하면 되돌릴 수 없습니다.`);
+  if(!ok) return;
+  const btn = document.getElementById('md_delete');
+  btn.disabled = true;
+  try{
+    const res = await apiPost('deleteStudent', { name });
+    if(res.error){ toast(res.error); return; }
+    toast(`${name} 학생을 삭제했습니다`);
+    if(form.student && form.student.이름 === name){
+      form.student = null;
+      renderStudentChip();
+      resetRecordForm();
+      updateCopyPreview();
+      updateCurriButtonVisibility();
+    }
+    document.getElementById('manageDetail').style.display = 'none';
+    await loadData();
+    renderManageList();
+  }catch(err){
+    toast('삭제 실패: ' + err.message + ' (Apps Script에 deleteStudent 기능이 추가됐는지 확인해주세요)');
+  }finally{
+    btn.disabled = false;
+  }
 });
 document.getElementById('md_pickForToday').addEventListener('click', ()=>{
   pickStudentForToday(document.getElementById('md_originalName').value);

@@ -1777,6 +1777,7 @@ document.getElementById('downloadBothIcs').addEventListener('click', ()=>{
 // 저장 결과에 캘린더 반영 여부를 덧붙여 보여줌
 function calNote(res){
   if(res && res.calendarError) return ' · ⚠ 캘린더 반영 실패: ' + res.calendarError;
+  if(res && res.calendarWarn) return ' · ⚠ ' + res.calendarWarn + ' (다른 계정 캘린더에 있거나 이미 지워진 일정일 수 있어요)';
   if(res && res.calendarChanged) return ' · 📅 캘린더 반영됨';
   return '';
 }
@@ -2216,8 +2217,11 @@ function renderDayDetailList(){
       try{
         const res = await apiPost('deleteGeneralEvent', { rowNum: o.record._rowNum });
         if(res.error){ toast(res.error); return; }
-        if(res.calendarError) toast('삭제했습니다 · ⚠ 캘린더 삭제 실패: ' + res.calendarError);
-        else toast(gid ? '앱과 구글 캘린더에서 삭제했습니다' : '삭제했습니다');
+        if(res.calendarError) toast('앱에서 삭제했습니다 · ⚠ 캘린더 삭제 실패: ' + res.calendarError);
+        else if(res.calendarDeleted) toast('앱과 구글 캘린더에서 삭제했습니다');
+        else if(res.calendarNotFound) toast('앱에서 삭제했습니다 · ⚠ 캘린더에서 이 일정을 찾지 못했습니다 (다른 구글 계정 캘린더에 있거나 이미 지워진 일정일 수 있어요)');
+        else if(gid && res.calendarDeleted === undefined) toast('앱에서 삭제했습니다 · ⚠ Apps Script를 새 버전으로 배포해야 캘린더도 함께 지워집니다');
+        else toast('삭제했습니다');
         await loadData();
         renderDayDetailList();
         renderCalendar();
@@ -2642,7 +2646,7 @@ function openManageDetail(name){
         try{
           const res = await apiPost('deleteRecord', { rowNum: r._rowNum, studentName: r['학생이름'] });
           if(res.error){ toast(res.error); return; }
-          toast('기록을 삭제했습니다');
+          toast('기록을 삭제했습니다' + calNote(res));
           await loadData();
           openManageDetail(name);
         }catch(err){ toast('삭제 실패: ' + err.message); }

@@ -13,7 +13,6 @@
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root{
     --ink:#2E3A4F;
@@ -585,12 +584,12 @@
     <input type="hidden" id="makeupDate">
     <input type="hidden" id="makeupTime">
 
-    <p class="hint" id="manualCalHint" style="display:none;">구글 캘린더 자동 연동이 켜져 있어서, "오늘 수업기록 저장"을 누르면 팝업 없이 자동으로 캘린더에 등록됩니다.</p>
-    <div class="row" id="manualCalButtons" style="margin-top:10px;">
+    <p class="hint" id="manualCalHint">"오늘 수업기록 저장"을 누르면 결석·보강이 구글 캘린더에 자동으로 등록됩니다. 날짜를 바꾸거나 지우면 캘린더도 함께 바뀝니다.</p>
+    <div class="row" id="manualCalButtons" style="margin-top:10px; display:none;">
       <button class="btn primary sm" id="addBothGoogleCal">결석·보강 한번에 캘린더에 추가</button>
       <button class="btn sm" id="downloadBothIcs">한번에 .ics 다운로드</button>
     </div>
-    <p class="hint" id="manualCalSubHint">입력된 날짜만큼 자동으로 처리합니다 (결석만 있으면 결석만, 둘 다 있으면 둘 다). 구글 캘린더 연동이 켜져 있으면 저장 시 자동으로도 등록됩니다.</p>
+    <p class="hint" id="manualCalSubHint" style="display:none;">입력된 날짜만큼 자동으로 처리합니다 (결석만 있으면 결석만, 둘 다 있으면 둘 다). 구글 캘린더 연동이 켜져 있으면 저장 시 자동으로도 등록됩니다.</p>
   </div>
 
   <div class="record-actions">
@@ -716,13 +715,15 @@
   </div>
   <div class="block">
     <div class="block-title"><span class="n c-teal">📅</span>구글 캘린더 자동 연동</div>
-    <label>구글 OAuth 클라이언트 ID</label>
-    <input type="text" id="gcalClientId" placeholder="xxxxxxxx.apps.googleusercontent.com" value="124712258994-ffgquqflaomcds1p46m72ppic8qlcb9v.apps.googleusercontent.com">
-    <p class="hint">Google Cloud Console에서 발급받은 클라이언트 ID를 붙여넣으세요. 아래 "설정 방법 보기"에 순서를 안내해 두었습니다.</p>
-    <button class="btn primary" id="gcalSaveClientId" style="margin-top:10px;">클라이언트 ID 저장</button>
-    <button class="btn teal" id="gcalConnect" style="margin-top:10px;">구글 계정 연결</button>
-    <p class="hint" id="gcalStatus" style="margin-top:10px;"></p>
-    <p class="hint" style="margin-top:10px;">연결되면 보강일자를 입력하고 "오늘 수업기록 저장"을 누를 때 구글 캘린더에 자동으로 일정이 생성됩니다. 연결 전에는 지금처럼 "구글 캘린더에 추가" 버튼으로 수동 등록하시면 됩니다.</p>
+    <p class="hint">결석·보강·기타일정은 저장하는 순간 Apps Script가 구글 캘린더에 직접 등록합니다. 따로 연결하거나 로그인할 필요가 없고, 휴대폰·PC 어디서 저장해도 똑같이 작동합니다.</p>
+    <p class="hint" id="calInfoStatus" style="margin-top:8px;">연결된 캘린더 확인 중…</p>
+    <label style="margin-top:14px;">캘린더에 빠진 일정 한 번에 등록</label>
+    <p class="hint">캘린더 ID가 비어 있는 결석·보강·기타일정을 찾아 등록합니다. 이미 구글 캘린더에 직접 만들어 둔 일정이 있으면 중복될 수 있으니 먼저 확인해주세요.</p>
+    <div class="row" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
+      <button class="btn primary sm" id="syncMissingFuture">오늘 이후 일정만 등록</button>
+      <button class="btn sm" id="syncMissingAll">지난 일정까지 모두 등록</button>
+    </div>
+    <p class="hint" id="syncMissingStatus" style="margin-top:8px;"></p>
   </div>
   <div class="block">
     <div class="block-title"><span class="n c-cobalt">⚙</span>구글 시트 연결</div>
@@ -859,7 +860,7 @@
 
 <script>
 // ---------------- 상태 ----------------
-let CONFIG = { webAppUrl: 'https://script.google.com/macros/s/AKfycbypEPpo_ah7GwsKXHm7K8gnrWkhHtJcSyafLysb2_-5B5Wq9tf1rdc8NQXmG22YvOUg/exec', gcalClientId: '124712258994-ffgquqflaomcds1p46m72ppic8qlcb9v.apps.googleusercontent.com', timetableSheetId: '' };
+let CONFIG = { webAppUrl: 'https://script.google.com/macros/s/AKfycbypEPpo_ah7GwsKXHm7K8gnrWkhHtJcSyafLysb2_-5B5Wq9tf1rdc8NQXmG22YvOUg/exec', timetableSheetId: '' };
 let DATA = { students: [], curriculum: {}, records: [], generalEvents: [] };
 let form = {
   student: null,
@@ -902,11 +903,14 @@ function fuzzySearch(query, items, keyFn){
   const filtered = query ? scored.filter(x=>x.s>12) : scored;
   return filtered.sort((a,b)=>b.s-a.s).map(x=>x.it);
 }
+let _toastTimer = null;
 function toast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 1800);
+  clearTimeout(_toastTimer);
+  const ms = Math.min(6000, Math.max(2200, String(msg).length * 90));
+  _toastTimer = setTimeout(()=>t.classList.remove('show'), ms);
 }
 async function copyText(text){
   try{ await navigator.clipboard.writeText(text); toast('복사했습니다'); }
@@ -1666,40 +1670,8 @@ document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
   try{
     const res = await apiPost(action, payload);
     if(res.error){ toast(res.error); return; }
-    toast(action === 'updateRecord' ? '기존 수업기록을 수정했습니다' : '오늘 수업기록을 저장했습니다');
+    toast((action === 'updateRecord' ? '기존 수업기록을 수정했습니다' : '오늘 수업기록을 저장했습니다') + calNote(res));
     await loadData();
-    // 방금 저장된 행 찾기
-    let savedRec = null;
-    if(action === 'updateRecord'){
-      savedRec = DATA.records.find(r => String(r._rowNum) === String(payload.rowNum));
-    }else if(res.rowNum){
-      savedRec = DATA.records.find(r => String(r._rowNum) === String(res.rowNum));
-    }
-    if(!savedRec && action !== 'updateRecord'){
-      savedRec = DATA.records
-        .filter(r => r['학생이름']===payload.studentName && (r['작성일시']||'').toString().slice(0,10)===todayStr())
-        .sort((a,b)=> Number(b._rowNum) - Number(a._rowNum))[0] || null;
-    }
-    const prev = action === 'updateRecord' ? existing : null;
-    // 결석
-    const prevAbsentId = prev ? (prev['결석캘린더ID']||'') : '';
-    const prevAbsentDate = prev ? toDateInputValue(prev['결석일자']) : '';
-    if(payload.absentDate !== prevAbsentDate || (payload.absentDate && !prevAbsentId)){
-      if(prevAbsentId) await deleteGcalEventIfExists(prevAbsentId);
-      let newId = '';
-      if(payload.absentDate) newId = (await createGcalEventIfConnected(absentEventInfo())) || '';
-      if(savedRec && gcalAccessToken && (newId || prevAbsentId)) await updateRecordFieldsApi(savedRec, { absentEventId: newId });
-    }
-    // 보강
-    const prevMakeupId = prev ? (prev['보강캘린더ID']||'') : '';
-    const prevMakeupKey = prev ? toDateInputValue(prev['보강일자']) + ' ' + toTimeInputValue(prev['보강시간']) : ' ';
-    const newMakeupKey = payload.makeupDate + ' ' + (payload.makeupDate ? payload.makeupTime : '');
-    if(newMakeupKey !== prevMakeupKey || (payload.makeupDate && !prevMakeupId)){
-      if(prevMakeupId) await deleteGcalEventIfExists(prevMakeupId);
-      let newId = '';
-      if(payload.makeupDate) newId = (await createGcalEventIfConnected(makeupEventInfo())) || '';
-      if(savedRec && gcalAccessToken && (newId || prevMakeupId)) await updateRecordFieldsApi(savedRec, { makeupEventId: newId });
-    }
   }catch(err){ toast('저장 실패: ' + err.message); }
 });
 
@@ -1801,118 +1773,63 @@ document.getElementById('downloadBothIcs').addEventListener('click', ()=>{
   downloadIcsFileMulti(infos, '결석_보강');
 });
 
-// ---------------- 구글 캘린더 자동 연동 (OAuth) ----------------
-let gcalTokenClient = null;
-let gcalAccessToken = null;
-const gcalStatus = document.getElementById('gcalStatus');
-
-function renderGcalStatus(){
-  if(!CONFIG.gcalClientId){
-    gcalStatus.innerHTML = '<span class="status-dot no"></span>클라이언트 ID가 설정되지 않았습니다';
-  }else if(gcalAccessToken){
-    gcalStatus.innerHTML = '<span class="status-dot ok"></span>구글 캘린더에 연결되었습니다 · 저장 시 자동으로 일정이 등록됩니다';
-  }else{
-    gcalStatus.innerHTML = '<span class="status-dot no"></span>클라이언트 ID는 저장됨 · "구글 계정 연결" 버튼을 눌러주세요';
-  }
-  updateManualCalButtonsVisibility();
+// ---------------- 구글 캘린더 (Apps Script가 직접 등록) ----------------
+// 저장 결과에 캘린더 반영 여부를 덧붙여 보여줌
+function calNote(res){
+  if(res && res.calendarError) return ' · ⚠ 캘린더 반영 실패: ' + res.calendarError;
+  if(res && res.calendarChanged) return ' · 📅 캘린더 반영됨';
+  return '';
 }
-function updateManualCalButtonsVisibility(){
-  const connected = !!gcalAccessToken;
-  const hint = document.getElementById('manualCalHint');
-  const buttons = document.getElementById('manualCalButtons');
-  const subHint = document.getElementById('manualCalSubHint');
-  if(hint) hint.style.display = connected ? 'block' : 'none';
-  if(buttons) buttons.style.display = connected ? 'none' : 'flex';
-  if(subHint) subHint.style.display = connected ? 'none' : 'block';
-}
-
-function initGcalTokenClient(silentAttempt){
-  if(!CONFIG.gcalClientId || typeof google === 'undefined' || !google.accounts) return;
-  gcalTokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CONFIG.gcalClientId,
-    scope: 'https://www.googleapis.com/auth/calendar.events',
-    callback: (resp)=>{
-      if(resp && resp.access_token){
-        gcalAccessToken = resp.access_token;
-        localStore.set('gcalWasConnected', 'true').catch(()=>{});
-        toast('구글 캘린더 연결됨');
-        renderGcalStatus();
-      }
-    },
-    error_callback: ()=>{ /* 조용한(silent) 재연결 시도가 실패해도 사용자에게 에러를 띄우지 않음 */ }
-  });
-  if(silentAttempt){
-    localStore.get('gcalWasConnected').then(saved=>{
-      if(saved && saved.value === 'true'){
-        try{ gcalTokenClient.requestAccessToken({ prompt: '' }); }catch(e){}
-      }
-    }).catch(()=>{});
-  }
-}
-
-document.getElementById('gcalSaveClientId').addEventListener('click', async ()=>{
-  const id = document.getElementById('gcalClientId').value.trim();
-  if(!id){ toast('클라이언트 ID를 입력해주세요'); return; }
-  CONFIG.gcalClientId = id;
-  await localStore.set('gcalClientId', id);
-  initGcalTokenClient();
-  toast('클라이언트 ID를 저장했습니다');
-  renderGcalStatus();
-});
-document.getElementById('gcalConnect').addEventListener('click', ()=>{
-  if(!CONFIG.gcalClientId){ toast('먼저 클라이언트 ID를 저장해주세요'); return; }
-  if(!gcalTokenClient) initGcalTokenClient();
-  if(!gcalTokenClient){ toast('구글 로그인 라이브러리를 아직 불러오는 중입니다. 잠시 후 다시 눌러주세요'); return; }
-  gcalTokenClient.requestAccessToken({ prompt: gcalAccessToken ? '' : 'consent' });
-});
-
-async function createGcalEventIfConnected(info){
-  if(!info) return null;
-  if(!gcalAccessToken){
-    toast('구글 캘린더가 연결되어 있지 않아 자동 등록을 건너뛰었습니다 (설정에서 연결해주세요)');
-    return null;
-  }
-  const body = info.allDay
-    ? { summary: info.title, description: info.desc, start: { date: info.startDate }, end: { date: info.endDate } }
-    : { summary: info.title, description: info.desc, start: { dateTime: info.startISO, timeZone: 'Asia/Seoul' }, end: { dateTime: info.endISO, timeZone: 'Asia/Seoul' } };
+async function loadCalendarInfo(){
+  const el = document.getElementById('calInfoStatus');
+  if(!el) return;
+  if(!CONFIG.webAppUrl){ el.innerHTML = '<span class="status-dot no"></span>웹앱 URL을 먼저 저장해주세요'; return; }
   try{
-    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + gcalAccessToken,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-    if(res.status === 401){
-      gcalAccessToken = null;
-      renderGcalStatus();
-      toast('구글 캘린더 연결이 만료되었습니다. 설정에서 다시 연결해주세요');
-      return null;
+    const res = await apiGetAction('calendarInfo', {});
+    if(res.error){
+      el.innerHTML = '<span class="status-dot no"></span>' + escapeHtml(res.error);
+    }else if(!res.name){
+      el.innerHTML = '<span class="status-dot no"></span>Apps Script가 아직 새 버전으로 배포되지 않았습니다 (배포 → 배포 관리 → 새 버전)';
+    }else{
+      el.innerHTML = '<span class="status-dot ok"></span>등록되는 캘린더: ' + escapeHtml(res.name);
     }
-    if(!res.ok){
-      let detail = '';
-      try{ const errBody = await res.json(); detail = errBody && errBody.error ? (' - ' + errBody.error.message) : ''; }catch(e){}
-      toast(`구글 캘린더 등록에 실패했습니다 (${info.title})${detail}`);
-      return null;
-    }
-    const created = await res.json();
-    toast(`구글 캘린더에 "${info.title}" 일정을 등록했습니다`);
-    return created && created.id ? created.id : null;
-  }catch(err){
-    toast(`구글 캘린더 등록 중 오류가 발생했습니다 (${info.title})`);
-    return null;
+  }catch(e){
+    el.innerHTML = '<span class="status-dot no"></span>캘린더 정보를 불러오지 못했습니다';
   }
 }
-async function deleteGcalEventIfExists(eventId){
-  if(!eventId || !gcalAccessToken) return;
+async function runSyncMissing(fromDate){
+  const status = document.getElementById('syncMissingStatus');
+  const btns = [document.getElementById('syncMissingFuture'), document.getElementById('syncMissingAll')];
+  btns.forEach(b=>b.disabled=true);
+  let total = 0, errors = [];
   try{
-    await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': 'Bearer ' + gcalAccessToken }
-    });
-  }catch(err){ /* 캘린더 쪽 삭제가 실패해도 앱 데이터 삭제는 계속 진행 */ }
+    for(let round=0; round<30; round++){
+      status.textContent = `등록 중… (${total}건 완료)`;
+      const res = await apiPost('syncMissingCalendar', { fromDate: fromDate || '', limit: 15 });
+      if(res.error){ errors.push(res.error); break; }
+      if(res.done === undefined){ errors.push('Apps Script를 새 버전으로 배포해주세요'); break; }
+      total += res.done;
+      if(res.errors && res.errors.length) errors = errors.concat(res.errors);
+      if(!res.remaining || res.done === 0) break;
+    }
+    status.textContent = `${total}건을 캘린더에 등록했습니다` + (errors.length ? ` · 실패 ${errors.length}건: ${errors.slice(0,3).join(' / ')}` : '');
+    toast(`${total}건을 캘린더에 등록했습니다`);
+    await loadData();
+    renderCalendar();
+  }catch(e){
+    status.textContent = '등록 중 오류: ' + e.message + (total ? ` (${total}건은 등록됨)` : '');
+  }finally{
+    btns.forEach(b=>b.disabled=false);
+  }
 }
+document.getElementById('syncMissingFuture').addEventListener('click', ()=>{
+  if(!confirm('오늘 이후의 결석·보강·기타일정 중 캘린더에 없는 것을 등록할까요?')) return;
+  runSyncMissing(todayStr());
+});
+document.getElementById('syncMissingAll').addEventListener('click', ()=>{
+  if(!confirm('지난 일정까지 포함해서 캘린더에 없는 결석·보강·기타일정을 모두 등록할까요?\n(기록이 많으면 시간이 조금 걸립니다)')) return;
+  runSyncMissing('');
+});
 
 // ---------------- 결석·보강 달력 ----------------
 let calYear, calMonth; // calMonth: 0-11
@@ -1944,11 +1861,6 @@ function getHolidayName(key){
 function getGeneralEventGcalId(ev){
   if(!ev) return '';
   return ev['구글캘린더ID'] || ev['캘린더ID'] || ev['eventId'] || '';
-}
-function generalEventGcalInfo(o){
-  const d = toDateInputValue(o.record['날짜']);
-  const info = makeEventInfo(d, o.time || '', '', o.title, '');
-  return info ? { ...info, title: o.title, desc: o.title } : null;
 }
 function collectCalEvents(){
   // key "YYYY-MM-DD" -> { absent:[{name,record}], makeup:[{name,time,record}], other:[{title,time,record}] }
@@ -2290,7 +2202,7 @@ function renderDayDetailList(){
       <div class="cal-event-row" style="align-items:center;">
         <span class="cal-dot other"></span>
         <span style="flex:1;">${o.title}${o.time ? ' · ' + o.time : ''}${getGeneralEventGcalId(o.record) ? ' <span title="구글 캘린더에 등록됨" style="font-size:11px; opacity:.7;">✓캘린더</span>' : ''}</span>
-        ${getGeneralEventGcalId(o.record) ? '' : `<button class="btn sm" data-gcal-other="${idx}" title="구글 캘린더에 직접 추가">📅 캘린더</button>`}
+        ${getGeneralEventGcalId(o.record) ? '' : `<button class="btn sm" data-gcal-other="${idx}" title="구글 캘린더에 등록">📅 캘린더</button>`}
         <button class="btn sm" data-del-other="${idx}" style="color:var(--coral); border-color:var(--coral);">삭제</button>
       </div>
     `;
@@ -2304,14 +2216,8 @@ function renderDayDetailList(){
       try{
         const res = await apiPost('deleteGeneralEvent', { rowNum: o.record._rowNum });
         if(res.error){ toast(res.error); return; }
-        if(gid && gcalAccessToken){
-          await deleteGcalEventIfExists(gid);
-          toast('앱과 구글 캘린더에서 삭제했습니다');
-        }else if(gid){
-          toast('앱에서 삭제했습니다. 구글 캘린더가 연결되어 있지 않아 캘린더 쪽 일정은 직접 지워주세요');
-        }else{
-          toast('삭제했습니다');
-        }
+        if(res.calendarError) toast('삭제했습니다 · ⚠ 캘린더 삭제 실패: ' + res.calendarError);
+        else toast(gid ? '앱과 구글 캘린더에서 삭제했습니다' : '삭제했습니다');
         await loadData();
         renderDayDetailList();
         renderCalendar();
@@ -2320,10 +2226,17 @@ function renderDayDetailList(){
   });
 
   box.querySelectorAll('[data-gcal-other]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+    btn.addEventListener('click', async ()=>{
       const o = ev.other[parseInt(btn.dataset.gcalOther)];
-      const info = generalEventGcalInfo(o);
-      if(info) openGoogleCalLink(info);
+      btn.disabled = true;
+      try{
+        const res = await apiPost('syncGeneralEvent', { rowNum: o.record._rowNum });
+        if(res.error){ toast(res.error); btn.disabled = false; return; }
+        toast('📅 구글 캘린더에 등록했습니다');
+        await loadData();
+      }catch(e){ toast('등록 실패: ' + e.message); btn.disabled = false; return; }
+      renderDayDetailList();
+      renderCalendar();
     });
   });
 
@@ -2340,9 +2253,8 @@ function renderDayDetailList(){
       const a = ev.absent[parseInt(btn.dataset.delAbsent)];
       if(!confirm(`${a.name}의 ${dayDetailDate} 결석 기록을 삭제할까요?`)) return;
       btn.disabled = true;
-      if(a.record['결석캘린더ID']) deleteGcalEventIfExists(a.record['결석캘린더ID']);
-      const ok = await updateRecordFieldsApi(a.record, { absentDate: '', absentEventId: '' });
-      if(ok){ toast('삭제했습니다'); renderDayDetailList(); renderCalendar(); }
+      const ok = await updateRecordFieldsApi(a.record, { absentDate: '' });
+      if(ok){ toast('삭제했습니다' + calNote(ok)); await loadData(); renderDayDetailList(); renderCalendar(); }
     });
   });
   box.querySelectorAll('[data-del-makeup]').forEach(btn=>{
@@ -2350,9 +2262,8 @@ function renderDayDetailList(){
       const m = ev.makeup[parseInt(btn.dataset.delMakeup)];
       if(!confirm(`${m.name}의 ${dayDetailDate} 보강 기록을 삭제할까요?`)) return;
       btn.disabled = true;
-      if(m.record['보강캘린더ID']) deleteGcalEventIfExists(m.record['보강캘린더ID']);
-      const ok = await updateRecordFieldsApi(m.record, { makeupDate: '', makeupTime: '', makeupEventId: '' });
-      if(ok){ toast('삭제했습니다'); renderDayDetailList(); renderCalendar(); }
+      const ok = await updateRecordFieldsApi(m.record, { makeupDate: '', makeupTime: '' });
+      if(ok){ toast('삭제했습니다' + calNote(ok)); await loadData(); renderDayDetailList(); renderCalendar(); }
     });
   });
   box.querySelectorAll('[data-edit-absent]').forEach(btn=>{
@@ -2371,13 +2282,10 @@ function renderDayDetailList(){
       const a = ev.absent[parseInt(idx)];
       const newDate = document.getElementById(`editAbsentDate_${idx}`).value;
       if(!newDate){ toast('날짜를 입력해주세요'); return; }
-      if(a.record['결석캘린더ID']) deleteGcalEventIfExists(a.record['결석캘린더ID']);
-      const ok = await updateRecordFieldsApi(a.record, { absentDate: newDate, absentEventId: '' });
+      const ok = await updateRecordFieldsApi(a.record, { absentDate: newDate });
       if(ok){
-        toast('저장했습니다');
-        const info = makeEventInfo(newDate, '', a.name, '결석');
-        const eventId = await createGcalEventIfConnected(info);
-        if(eventId) await updateRecordFieldsApi(a.record, { absentEventId: eventId });
+        toast('저장했습니다' + calNote(ok));
+        await loadData();
         renderDayDetailList(); renderCalendar();
       }
     });
@@ -2399,13 +2307,10 @@ function renderDayDetailList(){
       const newDate = document.getElementById(`editMakeupDate_${idx}`).value;
       const newTime = document.getElementById(`editMakeupTime_${idx}`).value;
       if(!newDate){ toast('날짜를 입력해주세요'); return; }
-      if(m.record['보강캘린더ID']) deleteGcalEventIfExists(m.record['보강캘린더ID']);
-      const ok = await updateRecordFieldsApi(m.record, { makeupDate: newDate, makeupTime: newTime, makeupEventId: '' });
+      const ok = await updateRecordFieldsApi(m.record, { makeupDate: newDate, makeupTime: newTime });
       if(ok){
-        toast('저장했습니다');
-        const info = makeEventInfo(newDate, newTime, m.name, '보강');
-        const eventId = await createGcalEventIfConnected(info);
-        if(eventId) await updateRecordFieldsApi(m.record, { makeupEventId: eventId });
+        toast('저장했습니다' + calNote(ok));
+        await loadData();
         renderDayDetailList(); renderCalendar();
       }
     });
@@ -2420,7 +2325,7 @@ async function updateRecordFieldsApi(record, fields){
     Object.keys(fields).forEach(k=>{
       if(fieldNameMap[k]) record[fieldNameMap[k]] = fields[k];
     });
-    return true;
+    return res || true;
   }catch(err){ toast('저장 실패: ' + err.message); return false; }
 }
 
@@ -2436,17 +2341,10 @@ document.getElementById('dayAbsentSave').addEventListener('click', async ()=>{
     lastAddedStudentName = studentName;
     setDayAbsentStudent(null);
     if(!dayMakeupSelectedStudent) setDayMakeupStudent(studentName);
-    toast('결석을 등록했습니다');
-    const info = makeEventInfo(dayDetailDate, '', studentName, '결석');
-    const eventId = await createGcalEventIfConnected(info);
+    toast('결석을 등록했습니다' + calNote(res));
     await loadData();
-    if(eventId){
-      const newRec = (res.rowNum && DATA.records.find(r => String(r._rowNum) === String(res.rowNum)))
-        || DATA.records.filter(r => r['학생이름']===studentName && toDateInputValue(r['결석일자'])===dayDetailDate)
-             .sort((a,b)=> Number(b._rowNum) - Number(a._rowNum))[0];
-      if(newRec) updateRecordFieldsApi(newRec, { absentEventId: eventId });
-    }
     renderDayDetailList();
+    renderCalendar();
   }catch(err){ toast('저장 실패: ' + err.message); }
 });
 document.getElementById('dayMakeupSave').addEventListener('click', async ()=>{
@@ -2461,17 +2359,10 @@ document.getElementById('dayMakeupSave').addEventListener('click', async ()=>{
     if(!dayAbsentSelectedStudent) setDayAbsentStudent(studentName);
     document.getElementById('dayMakeupTime').value = '';
     document.getElementById('dayMakeupTimeTrigger').textContent = '🕐 시간 선택';
-    toast('보강을 등록했습니다');
-    const info = makeEventInfo(dayDetailDate, time, studentName, '보강');
-    const eventId = await createGcalEventIfConnected(info);
+    toast('보강을 등록했습니다' + calNote(res));
     await loadData();
-    if(eventId){
-      const newRec = (res.rowNum && DATA.records.find(r => String(r._rowNum) === String(res.rowNum)))
-        || DATA.records.filter(r => r['학생이름']===studentName && toDateInputValue(r['보강일자'])===dayDetailDate)
-             .sort((a,b)=> Number(b._rowNum) - Number(a._rowNum))[0];
-      if(newRec) updateRecordFieldsApi(newRec, { makeupEventId: eventId });
-    }
     renderDayDetailList();
+    renderCalendar();
   }catch(err){ toast('저장 실패: ' + err.message); }
 });
 document.getElementById('dayOtherSave').addEventListener('click', async ()=>{
@@ -2484,32 +2375,8 @@ document.getElementById('dayOtherSave').addEventListener('click', async ()=>{
     document.getElementById('dayOtherTitle').value = '';
     document.getElementById('dayOtherTime').value = '';
     document.getElementById('dayOtherTimeTrigger').textContent = '🕐 시간 선택';
-    toast('일정을 등록했습니다');
-    const info = makeEventInfo(dayDetailDate, time, '', title, '');
-    const eventId = await createGcalEventIfConnected({ ...info, title: title, desc: title });
+    toast('일정을 등록했습니다' + calNote(res));
     await loadData();
-    if(eventId){
-      // 같은 날 같은 제목의 일정이 이미 있어도, 방금 추가된 행(가장 아래 행)을 고르도록
-      let newEv = null;
-      if(res.rowNum) newEv = (DATA.generalEvents||[]).find(e => String(e._rowNum) === String(res.rowNum));
-      if(!newEv){
-        newEv = (DATA.generalEvents||[])
-          .filter(e => e['제목']===title && toDateInputValue(e['날짜'])===dayDetailDate && !getGeneralEventGcalId(e))
-          .sort((a,b)=> Number(b._rowNum) - Number(a._rowNum))[0] || null;
-      }
-      if(newEv){
-        try{
-          const r2 = await apiPost('updateGeneralEventFields', { rowNum: newEv._rowNum, fields: JSON.stringify({ eventId }) });
-          if(r2 && r2.error){
-            toast('캘린더 ID 저장 실패: ' + r2.error + ' (앱에서 삭제해도 캘린더 일정은 남을 수 있습니다)');
-          }else{
-            newEv['구글캘린더ID'] = eventId;
-          }
-        }catch(e2){
-          toast('캘린더 ID 저장 실패 (앱에서 삭제해도 캘린더 일정은 남을 수 있습니다)');
-        }
-      }
-    }
     renderDayDetailList();
     renderCalendar();
   }catch(err){ toast('저장 실패: ' + err.message); }
@@ -2933,6 +2800,7 @@ document.getElementById('saveUrlBtn').addEventListener('click', async ()=>{
   await localStore.set('webAppUrl', url);
   toast('저장했습니다');
   loadData();
+  loadCalendarInfo();
 });
 document.getElementById('reloadDataBtn').addEventListener('click', loadData);
 
@@ -2946,13 +2814,6 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
     }
   }catch(e){}
   try{
-    const savedId = await localStore.get('gcalClientId');
-    if(savedId && savedId.value){
-      CONFIG.gcalClientId = savedId.value;
-      document.getElementById('gcalClientId').value = savedId.value;
-    }
-  }catch(e){}
-  try{
     const savedTt = await localStore.get('timetableSheetId');
     if(savedTt && savedTt.value){
       CONFIG.timetableSheetId = savedTt.value;
@@ -2961,13 +2822,10 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
   }catch(e){}
   renderConceptToggle();
   renderStudentChip();
-  renderGcalStatus();
   renderCalendar();
   updateDateDisplay('absent');
   updateDateDisplay('makeup');
 
-  // 구글 로그인 라이브러리는 비동기로 로드되므로 약간의 지연 후 초기화 시도
-  setTimeout(()=>{ if(CONFIG.gcalClientId) initGcalTokenClient(true); }, 500);
   try{
     const wasUnlocked = await localStore.get('unlocked');
     if(wasUnlocked && wasUnlocked.value === 'true'){
@@ -2977,6 +2835,7 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
     }
   }catch(e){ lockInput.focus(); }
   await loadData();
+  loadCalendarInfo();
 })();
 </script>
 </body>

@@ -364,6 +364,30 @@
   .clock-display-part{cursor:pointer; padding:2px 8px; border-radius:6px;}
   .clock-display-part.active{background:var(--cobalt-soft); color:var(--cobalt-dark);}
   .cal-dot{width:6px; height:6px; border-radius:50%;}
+  .wk-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .wk-grid{display:grid; grid-template-columns:42px repeat(7, minmax(72px,1fr)); min-width:560px; font-size:11px;}
+  .wk-head{text-align:center; padding:6px 2px; font-weight:700; border-bottom:1px solid #d9dee8; cursor:pointer; line-height:1.3;}
+  .wk-head.today{color:var(--cobalt);}
+  .wk-head.sun, .wk-head.hol{color:var(--coral);}
+  .wk-head small{display:block; font-weight:400; font-size:10px; opacity:.75;}
+  .wk-allday{border-bottom:1px solid #d9dee8; border-left:1px solid #eef0f4; padding:2px; min-height:18px; cursor:pointer;}
+  .wk-chip{display:block; font-size:10px; padding:1px 4px; border-radius:4px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .wk-chip.absent{background:var(--coral-soft);}
+  .wk-chip.other{background:var(--gold-soft);}
+  .wk-chip.hol{background:transparent; color:var(--coral);}
+  .wk-times{position:relative;}
+  .wk-times span{position:absolute; right:4px; transform:translateY(-50%); font-size:10px; opacity:.65;}
+  .wk-col{position:relative; border-left:1px solid #eef0f4; cursor:pointer;
+    background-image:linear-gradient(#eef0f4 1px, transparent 1px); background-size:100% var(--wk-hour);}
+  .wk-col.today{background-color:rgba(102,144,196,.06);}
+  .wk-ev{position:absolute; border-radius:5px; padding:2px 3px; overflow:hidden; font-size:10px; line-height:1.25; box-sizing:border-box; border:1px solid rgba(0,0,0,.08);}
+  .wk-ev b{display:block; font-weight:700;}
+  .wk-ev.class{background:var(--violet-soft); border-color:var(--violet);}
+  .wk-ev.makeup{background:var(--cobalt-soft); border-color:var(--cobalt);}
+  .wk-ev.other{background:var(--gold-soft); border-color:var(--gold);}
+  .wk-ev.clash{border:2px solid var(--coral); box-shadow:0 0 0 1px #fff inset;}
+  .wk-legend{display:flex; gap:10px; flex-wrap:wrap; font-size:11px; margin-top:8px; opacity:.85;}
+  .wk-legend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:3px; vertical-align:-1px;}
   .cal-dot.absent{background:var(--coral);}
   .cal-dot.makeup{background:var(--cobalt);}
   .cal-dot.other{background:var(--gold);}
@@ -684,6 +708,25 @@
 <!-- ============ 시간표 ============ -->
 <section class="view" id="view-timetable">
   <div class="block">
+    <div class="block-title"><span class="n c-cobalt">📆</span>주간 일정표 (정규 수업 + 보강 + 일정)</div>
+    <div class="row" style="align-items:center; gap:6px; margin-bottom:10px; flex-wrap:nowrap;">
+      <button class="btn sm" id="wkPrev">◀</button>
+      <b id="wkLabel" style="flex:1; text-align:center; font-size:13px; white-space:nowrap;"></b>
+      <button class="btn sm" id="wkNext">▶</button>
+      <button class="btn sm" id="wkToday">이번 주</button>
+    </div>
+    <div id="wkNotice"></div>
+    <div class="wk-wrap"><div id="wkGrid"></div></div>
+    <div class="wk-legend">
+      <span><i style="background:var(--violet-soft); border:1px solid var(--violet);"></i>정규 수업</span>
+      <span><i style="background:var(--cobalt-soft); border:1px solid var(--cobalt);"></i>보강</span>
+      <span><i style="background:var(--gold-soft); border:1px solid var(--gold);"></i>기타일정</span>
+      <span><i style="background:var(--coral-soft);"></i>결석</span>
+      <span><i style="border:2px solid var(--coral);"></i>시간 겹침</span>
+    </div>
+    <p class="hint" style="margin-top:6px;">날짜나 일정을 누르면 그날 일정을 추가·수정할 수 있습니다.</p>
+  </div>
+  <div class="block">
     <div class="block-title"><span class="n c-violet">🗓️</span>주간 시간표</div>
     <div id="timetableEmpty" style="display:none;">
       <p class="hint">아직 시간표 시트가 연결되지 않았습니다. 설정 탭에서 시간표 구글 시트 링크를 입력해주세요.</p>
@@ -691,6 +734,11 @@
     <div id="timetableWrap" style="display:none; overflow-x:auto;">
       <button class="btn sm" id="timetableRefresh" style="margin-bottom:10px;">새로고침</button>
       <div id="timetableGrid"></div>
+      <div style="margin-top:16px;">
+        <div style="font-weight:700; font-size:14px; margin-bottom:6px;">📋 일정 겹침 확인에 쓰는 내 수업</div>
+        <p class="hint" style="margin:0 0 8px;">시간표에서 자동으로 읽어낸 결과입니다. 요일·시간이 틀리게 읽혔다면 알려주세요.</p>
+        <div id="ttMyClasses"></div>
+      </div>
     </div>
     <div id="timetableCellEdit" class="inline-new" style="display:none; margin-top:12px;">
       <p class="hint" id="timetableCellLabel" style="margin:0 0 8px;"></p>
@@ -710,6 +758,9 @@
     <label>시간표 구글 시트 링크</label>
     <input type="text" id="timetableUrl" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
     <p class="hint">다른 선생님들과 같이 쓰시는 시간표 구글 시트 주소를 붙여넣으세요. 지금은 보기 전용입니다. 이 값은 이 기기에만 저장됩니다.</p>
+    <label style="margin-top:14px;">내 수업만 보기 (시간표에 적힌 내 이름)</label>
+    <input type="text" id="ttTeacherName" placeholder="예: 이은정 (비우면 시간표의 모든 수업을 봅니다)">
+    <p class="hint">일정 입력 시 시간 겹침을 확인할 때, 시간표에서 이 이름이 적힌 칸(또는 이 이름이 적힌 열)의 수업만 내 수업으로 봅니다.</p>
     <button class="btn primary" id="saveTimetableUrl" style="margin-top:10px;">저장</button>
     <p class="hint" id="timetableStatus" style="margin-top:10px;"></p>
   </div>
@@ -777,6 +828,7 @@
       <b id="dayDetailTitle" style="font-size:15px;"></b>
       <button class="btn sm" id="dayDetailClose">닫기</button>
     </div>
+    <div id="daySchedule" style="margin-bottom:12px;"></div>
     <div id="dayDetailList" style="margin-bottom:14px;"></div>
 
     <hr class="divider">
@@ -801,15 +853,22 @@
       <label>시간</label>
       <button type="button" class="btn" id="dayMakeupTimeTrigger" style="width:100%; justify-content:flex-start; background:#fff; font-weight:400;">🕐 시간 선택</button>
       <input type="hidden" id="dayMakeupTime">
+      <div id="dayMakeupConflict"></div>
       <button class="btn primary sm block-w" id="dayMakeupSave" style="margin-top:10px;">저장</button>
     </div>
 
     <div style="margin-top:14px; padding:12px; background:var(--gold-soft); border-radius:6px;">
       <label style="margin-top:0;">기타 일정 추가</label>
       <input type="text" id="dayOtherTitle" placeholder="일정 제목 (예: 학부모 상담, 학원 회의)">
-      <label>시간 (선택)</label>
-      <button type="button" class="btn" id="dayOtherTimeTrigger" style="width:100%; justify-content:flex-start; background:#fff; font-weight:400;">🕐 시간 선택</button>
+      <label>시간 (선택 · 비우면 하루 종일)</label>
+      <div class="row" style="gap:6px; align-items:center; flex-wrap:nowrap;">
+        <button type="button" class="btn" id="dayOtherTimeTrigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 시작</button>
+        <span>~</span>
+        <button type="button" class="btn" id="dayOtherEndTimeTrigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 종료</button>
+      </div>
       <input type="hidden" id="dayOtherTime">
+      <input type="hidden" id="dayOtherEndTime">
+      <div id="dayOtherConflict"></div>
       <button class="btn primary sm block-w" id="dayOtherSave" style="margin-top:10px;">저장</button>
     </div>
   </div>
@@ -950,6 +1009,7 @@ let timetableData = null;
 async function loadTimetable(){
   const empty = document.getElementById('timetableEmpty');
   const wrap = document.getElementById('timetableWrap');
+  renderWeekView();
   if(!CONFIG.timetableSheetId){
     empty.style.display = 'block';
     wrap.style.display = 'none';
@@ -964,9 +1024,12 @@ async function loadTimetable(){
       return;
     }
     timetableData = res;
+    ttClassesCache = null;
     empty.style.display = 'none';
     wrap.style.display = 'block';
     renderTimetable(res);
+    renderMyClassesList();
+    renderWeekView();
   }catch(err){
     empty.style.display = 'block';
     wrap.style.display = 'none';
@@ -1011,6 +1074,244 @@ function renderTimetable(data){
     td.addEventListener('click', ()=>openTimetableCellEdit(td));
   });
 }
+// ---------------- 시간표 분석 (요일·시간 읽기) ----------------
+const DOW_CHARS = ['일','월','화','수','목','금','토'];
+function hmToMin(t){ if(!t) return null; const [h,m] = t.split(':').map(Number); return h*60+m; }
+function minToHm(m){ const pad=n=>String(n).padStart(2,'0'); return pad(Math.floor(m/60)) + ':' + pad(m%60); }
+function ttHour(h, ampm, inheritPm){
+  h = Number(h);
+  if(ampm === '오후' && h < 12) return h + 12;
+  if(ampm === '오전') return h === 12 ? 0 : h;
+  if(inheritPm && h < 12) return h + 12;
+  return (h >= 1 && h <= 8) ? h + 12 : h;  // 학원 시간표의 1~8시는 오후로 봄
+}
+// 칸 글자에서 시간(범위) 읽기 → {start, end} (분 단위) 또는 null
+function parseTimeText(text){
+  const t = String(text||'').replace(/\s+/g,' ').trim();
+  if(!t) return null;
+  const R = /(오전|오후)?\s*(\d{1,2})\s*(?:[:：시]\s*(\d{1,2})?\s*분?)?\s*(?:[~\-–〜]|부터)\s*(오전|오후)?\s*(\d{1,2})\s*(?:[:：시]\s*(\d{1,2})?)?/;
+  let m = t.match(R);
+  if(m){
+    const sh = ttHour(m[2], m[1]);
+    let eh = ttHour(m[5], m[4] || (m[1]==='오후' ? '오후' : ''), false);
+    let start = sh*60 + Number(m[3]||0), end = eh*60 + Number(m[6]||0);
+    if(end <= start && end + 12*60 > start) end += 12*60;
+    if(start >= 0 && end > start && end <= 24*60) return { start, end };
+  }
+  m = t.match(/(오전|오후)?\s*(\d{1,2})\s*[:：]\s*(\d{2})/) || t.match(/(오전|오후)?\s*(\d{1,2})\s*시\s*(?:(\d{1,2})\s*분)?/);
+  if(m && t.length <= 14){
+    const start = ttHour(m[2], m[1])*60 + Number(m[3]||0);
+    if(start >= 0 && start < 24*60) return { start, end: null };
+  }
+  return null;
+}
+function parseDowText(text){
+  const t = String(text||'').trim();
+  if(!t) return -1;
+  let m = t.match(/(월|화|수|목|금|토|일)요일/);
+  if(!m) m = t.match(/^\(?\s*(월|화|수|목|금|토|일)\s*\)?$/);
+  if(!m) m = t.match(/\((월|화|수|목|금|토|일)\)/);
+  return m ? DOW_CHARS.indexOf(m[1]) : -1;
+}
+// 시간표 시트 → [{dow, start, end, text, header}]
+function extractTimetableClasses(data){
+  if(!data || !data.values) return [];
+  const R = data.numRows, C = data.numCols;
+  const G = [], anchor = [];
+  for(let r=0;r<R;r++){ G.push([]); anchor.push([]); for(let c=0;c<C;c++){ G[r][c] = (data.values[r]&&data.values[r][c]) || ''; anchor[r][c] = [r,c,r,c]; } }
+  (data.merges||[]).forEach(mg=>{
+    const r0=mg.row-1, c0=mg.col-1, r1=r0+mg.numRows-1, c1=c0+mg.numCols-1;
+    for(let r=r0;r<=r1&&r<R;r++) for(let c=c0;c<=c1&&c<C;c++){ G[r][c] = G[r0][c0]; anchor[r][c] = [r0,c0,r1,c1]; }
+  });
+  const tryParse = (grid, anc, nR, nC) => {
+    // 요일이 적힌 열 찾기 (위쪽 8줄)
+    const dowOfCol = new Array(nC).fill(-1);
+    for(let r=0;r<Math.min(nR,8);r++) for(let c=0;c<nC;c++){
+      if(dowOfCol[c] !== -1) continue;
+      const d = parseDowText(grid[r][c]);
+      if(d !== -1) dowOfCol[c] = d;
+    }
+    const dayCols = dowOfCol.map((d,c)=>d!==-1?c:-1).filter(c=>c!==-1);
+    if(dayCols.length < 2) return null;
+    // 행마다 시간 읽기 (요일이 없는 열에서)
+    const timeOfRow = new Array(nR).fill(null);
+    for(let r=0;r<nR;r++){
+      for(let c=0;c<nC;c++){
+        if(dowOfCol[c] !== -1) continue;
+        const t = parseTimeText(grid[r][c]);
+        if(t){ timeOfRow[r] = t; break; }
+      }
+    }
+    const firstBody = timeOfRow.findIndex(t=>t);
+    // 끝시간이 없는 행은 다음 시간 행의 시작으로
+    for(let r=0;r<nR;r++){
+      const t = timeOfRow[r];
+      if(!t || t.end) continue;
+      let next = null;
+      for(let k=r+1;k<nR;k++){ if(timeOfRow[k] && timeOfRow[k].start > t.start){ next = timeOfRow[k].start; break; } }
+      t.end = next || t.start + 60;
+    }
+    const headerEnd = firstBody === -1 ? Math.min(nR,4) : firstBody;
+    const colHeader = c => { let h=''; for(let r=0;r<headerEnd;r++) h += ' ' + grid[r][c]; return h; };
+    const seen = new Set(), out = [];
+    for(let r=headerEnd;r<nR;r++){
+      for(const c of dayCols){
+        const [r0,c0,r1] = anc[r][c];
+        const key = r0+'_'+c0;
+        if(seen.has(key)) continue;
+        seen.add(key);
+        const text = String(grid[r][c]||'').trim();
+        if(!text || parseDowText(text) !== -1) continue;
+        let start = null, end = null;
+        const own = parseTimeText(text);
+        if(own && own.end){ start = own.start; end = own.end; }
+        else{
+          for(let k=Math.max(r0,headerEnd);k<=r1;k++){
+            const t = timeOfRow[k];
+            if(!t) continue;
+            if(start === null || t.start < start) start = t.start;
+            if(end === null || t.end > end) end = t.end;
+          }
+        }
+        if(start === null || end === null || end <= start) continue;
+        out.push({ dow: dowOfCol[c], col: c, start, end, text, header: colHeader(c) });
+      }
+    }
+    // 병합 안 된 채 같은 글자가 이어진 칸은 하나의 수업으로 합침
+    out.sort((a,b)=> a.col-b.col || a.start-b.start);
+    const merged = [];
+    out.forEach(x=>{
+      const prev = merged[merged.length-1];
+      if(prev && prev.col===x.col && prev.text===x.text && prev.end >= x.start){ prev.end = Math.max(prev.end, x.end); }
+      else merged.push({...x});
+    });
+    return merged;
+  };
+  let res = tryParse(G, anchor, R, C);
+  if(!res || !res.length){
+    // 요일이 세로(행)로 적힌 시간표일 때: 행·열을 바꿔서 다시 시도
+    const GT = [], AT = [];
+    for(let c=0;c<C;c++){ GT.push([]); AT.push([]); for(let r=0;r<R;r++){ GT[c][r] = G[r][c]; const a = anchor[r][c]; AT[c][r] = [a[1],a[0],a[3],a[2]]; } }
+    const res2 = tryParse(GT, AT, C, R);
+    if(res2 && res2.length) res = res2;
+  }
+  return res || [];
+}
+let ttTeacherName = '';
+let ttClassesCache = null;
+function getMyClasses(){
+  if(!timetableData) return [];
+  if(!ttClassesCache) ttClassesCache = extractTimetableClasses(timetableData);
+  const name = ttTeacherName.trim();
+  if(!name) return ttClassesCache;
+  return ttClassesCache.filter(c => c.text.includes(name) || c.header.includes(name));
+}
+let ttLoading = null;
+async function ensureTimetableLoaded(){
+  if(timetableData || !CONFIG.timetableSheetId) return;
+  if(!ttLoading){
+    ttLoading = apiGetAction('getTimetable', { sheetId: CONFIG.timetableSheetId })
+      .then(res=>{ if(!res.error){ timetableData = res; ttClassesCache = null; } })
+      .catch(()=>{})
+      .finally(()=>{ ttLoading = null; });
+  }
+  await ttLoading;
+}
+function renderMyClassesList(){
+  const box = document.getElementById('ttMyClasses');
+  if(!box) return;
+  const list = getMyClasses();
+  if(!list.length){
+    box.innerHTML = '<p class="hint">시간표에서 요일과 시간을 읽지 못했습니다. ' + (ttTeacherName ? '설정의 "내 이름"이 시간표에 적힌 이름과 같은지 확인해주세요.' : '시간표 화면을 캡처해서 보여주시면 맞춰 드릴게요.') + '</p>';
+    return;
+  }
+  let html = '';
+  [1,2,3,4,5,6,0].forEach(d=>{
+    const items = list.filter(c=>c.dow===d).sort((a,b)=>a.start-b.start);
+    if(!items.length) return;
+    html += `<div style="margin-bottom:6px; font-size:13px;"><b>${DOW_CHARS[d]}</b> · ` +
+      items.map(c=>`${minToHm(c.start)}~${minToHm(c.end)} ${escapeHtml(c.text.replace(/\s+/g,' ').slice(0,20))}`).join(' / ') + '</div>';
+  });
+  if(!ttTeacherName) html += '<p class="hint">설정에서 "내 이름"을 넣으면 내 수업만 골라서 확인합니다.</p>';
+  box.innerHTML = html;
+}
+
+// 특정 날짜의 일정을 모두 모음: 정규 수업 + 보강 + 기타일정
+function getDaySchedule(dateKey){
+  const items = [];
+  const dow = new Date(dateKey + 'T00:00:00').getDay();
+  getMyClasses().filter(c=>c.dow===dow).forEach(c=>{
+    items.push({ kind:'class', label: c.text.replace(/\s+/g,' '), start:c.start, end:c.end });
+  });
+  const ev = collectCalEvents()[dateKey] || { absent:[], makeup:[], other:[] };
+  ev.makeup.forEach(m=>{
+    if(!m.time) return;
+    const s0 = hmToMin(m.time);
+    items.push({ kind:'makeup', label: `보강 - ${m.name}`, start:s0, end:s0+60, record:m.record });
+  });
+  ev.other.forEach(o=>{
+    if(!o.time) return;
+    const s0 = hmToMin(o.time);
+    const e0 = o.endTime && hmToMin(o.endTime) > s0 ? hmToMin(o.endTime) : s0+60;
+    items.push({ kind:'other', label: o.title, start:s0, end:e0, record:o.record });
+  });
+  items.sort((a,b)=> a.start-b.start || a.end-b.end);
+  return items;
+}
+function findConflicts(dateKey, start, end, ignoreRecord){
+  return getDaySchedule(dateKey).filter(it => it.record !== ignoreRecord && it.start < end && start < it.end);
+}
+const SCHED_ICON = { class:'📚', makeup:'🔁', other:'📌' };
+function renderDaySchedule(){
+  const box = document.getElementById('daySchedule');
+  if(!box || !dayDetailDate) return;
+  const items = getDaySchedule(dayDetailDate);
+  const dow = new Date(dayDetailDate + 'T00:00:00').getDay();
+  const holiday = getHolidayName(dayDetailDate);
+  let html = `<div style="padding:10px 12px; background:var(--violet-soft); border-radius:8px; font-size:13px;">
+    <div style="font-weight:700; margin-bottom:6px;">🗓️ ${DOW_CHARS[dow]}요일 시간표 (정규 수업 + 일정)${holiday ? ` <span style="color:var(--coral); font-weight:400;">· ${holiday}</span>` : ''}</div>`;
+  if(!CONFIG.timetableSheetId) html += '<div class="hint" style="margin:0 0 4px;">설정에서 시간표 시트를 연결하면 정규 수업도 함께 보입니다.</div>';
+  else if(!timetableData) html += '<div class="hint" style="margin:0 0 4px;">시간표 불러오는 중…</div>';
+  if(!items.length){
+    html += '<div class="hint" style="margin:0;">시간이 정해진 수업·일정이 없습니다</div>';
+  }else{
+    items.forEach((it,i)=>{
+      const clash = items.some((o,j)=> j!==i && o.start < it.end && it.start < o.end);
+      html += `<div style="display:flex; gap:6px; padding:3px 0;${clash ? ' color:var(--coral); font-weight:700;' : ''}">
+        <span style="white-space:nowrap;">${minToHm(it.start)}~${minToHm(it.end)}</span>
+        <span>${SCHED_ICON[it.kind]} ${escapeHtml(it.label)}${clash ? ' ⚠ 겹침' : ''}</span></div>`;
+    });
+  }
+  html += '</div>';
+  box.innerHTML = html;
+}
+function conflictHtml(list, start, end){
+  if(!list.length) return `<div style="margin-top:6px; font-size:12px; color:#2e7d5b;">✓ ${minToHm(start)}~${minToHm(end)} 겹치는 수업·일정 없음</div>`;
+  return `<div style="margin-top:6px; padding:8px 10px; border-radius:6px; background:#fde8e4; border:1px solid var(--coral); font-size:12.5px; line-height:1.5;">
+    <b style="color:var(--coral);">⚠ 시간이 겹칩니다 (${minToHm(start)}~${minToHm(end)})</b><br>` +
+    list.map(it=>`${SCHED_ICON[it.kind]} ${minToHm(it.start)}~${minToHm(it.end)} ${escapeHtml(it.label)}`).join('<br>') + '</div>';
+}
+function checkMakeupConflict(){
+  const box = document.getElementById('dayMakeupConflict');
+  const t = document.getElementById('dayMakeupTime').value;
+  if(!t || !dayDetailDate){ box.innerHTML = ''; return []; }
+  const s0 = hmToMin(t), list = findConflicts(dayDetailDate, s0, s0+60);
+  box.innerHTML = conflictHtml(list, s0, s0+60);
+  return list;
+}
+function checkOtherConflict(){
+  const box = document.getElementById('dayOtherConflict');
+  const t = document.getElementById('dayOtherTime').value;
+  const t2 = document.getElementById('dayOtherEndTime').value;
+  if(!t || !dayDetailDate){ box.innerHTML = ''; return []; }
+  const s0 = hmToMin(t);
+  let e0 = t2 ? hmToMin(t2) : s0 + 60;
+  if(e0 <= s0){ box.innerHTML = '<div style="margin-top:6px; font-size:12px; color:var(--coral);">⚠ 종료 시간이 시작 시간보다 늦어야 합니다</div>'; return []; }
+  const list = findConflicts(dayDetailDate, s0, e0);
+  box.innerHTML = conflictHtml(list, s0, e0);
+  return list;
+}
+
 function escapeHtml(s){
   return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
@@ -1042,8 +1343,13 @@ document.getElementById('timetableRefresh').addEventListener('click', loadTimeta
 document.getElementById('saveTimetableUrl').addEventListener('click', async ()=>{
   const raw = document.getElementById('timetableUrl').value.trim();
   const id = extractSheetId(raw);
+  if(id !== CONFIG.timetableSheetId){ timetableData = null; ttClassesCache = null; }
   CONFIG.timetableSheetId = id;
+  ttTeacherName = document.getElementById('ttTeacherName').value.trim();
   try{ await localStore.set('timetableSheetId', id); }catch(e){}
+  try{ await localStore.set('ttTeacherName', ttTeacherName); }catch(e){}
+  renderMyClassesList();
+  renderWeekView();
   toast('저장했습니다');
   if(document.getElementById('view-timetable').classList.contains('active')) loadTimetable();
 });
@@ -1885,12 +2191,103 @@ function collectCalEvents(){
     const d = toDateInputValue(ev['날짜']);
     if(!d) return;
     if(!map[d]) map[d] = { absent:[], makeup:[], other:[] };
-    map[d].other.push({ title: ev['제목'] || '일정', time: toTimeInputValue(ev['시간']), record: ev });
+    const st = toTimeInputValue(ev['시간']);
+    map[d].other.push({ title: ev['제목'] || '일정', time: st, endTime: st ? toTimeInputValue(ev['종료시간']) : '', record: ev });
   });
   return map;
 }
 
+// ---------------- 주간 일정표 ----------------
+let wkStart = (function(){ const d = new Date(); d.setHours(0,0,0,0); const k = (d.getDay()+6)%7; d.setDate(d.getDate()-k); return d; })();
+function dateKeyOf(d){ const pad=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function layoutLanes(items){
+  // 겹치는 일정끼리 나란히 놓이도록 칸(lane) 배정
+  const sorted = items.slice().sort((a,b)=> a.start-b.start || b.end-a.end);
+  let cluster = [], clusterEnd = -1;
+  const flush = ()=>{ const n = Math.max(...cluster.map(x=>x._lane))+1; cluster.forEach(x=>x._lanes=n); cluster=[]; };
+  sorted.forEach(it=>{
+    if(cluster.length && it.start >= clusterEnd) flush();
+    const used = new Set(cluster.filter(x=>x.end > it.start).map(x=>x._lane));
+    let lane = 0; while(used.has(lane)) lane++;
+    it._lane = lane;
+    cluster.push(it);
+    clusterEnd = Math.max(clusterEnd, it.end);
+  });
+  if(cluster.length) flush();
+  return sorted;
+}
+function renderWeekView(){
+  const grid = document.getElementById('wkGrid');
+  if(!grid) return;
+  const days = [];
+  for(let i=0;i<7;i++){ const d = new Date(wkStart); d.setDate(wkStart.getDate()+i); days.push(d); }
+  const last = days[6];
+  document.getElementById('wkLabel').textContent = `${days[0].getMonth()+1}/${days[0].getDate()} ~ ${last.getMonth()+1}/${last.getDate()}`;
+  const notice = document.getElementById('wkNotice');
+  if(!CONFIG.timetableSheetId) notice.innerHTML = '<p class="hint" style="margin:0 0 8px;">설정에서 시간표 시트를 연결하면 정규 수업도 함께 보입니다.</p>';
+  else if(!timetableData) notice.innerHTML = '<p class="hint" style="margin:0 0 8px;">시간표 불러오는 중…</p>';
+  else notice.innerHTML = '';
+
+  const events = collectCalEvents();
+  const todayKey = todayStr();
+  const perDay = days.map(d=>{
+    const key = dateKeyOf(d);
+    const timed = getDaySchedule(key).map(x=>({...x}));
+    timed.forEach((it,i)=>{ it.clash = timed.some((o,j)=> j!==i && o.start < it.end && it.start < o.end); });
+    const ev = events[key] || { absent:[], makeup:[], other:[] };
+    const allDay = [];
+    const hol = getHolidayName(key);
+    if(hol) allDay.push({ cls:'hol', text: hol });
+    ev.absent.forEach(a=>allDay.push({ cls:'absent', text:`결석 ${a.name}` }));
+    ev.makeup.forEach(m=>{ if(!m.time) allDay.push({ cls:'other', text:`보강 ${m.name}` }); });
+    ev.other.forEach(o=>{ if(!o.time) allDay.push({ cls:'other', text:o.title }); });
+    return { d, key, timed: layoutLanes(timed), allDay, hol };
+  });
+
+  // 보여줄 시간 범위 (기본 13~22시, 일정에 맞춰 늘어남)
+  let minH = 13, maxH = 22;
+  perDay.forEach(pd=>pd.timed.forEach(it=>{ minH = Math.min(minH, Math.floor(it.start/60)); maxH = Math.max(maxH, Math.ceil(it.end/60)); }));
+  const HOUR = 46, pxPerMin = HOUR/60, height = (maxH-minH)*HOUR;
+
+  let html = `<div class="wk-grid" style="--wk-hour:${HOUR}px;">`;
+  html += '<div></div>';
+  perDay.forEach(pd=>{
+    const dow = pd.d.getDay();
+    const cls = (pd.key===todayKey?' today':'') + (dow===0?' sun':'') + (pd.hol?' hol':'');
+    html += `<div class="wk-head${cls}" data-date="${pd.key}">${DOW_CHARS[dow]}<small>${pd.d.getMonth()+1}/${pd.d.getDate()}</small></div>`;
+  });
+  html += '<div class="wk-allday" style="border-left:none; font-size:9px; opacity:.6; text-align:right; padding-right:4px;">종일</div>';
+  perDay.forEach(pd=>{
+    html += `<div class="wk-allday" data-date="${pd.key}">` + pd.allDay.map(a=>`<span class="wk-chip ${a.cls}" title="${escapeHtml(a.text)}">${escapeHtml(a.text)}</span>`).join('') + '</div>';
+  });
+  html += `<div class="wk-times" style="height:${height}px;">`;
+  for(let h=minH+1; h<maxH; h++) html += `<span style="top:${(h-minH)*HOUR}px;">${h}시</span>`;
+  html += '</div>';
+  perDay.forEach(pd=>{
+    html += `<div class="wk-col${pd.key===todayKey?' today':''}" data-date="${pd.key}" style="height:${height}px;">`;
+    pd.timed.forEach(it=>{
+      const top = (it.start - minH*60)*pxPerMin;
+      const h = Math.max(16, (it.end - it.start)*pxPerMin - 2);
+      const w = 100/it._lanes;
+      html += `<div class="wk-ev ${it.kind}${it.clash?' clash':''}" data-date="${pd.key}" style="top:${top}px; height:${h}px; left:calc(${w*it._lane}% + 1px); width:calc(${w}% - 2px);" title="${minToHm(it.start)}~${minToHm(it.end)} ${escapeHtml(it.label)}${it.clash?' (시간 겹침)':''}">
+        <b>${minToHm(it.start)}${it.clash?' ⚠':''}</b>${escapeHtml(it.label)}</div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  grid.innerHTML = html;
+  grid.querySelectorAll('[data-date]').forEach(el=>{
+    el.addEventListener('click', e=>{ e.stopPropagation(); openDayDetail(el.dataset.date); });
+  });
+}
+document.getElementById('wkPrev').addEventListener('click', ()=>{ wkStart.setDate(wkStart.getDate()-7); renderWeekView(); });
+document.getElementById('wkNext').addEventListener('click', ()=>{ wkStart.setDate(wkStart.getDate()+7); renderWeekView(); });
+document.getElementById('wkToday').addEventListener('click', ()=>{
+  const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7)); wkStart = d; renderWeekView();
+});
+
 function renderCalendar(){
+  try{ renderWeekView(); }catch(e){}
   const label = document.getElementById('calMonthLabel');
   const grid = document.getElementById('calGrid');
   const listBox = document.getElementById('calEventList');
@@ -1913,7 +2310,7 @@ function renderCalendar(){
       const entries = [];
       ev.absent.forEach(a=>entries.push({cls:'absent', text: a.name}));
       ev.makeup.forEach(m=>entries.push({cls:'makeup', text: m.time ? `${m.name} ${m.time}` : m.name}));
-      ev.other.forEach(o=>entries.push({cls:'other', text: o.time ? `${o.title} ${o.time}` : o.title}));
+      ev.other.forEach(o=>entries.push({cls:'other', text: o.time ? `${o.title} ${o.time}${o.endTime ? '~'+o.endTime : ''}` : o.title}));
       const shown = entries.slice(0, 3);
       namesHtml = '<div class="names">' + shown.map(e=>`<span class="cal-name ${e.cls}">${e.text}</span>`).join('') +
         (entries.length > 3 ? `<span class="cal-name more">+${entries.length - 3}</span>` : '') + '</div>';
@@ -1950,7 +2347,7 @@ function renderCalendar(){
       rows.push(`<div class="cal-event-row"><span class="cal-dot makeup"></span><span>${calMonth+1}/${day} 보강${m.time ? ' ' + m.time : ''} - ${m.name}</span></div>`);
     });
     ev.other.forEach(o=>{
-      rows.push(`<div class="cal-event-row"><span class="cal-dot other"></span><span>${calMonth+1}/${day} ${o.title}${o.time ? ' ' + o.time : ''}</span></div>`);
+      rows.push(`<div class="cal-event-row"><span class="cal-dot other"></span><span>${calMonth+1}/${day} ${o.title}${o.time ? ' ' + o.time + (o.endTime ? '~' + o.endTime : '') : ''}</span></div>`);
     });
   });
 
@@ -2085,11 +2482,28 @@ document.getElementById('dpTimeTrigger').addEventListener('click', ()=>{
 document.getElementById('dayMakeupTimeTrigger').addEventListener('click', ()=>{
   openClockPicker('dayMakeupTime', (val)=>{
     document.getElementById('dayMakeupTimeTrigger').textContent = '🕐 ' + val;
+    checkMakeupConflict();
+  });
+});
+document.getElementById('dayOtherEndTimeTrigger').addEventListener('click', ()=>{
+  const endEl = document.getElementById('dayOtherEndTime');
+  const st = document.getElementById('dayOtherTime').value;
+  if(!endEl.value && st) endEl.value = minToHm(Math.min(hmToMin(st)+60, 23*60+55));
+  openClockPicker('dayOtherEndTime', (val)=>{
+    document.getElementById('dayOtherEndTimeTrigger').textContent = '🕐 ' + val;
+    checkOtherConflict();
   });
 });
 document.getElementById('dayOtherTimeTrigger').addEventListener('click', ()=>{
   openClockPicker('dayOtherTime', (val)=>{
     document.getElementById('dayOtherTimeTrigger').textContent = '🕐 ' + val;
+    // 종료 시간이 비었거나 시작보다 이르면 1시간 뒤로 맞춤
+    const endEl = document.getElementById('dayOtherEndTime');
+    if(!endEl.value || hmToMin(endEl.value) <= hmToMin(val)){
+      endEl.value = minToHm(Math.min(hmToMin(val)+60, 23*60+55));
+      document.getElementById('dayOtherEndTimeTrigger').textContent = '🕐 ' + endEl.value;
+    }
+    checkOtherConflict();
   });
 });
 
@@ -2147,11 +2561,19 @@ function openDayDetail(dateKey){
   document.getElementById('dayMakeupTimeTrigger').textContent = '🕐 시간 선택';
   document.getElementById('dayOtherTitle').value = '';
   document.getElementById('dayOtherTime').value = '';
-  document.getElementById('dayOtherTimeTrigger').textContent = '🕐 시간 선택';
+  document.getElementById('dayOtherTimeTrigger').textContent = '🕐 시작';
+  document.getElementById('dayOtherEndTime').value = '';
+  document.getElementById('dayOtherEndTimeTrigger').textContent = '🕐 종료';
+  document.getElementById('dayOtherConflict').innerHTML = '';
+  document.getElementById('dayMakeupConflict').innerHTML = '';
   renderDayDetailList();
   document.getElementById('dayDetailModal').style.display = 'flex';
+  if(CONFIG.timetableSheetId && !timetableData){
+    ensureTimetableLoaded().then(()=>{ renderWeekView(); if(dayDetailDate === dateKey){ renderDaySchedule(); checkMakeupConflict(); checkOtherConflict(); } });
+  }
 }
 function renderDayDetailList(){
+  renderDaySchedule();
   const events = collectCalEvents();
   const ev = events[dayDetailDate] || { absent:[], makeup:[], other:[] };
   const box = document.getElementById('dayDetailList');
@@ -2202,7 +2624,7 @@ function renderDayDetailList(){
     html += `
       <div class="cal-event-row" style="align-items:center;">
         <span class="cal-dot other"></span>
-        <span style="flex:1;">${o.title}${o.time ? ' · ' + o.time : ''}${getGeneralEventGcalId(o.record) ? ' <span title="구글 캘린더에 등록됨" style="font-size:11px; opacity:.7;">✓캘린더</span>' : ''}</span>
+        <span style="flex:1;">${o.title}${o.time ? ' · ' + o.time + (o.endTime ? '~' + o.endTime : '') : ''}${getGeneralEventGcalId(o.record) ? ' <span title="구글 캘린더에 등록됨" style="font-size:11px; opacity:.7;">✓캘린더</span>' : ''}</span>
         ${getGeneralEventGcalId(o.record) ? '' : `<button class="btn sm" data-gcal-other="${idx}" title="구글 캘린더에 등록">📅 캘린더</button>`}
         <button class="btn sm" data-del-other="${idx}" style="color:var(--coral); border-color:var(--coral);">삭제</button>
       </div>
@@ -2355,6 +2777,10 @@ document.getElementById('dayMakeupSave').addEventListener('click', async ()=>{
   const studentName = dayMakeupSelectedStudent;
   const time = document.getElementById('dayMakeupTime').value;
   if(!studentName){ toast('학생을 검색해서 선택해주세요'); return; }
+  if(time){
+    const clash = checkMakeupConflict();
+    if(clash.length && !confirm('이 시간에 겹치는 수업·일정이 있습니다:\n\n' + clash.map(c=>`${minToHm(c.start)}~${minToHm(c.end)} ${c.label}`).join('\n') + '\n\n그래도 저장할까요?')) return;
+  }
   try{
     const res = await apiPost('addRecord', { studentName, makeupDate: dayDetailDate, makeupTime: time });
     if(res.error){ toast(res.error); return; }
@@ -2363,6 +2789,7 @@ document.getElementById('dayMakeupSave').addEventListener('click', async ()=>{
     if(!dayAbsentSelectedStudent) setDayAbsentStudent(studentName);
     document.getElementById('dayMakeupTime').value = '';
     document.getElementById('dayMakeupTimeTrigger').textContent = '🕐 시간 선택';
+    document.getElementById('dayMakeupConflict').innerHTML = '';
     toast('보강을 등록했습니다' + calNote(res));
     await loadData();
     renderDayDetailList();
@@ -2372,13 +2799,22 @@ document.getElementById('dayMakeupSave').addEventListener('click', async ()=>{
 document.getElementById('dayOtherSave').addEventListener('click', async ()=>{
   const title = document.getElementById('dayOtherTitle').value.trim();
   const time = document.getElementById('dayOtherTime').value;
+  const endTime = time ? document.getElementById('dayOtherEndTime').value : '';
   if(!title){ toast('일정 제목을 입력해주세요'); return; }
+  if(time && endTime && hmToMin(endTime) <= hmToMin(time)){ toast('종료 시간이 시작 시간보다 늦어야 합니다'); return; }
+  if(time){
+    const clash = checkOtherConflict();
+    if(clash.length && !confirm('이 시간에 겹치는 수업·일정이 있습니다:\n\n' + clash.map(c=>`${minToHm(c.start)}~${minToHm(c.end)} ${c.label}`).join('\n') + '\n\n그래도 저장할까요?')) return;
+  }
   try{
-    const res = await apiPost('addGeneralEvent', { date: dayDetailDate, time, title });
+    const res = await apiPost('addGeneralEvent', { date: dayDetailDate, time, endTime, title });
     if(res.error){ toast(res.error); return; }
     document.getElementById('dayOtherTitle').value = '';
     document.getElementById('dayOtherTime').value = '';
-    document.getElementById('dayOtherTimeTrigger').textContent = '🕐 시간 선택';
+    document.getElementById('dayOtherTimeTrigger').textContent = '🕐 시작';
+    document.getElementById('dayOtherEndTime').value = '';
+    document.getElementById('dayOtherEndTimeTrigger').textContent = '🕐 종료';
+    document.getElementById('dayOtherConflict').innerHTML = '';
     toast('일정을 등록했습니다' + calNote(res));
     await loadData();
     renderDayDetailList();
@@ -2818,6 +3254,10 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
     }
   }catch(e){}
   try{
+    const savedName = await localStore.get('ttTeacherName');
+    if(savedName && savedName.value){ ttTeacherName = savedName.value; document.getElementById('ttTeacherName').value = savedName.value; }
+  }catch(e){}
+  try{
     const savedTt = await localStore.get('timetableSheetId');
     if(savedTt && savedTt.value){
       CONFIG.timetableSheetId = savedTt.value;
@@ -2843,4 +3283,4 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
 })();
 </script>
 </body>
-</html>
+  </html>

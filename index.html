@@ -365,7 +365,7 @@
   .clock-display-part.active{background:var(--cobalt-soft); color:var(--cobalt-dark);}
   .cal-dot{width:6px; height:6px; border-radius:50%;}
   .wk-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
-  .wk-grid{display:grid; grid-template-columns:42px repeat(7, minmax(72px,1fr)); min-width:560px; font-size:11px;}
+  .wk-grid{display:grid; grid-template-columns:34px repeat(7, minmax(96px,1fr)); min-width:700px; font-size:11px;}
   .wk-head{text-align:center; padding:6px 2px; font-weight:700; border-bottom:1px solid #d9dee8; cursor:pointer; line-height:1.3;}
   .wk-head.today{color:var(--cobalt);}
   .wk-head.sun, .wk-head.hol{color:var(--coral);}
@@ -381,11 +381,16 @@
     background-image:linear-gradient(#eef0f4 1px, transparent 1px); background-size:100% var(--wk-hour);}
   .wk-col.today{background-color:rgba(102,144,196,.06);}
   .wk-ev{position:absolute; border-radius:5px; padding:2px 3px; overflow:hidden; font-size:10px; line-height:1.25; box-sizing:border-box; border:1px solid rgba(0,0,0,.08);}
-  .wk-ev b{display:block; font-weight:700;}
+  .wk-ev b{display:block; font-weight:700; font-size:9.5px; opacity:.8; white-space:nowrap;}
+  .wk-ev .wk-name{display:block; white-space:nowrap; overflow:hidden; text-overflow:clip; font-size:11px; font-weight:600;}
   .wk-ev.class{background:var(--violet-soft); border-color:var(--violet);}
   .wk-ev.makeup{background:var(--cobalt-soft); border-color:var(--cobalt);}
   .wk-ev.other{background:var(--gold-soft); border-color:var(--gold);}
   .wk-ev.test{background:repeating-linear-gradient(45deg,#f4f4f6,#f4f4f6 4px,#fff 4px,#fff 8px); border:1px dashed #b9bfca; opacity:.8;}
+  .wk-ev.makeuptest{background:repeating-linear-gradient(45deg,var(--cobalt-soft),var(--cobalt-soft) 4px,#fff 4px,#fff 8px); border:1px dashed var(--cobalt);}
+  .wk-ev.moved{background:transparent; border:1px dotted #9aa3b2; opacity:.55;}
+  .wk-ev.changed{border:2px dashed var(--violet);}
+  .wk-ev.absent{background:var(--coral-soft); border:1px dashed var(--coral);}
   .wk-ev.clash{border:2px solid var(--coral); box-shadow:0 0 0 1px #fff inset;}
   .wk-legend{display:flex; gap:10px; flex-wrap:wrap; font-size:11px; margin-top:8px; opacity:.85;}
   .wk-legend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:3px; vertical-align:-1px;}
@@ -603,11 +608,16 @@
     <label>결석일자</label>
     <button type="button" class="btn" id="absentDatePicker" style="width:100%; justify-content:flex-start; background:#fff; font-weight:400;">결석일자 선택 (달력)</button>
     <input type="hidden" id="absentDate">
+    <input type="hidden" id="absentTime">
+    <input type="hidden" id="absentEndTime">
 
     <label style="margin-top:14px;">보강일정</label>
     <button type="button" class="btn" id="makeupDatePicker" style="width:100%; justify-content:flex-start; background:#fff; font-weight:400;">보강일정 선택 (달력)</button>
     <input type="hidden" id="makeupDate">
     <input type="hidden" id="makeupTime">
+    <input type="hidden" id="makeupEndTime">
+    <input type="hidden" id="makeupClassTime">
+    <input type="hidden" id="makeupClassEndTime">
 
     <p class="hint" id="manualCalHint">"오늘 수업기록 저장"을 누르면 결석·보강이 구글 캘린더에 자동으로 등록됩니다. 날짜를 바꾸거나 지우면 캘린더도 함께 바뀝니다.</p>
     <div class="row" id="manualCalButtons" style="margin-top:10px; display:none;">
@@ -720,13 +730,15 @@
     <div class="wk-wrap"><div id="wkGrid"></div></div>
     <div class="wk-legend">
       <span><i style="background:var(--violet-soft); border:1px solid var(--violet);"></i>정규 수업</span>
-      <span><i style="background:var(--cobalt-soft); border:1px solid var(--cobalt);"></i>보강</span>
+      <span><i style="background:var(--cobalt-soft); border:1px solid var(--cobalt);"></i>수업 보강</span>
+      <span><i style="background:var(--cobalt-soft); border:1px dashed var(--cobalt);"></i>테스트 보강</span>
       <span><i style="background:var(--gold-soft); border:1px solid var(--gold);"></i>기타일정</span>
       <span><i style="background:var(--coral-soft);"></i>결석</span>
       <span><i style="border:1px dashed #b9bfca; background:#f4f4f6;"></i>테스트 열 (겹침 제외)</span>
+      <span><i style="border:2px dashed var(--violet);"></i>이번 주만 바꾼 수업</span>
       <span><i style="border:2px solid var(--coral);"></i>시간 겹침</span>
     </div>
-    <p class="hint" style="margin-top:6px;">날짜나 일정을 누르면 그날 일정을 추가·수정할 수 있습니다.</p>
+    <p class="hint" style="margin-top:6px;">날짜나 일정을 누르면 그날 일정을 추가·수정할 수 있습니다. 📚 정규 수업 블록을 누르면 <b>이번 주에만</b> 시간을 옮기거나 뺄 수 있습니다 (공유 시간표는 그대로).</p>
   </div>
   <div class="block">
     <div class="block-title"><span class="n c-violet">🗓️</span>주간 시간표</div>
@@ -827,6 +839,33 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="ttEditModal" style="display:none; z-index:60;">
+  <div class="modal-box" style="max-width:380px; max-height:85vh; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <b style="font-size:15px;">수업 시간 조정 (이번 주만)</b>
+      <button class="btn sm" id="ttEdClose">닫기</button>
+    </div>
+    <div id="ttEdInfo" style="font-size:13px; line-height:1.6; margin-bottom:6px;"></div>
+    <p class="hint" style="margin:0 0 8px;">공유 시간표 시트는 바뀌지 않습니다. 이 주에만 적용되고, 다음 주는 원래 시간표대로 돌아갑니다.</p>
+    <label style="margin-top:0;">요일</label>
+    <select id="ttEdDate"></select>
+    <label>시간</label>
+    <div class="row" style="gap:6px; align-items:center; flex-wrap:nowrap;">
+      <button type="button" class="btn" id="ttEdStartTrigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 시작</button>
+      <span>~</span>
+      <button type="button" class="btn" id="ttEdEndTrigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 종료</button>
+    </div>
+    <input type="hidden" id="ttEdStart">
+    <input type="hidden" id="ttEdEnd">
+    <div id="ttEdConflict"></div>
+    <button class="btn primary sm block-w" id="ttEdSave" style="margin-top:12px;">이 시간으로 바꾸기</button>
+    <div class="row" style="margin-top:8px; gap:6px;">
+      <button class="btn sm" id="ttEdCancelClass" style="flex:1; color:var(--coral); border-color:var(--coral);">이 날 수업 빼기</button>
+      <button class="btn sm" id="ttEdReset" style="flex:1;">원래대로</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="dayDetailModal" style="display:none;">
   <div class="modal-box" style="max-width:400px; max-height:85vh; overflow-y:auto;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -845,6 +884,15 @@
         <div class="dropdown" id="dayAbsentStudentDropdown" style="display:none;"></div>
       </div>
       <div id="dayAbsentStudentChip"></div>
+      <label>시간 (선택 · 비우면 그냥 결석)</label>
+      <div class="row" style="gap:6px; align-items:center; flex-wrap:nowrap;">
+        <button type="button" class="btn" id="dayAbsentTimeTrigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 시작</button>
+        <span>~</span>
+        <button type="button" class="btn" id="dayAbsentEndTimeTrigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 종료</button>
+        <button type="button" class="btn sm" id="dayAbsentTimeClear" title="시간 지우기" style="flex:0 0 auto;">✕</button>
+      </div>
+      <input type="hidden" id="dayAbsentTime">
+      <input type="hidden" id="dayAbsentEndTime">
       <button class="btn primary sm block-w" id="dayAbsentSave" style="margin-top:10px;">저장</button>
     </div>
 
@@ -856,8 +904,15 @@
       </div>
       <div id="dayMakeupStudentChip"></div>
       <label>시간</label>
-      <button type="button" class="btn" id="dayMakeupTimeTrigger" style="width:100%; justify-content:flex-start; background:#fff; font-weight:400;">🕐 시간 선택</button>
+      <div class="row" style="gap:6px; align-items:center; flex-wrap:nowrap;">
+        <button type="button" class="btn" id="dayMakeupTimeTrigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 시작</button>
+        <span>~</span>
+        <button type="button" class="btn" id="dayMakeupEndTimeTrigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 종료</button>
+        <button type="button" class="btn sm" id="dayMakeupTimeClear" title="시간 지우기" style="flex:0 0 auto;">✕</button>
+      </div>
       <input type="hidden" id="dayMakeupTime">
+      <input type="hidden" id="dayMakeupEndTime">
+      <label style="display:flex; gap:6px; align-items:center; font-weight:400; margin-top:8px;"><input type="checkbox" id="dayMakeupOneHour" style="width:auto; margin:0;"> 수업 1시간 기준 (나머지 시간은 테스트 보강)</label>
       <div id="dayMakeupConflict"></div>
       <button class="btn primary sm block-w" id="dayMakeupSave" style="margin-top:10px;">저장</button>
     </div>
@@ -887,10 +942,20 @@
       <button class="btn sm" id="dpNextMonth">›</button>
     </div>
     <div id="dpGrid" class="cal-grid"></div>
-    <div id="dpTimeRow" style="display:none; margin-top:12px;">
-      <label style="margin-top:0;">시간</label>
-      <button type="button" class="btn" id="dpTimeTrigger" style="width:100%; justify-content:flex-start; background:#fff; font-weight:400;">🕐 시간 선택</button>
+    <div id="dpTimeRow" style="margin-top:12px;">
+      <label>시간 <span id="dpTimeOptional" style="font-weight:400; opacity:.7;">(선택)</span></label>
+      <div class="row" style="gap:6px; align-items:center; flex-wrap:nowrap;">
+        <button type="button" class="btn" id="dpTimeInputTrigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 시작</button>
+        <span>~</span>
+        <button type="button" class="btn" id="dpEndTimeInputTrigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 종료</button>
+        <button type="button" class="btn sm" id="dpTimeInputClear" title="시간 지우기" style="flex:0 0 auto;">✕</button>
+      </div>
       <input type="hidden" id="dpTimeInput">
+      <input type="hidden" id="dpEndTimeInput">
+      <div id="dpMakeupOpts">
+        <label style="display:flex; gap:6px; align-items:center; font-weight:400; margin-top:8px;"><input type="checkbox" id="dpMakeupOneHour" style="width:auto; margin:0;"> 수업 1시간 기준 (나머지 시간은 테스트 보강)</label>
+        <div id="dpMakeupPlan"></div>
+      </div>
     </div>
     <div class="row" style="margin-top:12px;">
       <button class="btn ghost sm" id="dpClear">선택 안함</button>
@@ -1274,17 +1339,57 @@ function renderMyClassesList(){
 }
 
 // 특정 날짜의 일정을 모두 모음: 정규 수업 + 보강 + 기타일정
+// 정규 수업 하나를 가리키는 키 (요일|열|원래 시작|칸 글자)
+function ttClassKey(c){ return `${c.dow}|${c.col}|${c.start}|${c.text}`; }
+function getTtOverrideMap(){
+  const map = {};
+  (DATA.ttOverrides || []).forEach(ov=>{ map[ov.key + '@' + ov.date] = ov; });
+  return map;
+}
 function getDaySchedule(dateKey){
   const items = [];
   const dow = new Date(dateKey + 'T00:00:00').getDay();
-  getMyClasses().filter(c=>c.dow===dow).forEach(c=>{
-    items.push({ kind: c.excluded ? 'test' : 'class', label: c.text.replace(/\s+/g,' '), start:c.start, end:c.end });
+  const ovs = getTtOverrideMap();
+  const classes = getMyClasses();
+  classes.filter(c=>c.dow===dow).forEach(c=>{
+    const key = ttClassKey(c), label = c.text.replace(/\s+/g,' ');
+    const base = { kind: c.excluded ? 'test' : 'class', label, start:c.start, end:c.end, ttKey:key, ttDate:dateKey, ttClass:c };
+    const ov = ovs[key + '@' + dateKey];
+    if(!ov){ items.push(base); return; }
+    // 이번 주에 바꾼 수업: 원래 자리는 흐리게 표시 (겹침 계산 안 함)
+    const moved = ov.cancel || ov.newDate !== dateKey || hmToMin(ov.start) !== c.start || hmToMin(ov.end) !== c.end;
+    if(moved) items.push({ ...base, kind:'moved', label: (ov.cancel ? '빠짐: ' : '옮김: ') + label });
+    if(!ov.cancel && ov.newDate === dateKey && ov.start && ov.end){
+      items.push({ ...base, start: hmToMin(ov.start), end: hmToMin(ov.end), changed: moved });
+    }
+  });
+  // 다른 요일에서 이 날로 옮겨온 수업
+  (DATA.ttOverrides || []).forEach(ov=>{
+    if(ov.cancel || ov.newDate !== dateKey || ov.date === dateKey || !ov.start || !ov.end) return;
+    const c = classes.find(x => ttClassKey(x) === ov.key);
+    if(!c) return;
+    items.push({ kind: c.excluded ? 'test' : 'class', label: c.text.replace(/\s+/g,' '), start: hmToMin(ov.start), end: hmToMin(ov.end), ttKey: ov.key, ttDate: ov.date, ttClass: c, changed: true });
   });
   const ev = collectCalEvents()[dateKey] || { absent:[], makeup:[], other:[] };
   ev.makeup.forEach(m=>{
     if(!m.time) return;
     const s0 = hmToMin(m.time);
-    items.push({ kind:'makeup', label: `보강 - ${m.name}`, start:s0, end:s0+60, record:m.record });
+    const e0 = m.endTime && hmToMin(m.endTime) > s0 ? hmToMin(m.endTime) : s0+60;
+    if(m.classTime && m.classEndTime){
+      // 수업 보강 1시간 + 나머지 테스트 보강 (테스트는 겹침으로 치지 않음)
+      const cs = hmToMin(m.classTime), ce = hmToMin(m.classEndTime);
+      items.push({ kind:'makeup', label: `보강 - ${m.name}`, start:cs, end:ce, record:m.record });
+      if(cs > s0) items.push({ kind:'makeuptest', label: `테스트 보강 - ${m.name}`, start:s0, end:cs, record:m.record });
+      if(ce < e0) items.push({ kind:'makeuptest', label: `테스트 보강 - ${m.name}`, start:ce, end:e0, record:m.record });
+    }else{
+      items.push({ kind:'makeup', label: `보강 - ${m.name}`, start:s0, end:e0, record:m.record });
+    }
+  });
+  ev.absent.forEach(a=>{
+    if(!a.time) return;
+    const s0 = hmToMin(a.time);
+    const e0 = a.endTime && hmToMin(a.endTime) > s0 ? hmToMin(a.endTime) : s0+60;
+    items.push({ kind:'absent', label: `결석 - ${a.name}`, start:s0, end:e0, record:a.record });
   });
   ev.other.forEach(o=>{
     if(!o.time) return;
@@ -1295,11 +1400,13 @@ function getDaySchedule(dateKey){
   items.sort((a,b)=> a.start-b.start || a.end-b.end);
   return items;
 }
-function findConflicts(dateKey, start, end, ignoreRecord){
-  return getDaySchedule(dateKey).filter(it => it.kind !== 'test' && it.record !== ignoreRecord && it.start < end && start < it.end);
+function findConflicts(dateKey, start, end, ignoreRecord, ignoreTtKey){
+  return getDaySchedule(dateKey).filter(it => !NO_CLASH[it.kind] && (!ignoreRecord || it.record !== ignoreRecord) && (!ignoreTtKey || it.ttKey !== ignoreTtKey) && it.start < end && start < it.end);
 }
-const SCHED_ICON = { class:'📚', makeup:'🔁', other:'📌', test:'🧪' };
-function itemsClash(a, b){ return a !== b && a.kind !== 'test' && b.kind !== 'test' && a.start < b.end && b.start < a.end; }
+const SCHED_ICON = { class:'📚', makeup:'🔁', other:'📌', test:'🧪', absent:'🚫', makeuptest:'📝', moved:'↪' };
+// 테스트 열·결석은 시간이 겹쳐도 겹침으로 치지 않음
+const NO_CLASH = { test:1, absent:1, makeuptest:1, moved:1 };
+function itemsClash(a, b){ return a !== b && !NO_CLASH[a.kind] && !NO_CLASH[b.kind] && a.start < b.end && b.start < a.end; }
 function renderDaySchedule(){
   const box = document.getElementById('daySchedule');
   if(!box || !dayDetailDate) return;
@@ -1317,7 +1424,7 @@ function renderDaySchedule(){
       const clash = items.some(o=> itemsClash(it, o));
       html += `<div style="display:flex; gap:6px; padding:3px 0;${clash ? ' color:var(--coral); font-weight:700;' : ''}">
         <span style="white-space:nowrap;">${minToHm(it.start)}~${minToHm(it.end)}</span>
-        <span>${SCHED_ICON[it.kind]} ${escapeHtml(it.label)}${clash ? ' ⚠ 겹침' : ''}</span></div>`;
+        <span>${SCHED_ICON[it.kind]} ${escapeHtml(it.label)}${it.changed ? ' <span style="font-size:11px; opacity:.75;">(이번 주만 변경)</span>' : ''}${clash ? ' ⚠ 겹침' : ''}</span></div>`;
     });
   }
   html += '</div>';
@@ -1329,13 +1436,58 @@ function conflictHtml(list, start, end){
     <b style="color:var(--coral);">⚠ 시간이 겹칩니다 (${minToHm(start)}~${minToHm(end)})</b><br>` +
     list.map(it=>`${SCHED_ICON[it.kind]} ${minToHm(it.start)}~${minToHm(it.end)} ${escapeHtml(it.label)}`).join('<br>') + '</div>';
 }
+// 보강 계획: "수업 1시간 기준"이면 입력한 시간 중 기존 수업·일정과 안 겹치는 1시간을 수업 보강으로,
+// 나머지는 테스트 보강으로 나눔. 아니면 입력한 시간 전체가 수업 보강.
+function planMakeup(dateKey, t, t2, oneHour, ignoreRecord, pick){
+  if(!t || !dateKey) return null;
+  const s0 = hmToMin(t), e0 = (t2 && hmToMin(t2) > s0) ? hmToMin(t2) : s0+60;
+  if(!oneHour || e0 - s0 <= 60){
+    return { s0, e0, cs:s0, ce:e0, tests:[], conflicts: findConflicts(dateKey, s0, e0, ignoreRecord), options:[s0], split:false };
+  }
+  const cands = [];
+  for(let x=s0; x+60<=e0; x+=30) cands.push(x);
+  if(!cands.includes(e0-60)) cands.push(e0-60);
+  const free = cands.filter(x => !findConflicts(dateKey, x, x+60, ignoreRecord).length);
+  const options = free.length ? free : [cands[0]];
+  const cs = options[(pick||0) % options.length], ce = cs + 60;
+  const tests = [];
+  if(cs > s0) tests.push([s0, cs]);
+  if(ce < e0) tests.push([ce, e0]);
+  return { s0, e0, cs, ce, tests, conflicts: free.length ? [] : findConflicts(dateKey, cs, ce, ignoreRecord), options, split:true };
+}
+function planHtml(plan, pickBtnId){
+  if(!plan) return '';
+  if(!plan.split) return conflictHtml(plan.conflicts, plan.s0, plan.e0);
+  let h = `<div style="margin-top:6px; padding:8px 10px; border-radius:6px; background:#fff; border:1px solid var(--cobalt); font-size:12.5px; line-height:1.6;">
+    📘 수업 보강 <b>${minToHm(plan.cs)}~${minToHm(plan.ce)}</b>` +
+    plan.tests.map(x=>`<br>📝 테스트 보강 ${minToHm(x[0])}~${minToHm(x[1])}`).join('');
+  if(plan.options.length > 1 && pickBtnId) h += `<br><button type="button" class="btn sm" id="${pickBtnId}" style="margin-top:4px;">수업 보강 다른 시간으로 (${plan.options.length}가지 가능)</button>`;
+  h += '</div>';
+  if(plan.conflicts.length){
+    h += conflictHtml(plan.conflicts, plan.cs, plan.ce).replace('⚠ 시간이 겹칩니다', '⚠ 비어 있는 1시간이 없어 수업 보강이 겹칩니다');
+  }else{
+    h += '<div style="margin-top:4px; font-size:12px; color:#2e7d5b;">✓ 수업 보강 시간은 기존 수업·일정과 겹치지 않습니다 (테스트 보강은 겹쳐도 괜찮아요)</div>';
+  }
+  return h;
+}
+function planFields(plan){
+  return (plan && plan.split) ? { makeupClassTime: minToHm(plan.cs), makeupClassEndTime: minToHm(plan.ce) } : { makeupClassTime:'', makeupClassEndTime:'' };
+}
+// "수업 1시간 기준" 체크 상태는 마지막 선택을 기억
+function getOneHourPref(){ try{ return localStorage.getItem('makeupOneHour') !== 'false'; }catch(e){ return true; } }
+function setOneHourPref(v){ try{ localStorage.setItem('makeupOneHour', v ? 'true' : 'false'); }catch(e){} }
+let dayMakeupPick = 0, dayMakeupPlan = null;
 function checkMakeupConflict(){
   const box = document.getElementById('dayMakeupConflict');
   const t = document.getElementById('dayMakeupTime').value;
+  const t2 = document.getElementById('dayMakeupEndTime').value;
+  dayMakeupPlan = null;
   if(!t || !dayDetailDate){ box.innerHTML = ''; return []; }
-  const s0 = hmToMin(t), list = findConflicts(dayDetailDate, s0, s0+60);
-  box.innerHTML = conflictHtml(list, s0, s0+60);
-  return list;
+  dayMakeupPlan = planMakeup(dayDetailDate, t, t2, document.getElementById('dayMakeupOneHour').checked, null, dayMakeupPick);
+  box.innerHTML = planHtml(dayMakeupPlan, 'dayMakeupPickBtn');
+  const b = document.getElementById('dayMakeupPickBtn');
+  if(b) b.onclick = ()=>{ dayMakeupPick++; checkMakeupConflict(); };
+  return dayMakeupPlan.conflicts;
 }
 function checkOtherConflict(){
   const box = document.getElementById('dayOtherConflict');
@@ -1505,9 +1657,7 @@ function resetRecordForm(){
   conceptResult = '';
   renderConceptToggle();
   document.getElementById('quizScore').value = '';
-  document.getElementById('absentDate').value = '';
-  document.getElementById('makeupDate').value = '';
-  document.getElementById('makeupTime').value = '';
+  ['absentDate','absentTime','absentEndTime','makeupDate','makeupTime','makeupEndTime','makeupClassTime','makeupClassEndTime'].forEach(id=>document.getElementById(id).value='');
   updateDateDisplay('absent');
   updateDateDisplay('makeup');
 }
@@ -1563,6 +1713,11 @@ function selectStudent(name){
     document.getElementById('absentDate').value = toDateInputValue(existing['결석일자']);
     document.getElementById('makeupDate').value = toDateInputValue(existing['보강일자']);
     document.getElementById('makeupTime').value = toTimeInputValue(existing['보강시간']);
+    document.getElementById('makeupEndTime').value = toTimeInputValue(existing['보강종료시간']);
+    document.getElementById('makeupClassTime').value = toTimeInputValue(existing['보강수업시간']);
+    document.getElementById('makeupClassEndTime').value = toTimeInputValue(existing['보강수업종료시간']);
+    document.getElementById('absentTime').value = toTimeInputValue(existing['결석시간']);
+    document.getElementById('absentEndTime').value = toTimeInputValue(existing['결석종료시간']);
     updateDateDisplay('absent');
     updateDateDisplay('makeup');
     toast('오늘 이미 저장된 기록을 불러왔습니다');
@@ -2002,6 +2157,11 @@ document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
     absentDate: document.getElementById('absentDate').value,
     makeupDate: document.getElementById('makeupDate').value,
     makeupTime: document.getElementById('makeupTime').value,
+    makeupEndTime: document.getElementById('makeupEndTime').value,
+    makeupClassTime: document.getElementById('makeupClassTime').value,
+    makeupClassEndTime: document.getElementById('makeupClassEndTime').value,
+    absentTime: document.getElementById('absentTime').value,
+    absentEndTime: document.getElementById('absentEndTime').value,
     memo: document.getElementById('personalNoteText').value.trim()
   };
   const existing = findTodayRecord(form.student.이름);
@@ -2036,8 +2196,9 @@ document.getElementById('shareBtn').addEventListener('click', async ()=>{
   const qs = document.getElementById('quizScore').value.trim();
   if(qs) examParts.push(`객관식 ${qs}점`);
   if(examParts.length) lines.push(`시험 결과: ${examParts.join(' · ')}`);
-  if(absent) lines.push(`결석일자: ${absent}`);
-  if(makeD || makeT) lines.push(`보강일정: ${makeD}${makeT ? ' ' + makeT : ''}`);
+  if(absent) lines.push(`결석일자: ${absent}${timeRangeText(document.getElementById('absentTime').value, document.getElementById('absentEndTime').value)}`);
+  const mct = document.getElementById('makeupClassTime').value;
+  if(makeD || makeT) lines.push(`보강일정: ${makeD}${timeRangeText(makeT, document.getElementById('makeupEndTime').value)}${mct ? ` (수업 ${mct}~${document.getElementById('makeupClassEndTime').value}, 나머지 테스트)` : ''}`);
   const text = lines.join('\n');
   await copyText(text);
 });
@@ -2219,13 +2380,15 @@ function collectCalEvents(){
     const ad = toDateInputValue(r['결석일자']);
     if(ad){
       if(!map[ad]) map[ad] = { absent:[], makeup:[], other:[] };
-      map[ad].absent.push({ name, record:r });
+      const at = toTimeInputValue(r['결석시간']);
+      map[ad].absent.push({ name, time: at, endTime: at ? toTimeInputValue(r['결석종료시간']) : '', record:r });
     }
     const md = toDateInputValue(r['보강일자']);
     if(md){
       if(!map[md]) map[md] = { absent:[], makeup:[], other:[] };
       const t = toTimeInputValue(r['보강시간']);
-      map[md].makeup.push({ name, time:t, record:r });
+      const ct = t ? toTimeInputValue(r['보강수업시간']) : '';
+      map[md].makeup.push({ name, time:t, endTime: t ? toTimeInputValue(r['보강종료시간']) : '', classTime: ct, classEndTime: ct ? toTimeInputValue(r['보강수업종료시간']) : '', record:r });
     }
   });
   (DATA.generalEvents || []).forEach(ev=>{
@@ -2257,6 +2420,12 @@ function layoutLanes(items){
   if(cluster.length) flush();
   return sorted;
 }
+// 주간표에는 괄호 앞 이름만 한 줄로 (전체 내용은 누르면 날짜 창에서 확인)
+function wkShortLabel(t){
+  const one = String(t||'').replace(/\s+/g,' ').replace(/^(테스트 보강|보강|결석) - /,'').trim();
+  const head = one.split(/[(\[（]/)[0].trim();
+  return head || one;
+}
 function renderWeekView(){
   const grid = document.getElementById('wkGrid');
   if(!grid) return;
@@ -2279,7 +2448,7 @@ function renderWeekView(){
     const allDay = [];
     const hol = getHolidayName(key);
     if(hol) allDay.push({ cls:'hol', text: hol });
-    ev.absent.forEach(a=>allDay.push({ cls:'absent', text:`결석 ${a.name}` }));
+    ev.absent.forEach(a=>{ if(!a.time) allDay.push({ cls:'absent', text:`결석 ${a.name}` }); });
     ev.makeup.forEach(m=>{ if(!m.time) allDay.push({ cls:'other', text:`보강 ${m.name}` }); });
     ev.other.forEach(o=>{ if(!o.time) allDay.push({ cls:'other', text:o.title }); });
     return { d, key, timed: layoutLanes(timed), allDay, hol };
@@ -2310,17 +2479,100 @@ function renderWeekView(){
       const top = (it.start - minH*60)*pxPerMin;
       const h = Math.max(16, (it.end - it.start)*pxPerMin - 2);
       const w = 100/it._lanes;
-      html += `<div class="wk-ev ${it.kind}${it.clash?' clash':''}" data-date="${pd.key}" style="top:${top}px; height:${h}px; left:calc(${w*it._lane}% + 1px); width:calc(${w}% - 2px);" title="${minToHm(it.start)}~${minToHm(it.end)} ${escapeHtml(it.label)}${it.clash?' (시간 겹침)':''}">
-        <b>${minToHm(it.start)}${it.clash?' ⚠':''}</b>${escapeHtml(it.label)}</div>`;
+      const ttAttr = it.ttKey ? ` data-tt-key="${escapeHtml(it.ttKey).replace(/"/g,'&quot;')}" data-tt-date="${it.ttDate}"` : '';
+      html += `<div class="wk-ev ${it.kind}${it.changed?' changed':''}${it.clash?' clash':''}" data-date="${pd.key}"${ttAttr} style="top:${top}px; height:${h}px; left:calc(${w*it._lane}% + 1px); width:calc(${w}% - 2px);" title="${minToHm(it.start)}~${minToHm(it.end)} ${escapeHtml(it.label)}${it.clash?' (시간 겹침)':''}">
+        <b>${minToHm(it.start)}${it.changed?' ↪':''}${it.clash?' ⚠':''}</b><span class="wk-name">${escapeHtml(wkShortLabel(it.label))}</span></div>`;
     });
     html += '</div>';
   });
   html += '</div>';
   grid.innerHTML = html;
   grid.querySelectorAll('[data-date]').forEach(el=>{
-    el.addEventListener('click', e=>{ e.stopPropagation(); openDayDetail(el.dataset.date); });
+    el.addEventListener('click', e=>{
+      e.stopPropagation();
+      if(el.dataset.ttKey) openTtEditor(el.dataset.ttKey, el.dataset.ttDate);
+      else openDayDetail(el.dataset.date);
+    });
   });
 }
+
+// ---------------- 정규 수업 시간 조정 (이번 주만) ----------------
+let ttEd = null;
+function weekDatesOf(dateKey){
+  const d = new Date(dateKey + 'T00:00:00');
+  d.setDate(d.getDate() - ((d.getDay()+6)%7));
+  const out = [];
+  for(let i=0;i<7;i++){ const x = new Date(d); x.setDate(d.getDate()+i); out.push(dateKeyOf(x)); }
+  return out;
+}
+function openTtEditor(key, date){
+  const c = getMyClasses().find(x => ttClassKey(x) === key);
+  if(!c){ toast('시간표에서 이 수업을 찾지 못했습니다'); return; }
+  const ov = getTtOverrideMap()[key + '@' + date];
+  ttEd = { key, date, c };
+  const dd = new Date(date + 'T00:00:00');
+  document.getElementById('ttEdInfo').innerHTML =
+    `<b>${escapeHtml(c.text.replace(/\s+/g,' '))}</b><br>원래: ${DOW_CHARS[c.dow]} ${dd.getMonth()+1}/${dd.getDate()} ${minToHm(c.start)}~${minToHm(c.end)}` +
+    (ov ? `<br><span style="color:var(--violet);">이번 주 변경: ${ov.cancel ? '수업 빼기' : (()=>{ const n = new Date(ov.newDate+'T00:00:00'); return `${DOW_CHARS[n.getDay()]} ${n.getMonth()+1}/${n.getDate()} ${ov.start}~${ov.end}`; })()}</span>` : '');
+  const sel = document.getElementById('ttEdDate');
+  sel.innerHTML = weekDatesOf(date).map(k=>{ const x = new Date(k+'T00:00:00'); return `<option value="${k}">${DOW_CHARS[x.getDay()]} ${x.getMonth()+1}/${x.getDate()}${k===date?' (원래 요일)':''}</option>`; }).join('');
+  sel.value = (ov && !ov.cancel) ? ov.newDate : date;
+  document.getElementById('ttEdStart').value = (ov && !ov.cancel && ov.start) ? ov.start : minToHm(c.start);
+  document.getElementById('ttEdEnd').value = (ov && !ov.cancel && ov.end) ? ov.end : minToHm(c.end);
+  refreshTtEdTime();
+  document.getElementById('ttEdReset').style.display = ov ? '' : 'none';
+  checkTtEdConflict();
+  document.getElementById('ttEditModal').style.display = 'flex';
+}
+function checkTtEdConflict(){
+  if(!ttEd) return [];
+  const box = document.getElementById('ttEdConflict');
+  const d = document.getElementById('ttEdDate').value;
+  const t = document.getElementById('ttEdStart').value, t2 = document.getElementById('ttEdEnd').value;
+  if(!t || !t2){ box.innerHTML = ''; return []; }
+  const s0 = hmToMin(t), e0 = hmToMin(t2);
+  const list = findConflicts(d, s0, e0, null, ttEd.key);
+  box.innerHTML = conflictHtml(list, s0, e0);
+  return list;
+}
+const refreshTtEdTime = setupTimePair('ttEdStart', 'ttEdEnd', checkTtEdConflict);
+document.getElementById('ttEdDate').addEventListener('change', checkTtEdConflict);
+document.getElementById('ttEdClose').addEventListener('click', ()=>{ document.getElementById('ttEditModal').style.display = 'none'; });
+async function sendTtOverride(action, extra){
+  const btns = ['ttEdSave','ttEdCancelClass','ttEdReset'].map(id=>document.getElementById(id));
+  btns.forEach(b=>b.disabled = true);
+  try{
+    const res = await apiPost(action, { key: ttEd.key, date: ttEd.date, ...extra });
+    if(res.error){ toast(res.error); return false; }
+    if(action === 'saveTtOverride' && !res.result){ toast('Apps Script를 새 버전으로 배포해야 저장됩니다'); return false; }
+    document.getElementById('ttEditModal').style.display = 'none';
+    await loadData();
+    renderWeekView();
+    if(document.getElementById('dayDetailModal').style.display === 'flex') renderDayDetailList();
+    return true;
+  }catch(e){ toast('저장 실패: ' + e.message); return false; }
+  finally{ btns.forEach(b=>b.disabled = false); }
+}
+document.getElementById('ttEdSave').addEventListener('click', async ()=>{
+  const d = document.getElementById('ttEdDate').value;
+  const t = document.getElementById('ttEdStart').value, t2 = document.getElementById('ttEdEnd').value;
+  if(!t || !t2 || hmToMin(t2) <= hmToMin(t)){ toast('시작·종료 시간을 확인해주세요'); return; }
+  if(d === ttEd.date && hmToMin(t) === ttEd.c.start && hmToMin(t2) === ttEd.c.end){
+    if(getTtOverrideMap()[ttEd.key + '@' + ttEd.date]) await sendTtOverride('deleteTtOverride', {});
+    else document.getElementById('ttEditModal').style.display = 'none';
+    return;
+  }
+  const clash = checkTtEdConflict();
+  if(clash.length && !confirm('바꾼 시간에 겹치는 수업·일정이 있습니다:\n\n' + clash.map(c=>`${minToHm(c.start)}~${minToHm(c.end)} ${c.label}`).join('\n') + '\n\n그래도 바꿀까요?')) return;
+  if(await sendTtOverride('saveTtOverride', { newDate: d, start: t, end: t2, label: ttEd.c.text.replace(/\s+/g,' ') })) toast('이번 주 수업 시간을 바꿨습니다');
+});
+document.getElementById('ttEdCancelClass').addEventListener('click', async ()=>{
+  if(!confirm('이 날 이 수업을 시간표에서 뺄까요? (이번 주만)')) return;
+  if(await sendTtOverride('saveTtOverride', { newDate: ttEd.date, start:'', end:'', cancel:'Y', label: ttEd.c.text.replace(/\s+/g,' ') })) toast('이번 주 이 수업을 뺐습니다');
+});
+document.getElementById('ttEdReset').addEventListener('click', async ()=>{
+  if(await sendTtOverride('deleteTtOverride', {})) toast('원래 시간표로 되돌렸습니다');
+});
 document.getElementById('wkPrev').addEventListener('click', ()=>{ wkStart.setDate(wkStart.getDate()-7); renderWeekView(); });
 document.getElementById('wkNext').addEventListener('click', ()=>{ wkStart.setDate(wkStart.getDate()+7); renderWeekView(); });
 document.getElementById('wkToday').addEventListener('click', ()=>{
@@ -2350,7 +2602,7 @@ function renderCalendar(){
     if(ev){
       const entries = [];
       ev.absent.forEach(a=>entries.push({cls:'absent', text: a.name}));
-      ev.makeup.forEach(m=>entries.push({cls:'makeup', text: m.time ? `${m.name} ${m.time}` : m.name}));
+      ev.makeup.forEach(m=>entries.push({cls:'makeup', text: m.time ? `${m.name} ${m.time}${m.endTime ? '~'+m.endTime : ''}` : m.name}));
       ev.other.forEach(o=>entries.push({cls:'other', text: o.time ? `${o.title} ${o.time}${o.endTime ? '~'+o.endTime : ''}` : o.title}));
       const shown = entries.slice(0, 3);
       namesHtml = '<div class="names">' + shown.map(e=>`<span class="cal-name ${e.cls}">${e.text}</span>`).join('') +
@@ -2385,7 +2637,7 @@ function renderCalendar(){
       rows.push(`<div class="cal-event-row"><span class="cal-dot absent"></span><span>${calMonth+1}/${day} 결석 - ${a.name}</span></div>`);
     });
     ev.makeup.forEach(m=>{
-      rows.push(`<div class="cal-event-row"><span class="cal-dot makeup"></span><span>${calMonth+1}/${day} 보강${m.time ? ' ' + m.time : ''} - ${m.name}</span></div>`);
+      rows.push(`<div class="cal-event-row"><span class="cal-dot makeup"></span><span>${calMonth+1}/${day} 보강${timeRangeText(m.time, m.endTime)} - ${m.name}</span></div>`);
     });
     ev.other.forEach(o=>{
       rows.push(`<div class="cal-event-row"><span class="cal-dot other"></span><span>${calMonth+1}/${day} ${o.title}${o.time ? ' ' + o.time + (o.endTime ? '~' + o.endTime : '') : ''}</span></div>`);
@@ -2439,6 +2691,31 @@ function clockStateToTime(){
   const pad = n=>n.toString().padStart(2,'0');
   return `${pad(h)}:${pad(clockMinute)}`;
 }
+// 시작~종료 시간 버튼 한 쌍 연결 (시작 고르면 종료가 1시간 뒤로 자동)
+function plusHour(t){ return minToHm(Math.min(hmToMin(t)+60, 23*60+55)); }
+function setupTimePair(sId, eId, onChange){
+  const S = document.getElementById(sId), E = document.getElementById(eId);
+  const ST = document.getElementById(sId+'Trigger'), ET = document.getElementById(eId+'Trigger');
+  const CL = document.getElementById(sId+'Clear');
+  const label = ()=>{ ST.textContent = '🕐 ' + (S.value || '시작'); ET.textContent = '🕐 ' + (E.value || '종료'); };
+  ST.onclick = ()=> openClockPicker(sId, (val)=>{
+    if(!E.value || hmToMin(E.value) <= hmToMin(val)) E.value = plusHour(val);
+    label(); if(onChange) onChange();
+  });
+  ET.onclick = ()=>{
+    if(!S.value){ toast('시작 시간을 먼저 골라주세요'); return; }
+    if(!E.value) E.value = plusHour(S.value);
+    openClockPicker(eId, ()=>{
+      if(hmToMin(E.value) <= hmToMin(S.value)){ toast('종료 시간이 시작 시간보다 늦어야 합니다'); E.value = plusHour(S.value); }
+      label(); if(onChange) onChange();
+    });
+  };
+  if(CL) CL.onclick = ()=>{ S.value = ''; E.value = ''; label(); if(onChange) onChange(); };
+  label();
+  return label;
+}
+function timeRangeText(t, e){ return t ? ' ' + t + (e ? '~' + e : '') : ''; }
+
 function openClockPicker(targetId, onConfirm){
   clockTargetId = targetId;
   clockOnConfirm = onConfirm || null;
@@ -2515,17 +2792,25 @@ document.getElementById('clockConfirm').addEventListener('click', ()=>{
   document.getElementById('clockModal').style.display = 'none';
   if(clockOnConfirm) clockOnConfirm(val);
 });
-document.getElementById('dpTimeTrigger').addEventListener('click', ()=>{
-  openClockPicker('dpTimeInput', (val)=>{
-    document.getElementById('dpTimeTrigger').textContent = '🕐 ' + val;
-  });
-});
-document.getElementById('dayMakeupTimeTrigger').addEventListener('click', ()=>{
-  openClockPicker('dayMakeupTime', (val)=>{
-    document.getElementById('dayMakeupTimeTrigger').textContent = '🕐 ' + val;
-    checkMakeupConflict();
-  });
-});
+const refreshDayMakeupTime = setupTimePair('dayMakeupTime', 'dayMakeupEndTime', ()=>{ dayMakeupPick = 0; checkMakeupConflict(); });
+document.getElementById('dayMakeupOneHour').checked = getOneHourPref();
+document.getElementById('dayMakeupOneHour').addEventListener('change', function(){ setOneHourPref(this.checked); dayMakeupPick = 0; checkMakeupConflict(); });
+const refreshDayAbsentTime = setupTimePair('dayAbsentTime', 'dayAbsentEndTime');
+let dpPick = 0, dpPlan = null;
+function renderDpPlan(){
+  const box = document.getElementById('dpMakeupPlan');
+  dpPlan = null;
+  if(dpTarget !== 'makeup'){ box.innerHTML = ''; return; }
+  const t = document.getElementById('dpTimeInput').value;
+  if(!t || !dpSelectedDate){ box.innerHTML = ''; return; }
+  const own = form.student ? findTodayRecord(form.student.이름) : null;
+  dpPlan = planMakeup(dpSelectedDate, t, document.getElementById('dpEndTimeInput').value, document.getElementById('dpMakeupOneHour').checked, own || null, dpPick);
+  box.innerHTML = planHtml(dpPlan, 'dpMakeupPickBtn');
+  const b = document.getElementById('dpMakeupPickBtn');
+  if(b) b.onclick = ()=>{ dpPick++; renderDpPlan(); };
+}
+const refreshDpTime = setupTimePair('dpTimeInput', 'dpEndTimeInput', ()=>{ dpPick = 0; renderDpPlan(); });
+document.getElementById('dpMakeupOneHour').addEventListener('change', function(){ setOneHourPref(this.checked); dpPick = 0; renderDpPlan(); });
 document.getElementById('dayOtherEndTimeTrigger').addEventListener('click', ()=>{
   const endEl = document.getElementById('dayOtherEndTime');
   const st = document.getElementById('dayOtherTime').value;
@@ -2598,8 +2883,10 @@ function openDayDetail(dateKey){
   document.getElementById('dayDetailTitle').textContent = dateKey;
   setDayAbsentStudent(lastAddedStudentName || null);
   setDayMakeupStudent(lastAddedStudentName || null);
-  document.getElementById('dayMakeupTime').value = '';
-  document.getElementById('dayMakeupTimeTrigger').textContent = '🕐 시간 선택';
+  ['dayMakeupTime','dayMakeupEndTime','dayAbsentTime','dayAbsentEndTime'].forEach(id=>document.getElementById(id).value='');
+  refreshDayMakeupTime(); refreshDayAbsentTime();
+  dayMakeupPick = 0; dayMakeupPlan = null;
+  document.getElementById('dayMakeupOneHour').checked = getOneHourPref();
   document.getElementById('dayOtherTitle').value = '';
   document.getElementById('dayOtherTime').value = '';
   document.getElementById('dayOtherTimeTrigger').textContent = '🕐 시작';
@@ -2626,13 +2913,22 @@ function renderDayDetailList(){
     html += `
       <div class="cal-event-row" style="align-items:center;">
         <span class="cal-dot absent"></span>
-        <span style="flex:1;">${a.name} · 결석</span>
+        <span style="flex:1;">${a.name} · 결석${timeRangeText(a.time, a.endTime)}</span>
         <button class="btn sm" data-edit-absent="${idx}">수정</button>
         <button class="btn sm" data-del-absent="${idx}" style="color:var(--coral); border-color:var(--coral);">삭제</button>
       </div>
       <div id="editAbsentRow_${idx}" style="display:none; margin:6px 0 10px; padding:10px; background:var(--coral-soft); border-radius:6px;">
         <label style="margin-top:0;">날짜 변경</label>
         <input type="date" id="editAbsentDate_${idx}" value="${dayDetailDate}">
+        <label>시간 (선택 · 비우면 그냥 결석)</label>
+      <div class="row" style="gap:6px; align-items:center; flex-wrap:nowrap;">
+        <button type="button" class="btn" id="editAbsentTime_${idx}Trigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 시작</button>
+        <span>~</span>
+        <button type="button" class="btn" id="editAbsentEnd_${idx}Trigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 종료</button>
+        <button type="button" class="btn sm" id="editAbsentTime_${idx}Clear" title="시간 지우기" style="flex:0 0 auto;">✕</button>
+      </div>
+      <input type="hidden" id="editAbsentTime_${idx}" value="${a.time||''}">
+      <input type="hidden" id="editAbsentEnd_${idx}" value="${a.endTime||''}">
         <div class="row" style="margin-top:8px;">
           <button class="btn ghost sm" data-cancel-edit-absent="${idx}">취소</button>
           <button class="btn primary sm" data-save-edit-absent="${idx}">저장</button>
@@ -2644,7 +2940,7 @@ function renderDayDetailList(){
     html += `
       <div class="cal-event-row" style="align-items:center;">
         <span class="cal-dot makeup"></span>
-        <span style="flex:1;">${m.name} · 보강${m.time ? ' ' + m.time : ''}</span>
+        <span style="flex:1;">${m.name} · 보강${timeRangeText(m.time, m.endTime)}${m.classTime ? ` <span style="font-size:11.5px; opacity:.8;">(수업 ${m.classTime}~${m.classEndTime}, 나머지 테스트)</span>` : ''}</span>
         <button class="btn sm" data-edit-makeup="${idx}">수정</button>
         <button class="btn sm" data-del-makeup="${idx}" style="color:var(--coral); border-color:var(--coral);">삭제</button>
       </div>
@@ -2652,8 +2948,16 @@ function renderDayDetailList(){
         <label style="margin-top:0;">날짜 변경</label>
         <input type="date" id="editMakeupDate_${idx}" value="${dayDetailDate}">
         <label>시간 변경</label>
-        <button type="button" class="btn sm" id="editMakeupTimeTrigger_${idx}" style="width:100%; justify-content:flex-start; background:#fff; font-weight:400;">🕐 ${m.time || '시간 선택'}</button>
-        <input type="hidden" id="editMakeupTime_${idx}" value="${m.time||''}">
+      <div class="row" style="gap:6px; align-items:center; flex-wrap:nowrap;">
+        <button type="button" class="btn" id="editMakeupTime_${idx}Trigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 시작</button>
+        <span>~</span>
+        <button type="button" class="btn" id="editMakeupEnd_${idx}Trigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 종료</button>
+        <button type="button" class="btn sm" id="editMakeupTime_${idx}Clear" title="시간 지우기" style="flex:0 0 auto;">✕</button>
+      </div>
+      <input type="hidden" id="editMakeupTime_${idx}" value="${m.time||''}">
+      <input type="hidden" id="editMakeupEnd_${idx}" value="${m.endTime||''}">
+        <label style="display:flex; gap:6px; align-items:center; font-weight:400; margin-top:8px;"><input type="checkbox" id="editMakeupOne_${idx}" style="width:auto; margin:0;"${m.classTime ? ' checked' : ''}> 수업 1시간 기준 (나머지 시간은 테스트 보강)</label>
+        <div id="editMakeupPlan_${idx}"></div>
         <div class="row" style="margin-top:8px;">
           <button class="btn ghost sm" data-cancel-edit-makeup="${idx}">취소</button>
           <button class="btn primary sm" data-save-edit-makeup="${idx}">저장</button>
@@ -2708,19 +3012,37 @@ function renderDayDetailList(){
   });
 
   ev.makeup.forEach((m,idx)=>{
-    document.getElementById(`editMakeupTimeTrigger_${idx}`).addEventListener('click', ()=>{
-      openClockPicker(`editMakeupTime_${idx}`, (val)=>{
-        document.getElementById(`editMakeupTimeTrigger_${idx}`).textContent = '🕐 ' + val;
-      });
-    });
+    let pick = 0;
+    const render = ()=>{
+      const box = document.getElementById(`editMakeupPlan_${idx}`);
+      const t = document.getElementById(`editMakeupTime_${idx}`).value;
+      const d = document.getElementById(`editMakeupDate_${idx}`).value;
+      if(!t || !d){ box.innerHTML = ''; m._plan = null; return; }
+      m._plan = planMakeup(d, t, document.getElementById(`editMakeupEnd_${idx}`).value, document.getElementById(`editMakeupOne_${idx}`).checked, m.record, pick);
+      box.innerHTML = planHtml(m._plan, `editMakeupPick_${idx}`);
+      const b = document.getElementById(`editMakeupPick_${idx}`);
+      if(b) b.onclick = ()=>{ pick++; render(); };
+    };
+    setupTimePair(`editMakeupTime_${idx}`, `editMakeupEnd_${idx}`, ()=>{ pick = 0; render(); });
+    document.getElementById(`editMakeupOne_${idx}`).addEventListener('change', function(){ setOneHourPref(this.checked); pick = 0; render(); });
+    document.getElementById(`editMakeupDate_${idx}`).addEventListener('change', ()=>{ pick = 0; render(); });
+    // 저장된 수업 보강 시간이 있으면 그 시간을 먼저 보여줌
+    m._renderPlan = ()=>{
+      render();
+      if(m._plan && m._plan.split && m.classTime){
+        const want = hmToMin(m.classTime), i = m._plan.options.indexOf(want);
+        if(i > 0){ pick = i; render(); }
+      }
+    };
   });
+  ev.absent.forEach((a,idx)=> setupTimePair(`editAbsentTime_${idx}`, `editAbsentEnd_${idx}`));
 
   box.querySelectorAll('[data-del-absent]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const a = ev.absent[parseInt(btn.dataset.delAbsent)];
       if(!confirm(`${a.name}의 ${dayDetailDate} 결석 기록을 삭제할까요?`)) return;
       btn.disabled = true;
-      const ok = await updateRecordFieldsApi(a.record, { absentDate: '' });
+      const ok = await updateRecordFieldsApi(a.record, { absentDate: '', absentTime: '', absentEndTime: '' });
       if(ok){ toast('삭제했습니다' + calNote(ok)); await loadData(); renderDayDetailList(); renderCalendar(); }
     });
   });
@@ -2729,7 +3051,7 @@ function renderDayDetailList(){
       const m = ev.makeup[parseInt(btn.dataset.delMakeup)];
       if(!confirm(`${m.name}의 ${dayDetailDate} 보강 기록을 삭제할까요?`)) return;
       btn.disabled = true;
-      const ok = await updateRecordFieldsApi(m.record, { makeupDate: '', makeupTime: '' });
+      const ok = await updateRecordFieldsApi(m.record, { makeupDate: '', makeupTime: '', makeupEndTime: '', makeupClassTime: '', makeupClassEndTime: '' });
       if(ok){ toast('삭제했습니다' + calNote(ok)); await loadData(); renderDayDetailList(); renderCalendar(); }
     });
   });
@@ -2749,7 +3071,9 @@ function renderDayDetailList(){
       const a = ev.absent[parseInt(idx)];
       const newDate = document.getElementById(`editAbsentDate_${idx}`).value;
       if(!newDate){ toast('날짜를 입력해주세요'); return; }
-      const ok = await updateRecordFieldsApi(a.record, { absentDate: newDate });
+      const at = document.getElementById(`editAbsentTime_${idx}`).value;
+      const ae = at ? document.getElementById(`editAbsentEnd_${idx}`).value : '';
+      const ok = await updateRecordFieldsApi(a.record, { absentDate: newDate, absentTime: at, absentEndTime: ae });
       if(ok){
         toast('저장했습니다' + calNote(ok));
         await loadData();
@@ -2760,6 +3084,8 @@ function renderDayDetailList(){
   box.querySelectorAll('[data-edit-makeup]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       document.getElementById(`editMakeupRow_${btn.dataset.editMakeup}`).style.display = 'block';
+      const mm = ev.makeup[parseInt(btn.dataset.editMakeup)];
+      if(mm && mm._renderPlan) mm._renderPlan();
     });
   });
   box.querySelectorAll('[data-cancel-edit-makeup]').forEach(btn=>{
@@ -2773,8 +3099,10 @@ function renderDayDetailList(){
       const m = ev.makeup[parseInt(idx)];
       const newDate = document.getElementById(`editMakeupDate_${idx}`).value;
       const newTime = document.getElementById(`editMakeupTime_${idx}`).value;
+      const newEnd = newTime ? document.getElementById(`editMakeupEnd_${idx}`).value : '';
       if(!newDate){ toast('날짜를 입력해주세요'); return; }
-      const ok = await updateRecordFieldsApi(m.record, { makeupDate: newDate, makeupTime: newTime });
+      if(newTime && m._plan && m._plan.conflicts.length && !confirm('겹치는 수업·일정이 있습니다:\n\n' + m._plan.conflicts.map(c=>`${minToHm(c.start)}~${minToHm(c.end)} ${c.label}`).join('\n') + '\n\n그래도 저장할까요?')) return;
+      const ok = await updateRecordFieldsApi(m.record, { makeupDate: newDate, makeupTime: newTime, makeupEndTime: newEnd, ...planFields(newTime ? m._plan : null) });
       if(ok){
         toast('저장했습니다' + calNote(ok));
         await loadData();
@@ -2788,7 +3116,7 @@ async function updateRecordFieldsApi(record, fields){
     const res = await apiPost('updateRecordFields', { rowNum: record._rowNum, studentName: record['학생이름'], fields: JSON.stringify(fields) });
     if(res.error){ toast(res.error); return false; }
     // 서버 응답을 기다리지 않고 화면에 바로 반영되도록 로컬 데이터도 갱신
-    const fieldNameMap = { absentDate:'결석일자', makeupDate:'보강일자', makeupTime:'보강시간', absentEventId:'결석캘린더ID', makeupEventId:'보강캘린더ID' };
+    const fieldNameMap = { absentDate:'결석일자', makeupDate:'보강일자', makeupTime:'보강시간', absentTime:'결석시간', absentEndTime:'결석종료시간', makeupEndTime:'보강종료시간', makeupClassTime:'보강수업시간', makeupClassEndTime:'보강수업종료시간', absentEventId:'결석캘린더ID', makeupEventId:'보강캘린더ID' };
     Object.keys(fields).forEach(k=>{
       if(fieldNameMap[k]) record[fieldNameMap[k]] = fields[k];
     });
@@ -2803,11 +3131,14 @@ document.getElementById('dayAbsentSave').addEventListener('click', async ()=>{
   const studentName = dayAbsentSelectedStudent;
   if(!studentName){ toast('학생을 검색해서 선택해주세요'); return; }
   try{
-    const res = await apiPost('addRecord', { studentName, absentDate: dayDetailDate });
+    const absentTime = document.getElementById('dayAbsentTime').value;
+    const absentEndTime = absentTime ? document.getElementById('dayAbsentEndTime').value : '';
+    const res = await apiPost('addRecord', { studentName, absentDate: dayDetailDate, absentTime, absentEndTime });
     if(res.error){ toast(res.error); return; }
     lastAddedStudentName = studentName;
     setDayAbsentStudent(null);
     if(!dayMakeupSelectedStudent) setDayMakeupStudent(studentName);
+    document.getElementById('dayAbsentTime').value = ''; document.getElementById('dayAbsentEndTime').value = ''; refreshDayAbsentTime();
     toast('결석을 등록했습니다' + calNote(res));
     await loadData();
     renderDayDetailList();
@@ -2820,16 +3151,19 @@ document.getElementById('dayMakeupSave').addEventListener('click', async ()=>{
   if(!studentName){ toast('학생을 검색해서 선택해주세요'); return; }
   if(time){
     const clash = checkMakeupConflict();
-    if(clash.length && !confirm('이 시간에 겹치는 수업·일정이 있습니다:\n\n' + clash.map(c=>`${minToHm(c.start)}~${minToHm(c.end)} ${c.label}`).join('\n') + '\n\n그래도 저장할까요?')) return;
+    if(clash.length && !confirm((dayMakeupPlan && dayMakeupPlan.split ? '수업 보강을 넣을 빈 1시간이 없습니다. 수업 보강 시간에' : '이 시간에') + ' 겹치는 수업·일정이 있습니다:\n\n' + clash.map(c=>`${minToHm(c.start)}~${minToHm(c.end)} ${c.label}`).join('\n') + '\n\n그래도 저장할까요?')) return;
   }
   try{
-    const res = await apiPost('addRecord', { studentName, makeupDate: dayDetailDate, makeupTime: time });
+    const makeupEndTime = time ? document.getElementById('dayMakeupEndTime').value : '';
+    const res = await apiPost('addRecord', { studentName, makeupDate: dayDetailDate, makeupTime: time, makeupEndTime, ...planFields(time ? dayMakeupPlan : null) });
     if(res.error){ toast(res.error); return; }
     lastAddedStudentName = studentName;
     setDayMakeupStudent(null);
     if(!dayAbsentSelectedStudent) setDayAbsentStudent(studentName);
     document.getElementById('dayMakeupTime').value = '';
-    document.getElementById('dayMakeupTimeTrigger').textContent = '🕐 시간 선택';
+    document.getElementById('dayMakeupEndTime').value = '';
+    refreshDayMakeupTime();
+    dayMakeupPick = 0; dayMakeupPlan = null;
     document.getElementById('dayMakeupConflict').innerHTML = '';
     toast('보강을 등록했습니다' + calNote(res));
     await loadData();
@@ -2870,11 +3204,12 @@ let dpYear, dpMonth, dpSelectedDate = null;
 function updateDateDisplay(target){
   if(target === 'absent'){
     const v = document.getElementById('absentDate').value;
-    document.getElementById('absentDatePicker').textContent = v ? `결석일자: ${v}` : '결석일자 선택 (달력)';
+    document.getElementById('absentDatePicker').textContent = v ? `결석일자: ${v}${timeRangeText(document.getElementById('absentTime').value, document.getElementById('absentEndTime').value)}` : '결석일자 선택 (달력)';
   }else{
     const v = document.getElementById('makeupDate').value;
     const t = document.getElementById('makeupTime').value;
-    document.getElementById('makeupDatePicker').textContent = v ? `보강일정: ${v}${t ? ' ' + t : ''}` : '보강일정 선택 (달력)';
+    const ct = document.getElementById('makeupClassTime').value;
+    document.getElementById('makeupDatePicker').textContent = v ? `보강일정: ${v}${timeRangeText(t, document.getElementById('makeupEndTime').value)}${ct ? ` (수업 ${ct}~${document.getElementById('makeupClassEndTime').value}, 나머지 테스트)` : ''}` : '보강일정 선택 (달력)';
   }
 }
 
@@ -2885,12 +3220,21 @@ function openDatePicker(target){
   dpYear = base.getFullYear();
   dpMonth = base.getMonth();
   dpSelectedDate = existingVal || null;
-  document.getElementById('dpTimeRow').style.display = target === 'makeup' ? 'block' : 'none';
-  const existingTime = target === 'makeup' ? document.getElementById('makeupTime').value : '';
-  document.getElementById('dpTimeInput').value = existingTime;
-  document.getElementById('dpTimeTrigger').textContent = existingTime ? '🕐 ' + existingTime : '🕐 시간 선택';
-  document.getElementById('dpConfirm').style.display = target === 'makeup' ? 'inline-flex' : 'none';
+  document.getElementById('dpTimeInput').value = document.getElementById(target === 'absent' ? 'absentTime' : 'makeupTime').value;
+  document.getElementById('dpEndTimeInput').value = document.getElementById(target === 'absent' ? 'absentEndTime' : 'makeupEndTime').value;
+  document.getElementById('dpTimeOptional').textContent = target === 'absent' ? '(선택 · 비우면 그냥 결석)' : '(선택)';
+  refreshDpTime();
+  document.getElementById('dpMakeupOpts').style.display = target === 'makeup' ? 'block' : 'none';
+  const savedClass = target === 'makeup' ? document.getElementById('makeupClassTime').value : '';
+  document.getElementById('dpMakeupOneHour').checked = savedClass ? true : getOneHourPref();
+  dpPick = 0;
+  document.getElementById('dpConfirm').style.display = 'inline-flex';
   renderDatePicker();
+  renderDpPlan();
+  if(dpPlan && dpPlan.split && savedClass){
+    const i = dpPlan.options.indexOf(hmToMin(savedClass));
+    if(i > 0){ dpPick = i; renderDpPlan(); }
+  }
   document.getElementById('datePickerModal').style.display = 'flex';
 }
 
@@ -2928,14 +3272,8 @@ function renderDatePicker(){
   grid.querySelectorAll('.cal-cell[data-date]').forEach(cell=>{
     cell.addEventListener('click', ()=>{
       dpSelectedDate = cell.dataset.date;
-      if(dpTarget === 'absent'){
-        document.getElementById('absentDate').value = dpSelectedDate;
-        updateDateDisplay('absent');
-        document.getElementById('datePickerModal').style.display = 'none';
-        updateCopyPreview();
-      }else{
-        renderDatePicker();
-      }
+      renderDatePicker();
+      dpPick = 0; renderDpPlan();
     });
   });
 }
@@ -2952,11 +3290,10 @@ document.getElementById('dpCancel').addEventListener('click', ()=>{
 });
 document.getElementById('dpClear').addEventListener('click', ()=>{
   if(dpTarget === 'absent'){
-    document.getElementById('absentDate').value = '';
+    ['absentDate','absentTime','absentEndTime'].forEach(id=>document.getElementById(id).value='');
     updateDateDisplay('absent');
   }else{
-    document.getElementById('makeupDate').value = '';
-    document.getElementById('makeupTime').value = '';
+    ['makeupDate','makeupTime','makeupEndTime','makeupClassTime','makeupClassEndTime'].forEach(id=>document.getElementById(id).value='');
     updateDateDisplay('makeup');
   }
   document.getElementById('datePickerModal').style.display = 'none';
@@ -2964,9 +3301,20 @@ document.getElementById('dpClear').addEventListener('click', ()=>{
 });
 document.getElementById('dpConfirm').addEventListener('click', ()=>{
   if(!dpSelectedDate){ toast('날짜를 선택해주세요'); return; }
-  document.getElementById('makeupDate').value = dpSelectedDate;
-  document.getElementById('makeupTime').value = document.getElementById('dpTimeInput').value;
-  updateDateDisplay('makeup');
+  const st = document.getElementById('dpTimeInput').value;
+  const en = st ? document.getElementById('dpEndTimeInput').value : '';
+  const pre = dpTarget === 'absent' ? 'absent' : 'makeup';
+  document.getElementById(pre + 'Date').value = dpSelectedDate;
+  document.getElementById(pre + 'Time').value = st;
+  document.getElementById(pre + 'EndTime').value = en;
+  if(pre === 'makeup'){
+    renderDpPlan();
+    if(st && dpPlan && dpPlan.conflicts.length && !confirm('겹치는 수업·일정이 있습니다:\n\n' + dpPlan.conflicts.map(c=>`${minToHm(c.start)}~${minToHm(c.end)} ${c.label}`).join('\n') + '\n\n그래도 이 시간으로 할까요?')) return;
+    const pf = planFields(st ? dpPlan : null);
+    document.getElementById('makeupClassTime').value = pf.makeupClassTime;
+    document.getElementById('makeupClassEndTime').value = pf.makeupClassEndTime;
+  }
+  updateDateDisplay(pre);
   document.getElementById('datePickerModal').style.display = 'none';
   updateCopyPreview();
 });
@@ -3326,4 +3674,4 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
 })();
 </script>
 </body>
-  </html>
+</html>

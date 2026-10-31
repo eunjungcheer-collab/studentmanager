@@ -385,6 +385,7 @@
   .wk-ev.class{background:var(--violet-soft); border-color:var(--violet);}
   .wk-ev.makeup{background:var(--cobalt-soft); border-color:var(--cobalt);}
   .wk-ev.other{background:var(--gold-soft); border-color:var(--gold);}
+  .wk-ev.test{background:repeating-linear-gradient(45deg,#f4f4f6,#f4f4f6 4px,#fff 4px,#fff 8px); border:1px dashed #b9bfca; opacity:.8;}
   .wk-ev.clash{border:2px solid var(--coral); box-shadow:0 0 0 1px #fff inset;}
   .wk-legend{display:flex; gap:10px; flex-wrap:wrap; font-size:11px; margin-top:8px; opacity:.85;}
   .wk-legend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:3px; vertical-align:-1px;}
@@ -722,6 +723,7 @@
       <span><i style="background:var(--cobalt-soft); border:1px solid var(--cobalt);"></i>보강</span>
       <span><i style="background:var(--gold-soft); border:1px solid var(--gold);"></i>기타일정</span>
       <span><i style="background:var(--coral-soft);"></i>결석</span>
+      <span><i style="border:1px dashed #b9bfca; background:#f4f4f6;"></i>테스트 열 (겹침 제외)</span>
       <span><i style="border:2px solid var(--coral);"></i>시간 겹침</span>
     </div>
     <p class="hint" style="margin-top:6px;">날짜나 일정을 누르면 그날 일정을 추가·수정할 수 있습니다.</p>
@@ -759,8 +761,11 @@
     <input type="text" id="timetableUrl" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
     <p class="hint">다른 선생님들과 같이 쓰시는 시간표 구글 시트 주소를 붙여넣으세요. 지금은 보기 전용입니다. 이 값은 이 기기에만 저장됩니다.</p>
     <label style="margin-top:14px;">내 수업만 보기 (시간표에 적힌 내 이름)</label>
-    <input type="text" id="ttTeacherName" placeholder="예: 이은정 (비우면 시간표의 모든 수업을 봅니다)">
-    <p class="hint">일정 입력 시 시간 겹침을 확인할 때, 시간표에서 이 이름이 적힌 칸(또는 이 이름이 적힌 열)의 수업만 내 수업으로 봅니다.</p>
+    <input type="text" id="ttTeacherName" value="이은정" placeholder="예: 이은정 (비우면 시간표의 모든 수업을 봅니다)">
+    <p class="hint">시간표 위쪽 머리글에 이 이름이 적힌 열의 수업만 내 수업으로 보고 겹침을 확인합니다. 다른 선생님 열은 비교하지 않습니다.</p>
+    <label style="margin-top:14px;">겹침 확인에서 뺄 열 (표시 글자)</label>
+    <input type="text" id="ttExcludeWords" value="TEST,테스트" placeholder="예: TEST,테스트">
+    <p class="hint">이 글자가 적힌 칸이 있는 열(예: "월요일 TEST" 열)의 학생은 시간표에는 보여주되 시간 겹침으로 치지 않습니다. 여러 개는 쉼표로 구분합니다.</p>
     <button class="btn primary" id="saveTimetableUrl" style="margin-top:10px;">저장</button>
     <p class="hint" id="timetableStatus" style="margin-top:10px;"></p>
   </div>
@@ -1105,6 +1110,12 @@ function parseTimeText(text){
   }
   return null;
 }
+function isTimeOnly(text){
+  const t = String(text||'').replace(/\s+/g,'');
+  if(!t) return false;
+  const T = '(오전|오후)?\\d{1,2}(:\\d{2}|시(\\d{1,2}분)?)?';
+  return new RegExp('^' + T + '([~\\-–〜]|부터)' + T + '(까지)?$').test(t) || /^(오전|오후)?\d{1,2}(:\d{2}|시)$/.test(t);
+}
 function parseDowText(text){
   const t = String(text||'').trim();
   if(!t) return -1;
@@ -1131,16 +1142,32 @@ function extractTimetableClasses(data){
       const d = parseDowText(grid[r][c]);
       if(d !== -1) dowOfCol[c] = d;
     }
-    const dayCols = dowOfCol.map((d,c)=>d!==-1?c:-1).filter(c=>c!==-1);
-    if(dayCols.length < 2) return null;
-    // 행마다 시간 읽기 (요일이 없는 열에서)
+    // 시간만 적힌 칸이 여러 개 있는 열 = 시간 열 (요일 머리글 아래에 있어도 시간 열로 봄)
+    const isTimeCol = new Array(nC).fill(false);
+    for(let c=0;c<nC;c++){
+      let n = 0;
+      for(let r=0;r<nR;r++) if(isTimeOnly(grid[r][c])) n++;
+      if(n >= 2) isTimeCol[c] = true;
+    }
+    const dayCols = dowOfCol.map((d,c)=>(d!==-1 && !isTimeCol[c])?c:-1).filter(c=>c!==-1);
+    if(dayCols.length < 1) return null;
+    // 행마다 시간 읽기 (시간 열에서)
     const timeOfRow = new Array(nR).fill(null);
     for(let r=0;r<nR;r++){
       for(let c=0;c<nC;c++){
-        if(dowOfCol[c] !== -1) continue;
+        if(!isTimeCol[c] || !isTimeOnly(grid[r][c])) continue;
         const t = parseTimeText(grid[r][c]);
         if(t){ timeOfRow[r] = t; break; }
       }
+    }
+    // 오전/오후 보정: 아래로 갈수록 시간이 늘어나야 하므로, 줄어들면 오후(+12시간)로
+    let prevStart = -1;
+    for(let r=0;r<nR;r++){
+      const t = timeOfRow[r];
+      if(!t) continue;
+      if(t.start < prevStart && t.start + 720 < 24*60){ t.start += 720; if(t.end) t.end += 720; }
+      if(t.end && t.end <= t.start) t.end += 720;
+      prevStart = t.start;
     }
     const firstBody = timeOfRow.findIndex(t=>t);
     // 끝시간이 없는 행은 다음 시간 행의 시작으로
@@ -1150,6 +1177,17 @@ function extractTimetableClasses(data){
       let next = null;
       for(let k=r+1;k<nR;k++){ if(timeOfRow[k] && timeOfRow[k].start > t.start){ next = timeOfRow[k].start; break; } }
       t.end = next || t.start + 60;
+    }
+    // 겹침 확인에서 뺄 열 (예: TEST 열) — 한 열짜리 칸에 표시 글자가 있으면 그 열 전체
+    const words = ttExcludeWords.split(',').map(w=>w.trim().toLowerCase()).filter(Boolean);
+    const excludedCol = new Array(nC).fill(false);
+    if(words.length){
+      for(let c=0;c<nC;c++) for(let r=0;r<nR;r++){
+        const a = anc[r][c];
+        if(a[1] !== a[3]) continue; // 여러 열에 걸친 머리글은 판단에서 제외
+        const txt = String(grid[r][c]||'').toLowerCase();
+        if(txt && words.some(w=>txt.includes(w))){ excludedCol[c] = true; break; }
+      }
     }
     const headerEnd = firstBody === -1 ? Math.min(nR,4) : firstBody;
     const colHeader = c => { let h=''; for(let r=0;r<headerEnd;r++) h += ' ' + grid[r][c]; return h; };
@@ -1161,20 +1199,17 @@ function extractTimetableClasses(data){
         if(seen.has(key)) continue;
         seen.add(key);
         const text = String(grid[r][c]||'').trim();
-        if(!text || parseDowText(text) !== -1) continue;
+        if(!text || parseDowText(text) !== -1 || isTimeOnly(text)) continue;
+        // 칸 안에 "(5-7)"처럼 시간이 적혀 있어도, 그 칸이 놓인 행의 시간만 사용
         let start = null, end = null;
-        const own = parseTimeText(text);
-        if(own && own.end){ start = own.start; end = own.end; }
-        else{
-          for(let k=Math.max(r0,headerEnd);k<=r1;k++){
-            const t = timeOfRow[k];
-            if(!t) continue;
-            if(start === null || t.start < start) start = t.start;
-            if(end === null || t.end > end) end = t.end;
-          }
+        for(let k=Math.max(r0,headerEnd);k<=r1;k++){
+          const t = timeOfRow[k];
+          if(!t) continue;
+          if(start === null || t.start < start) start = t.start;
+          if(end === null || t.end > end) end = t.end;
         }
         if(start === null || end === null || end <= start) continue;
-        out.push({ dow: dowOfCol[c], col: c, start, end, text, header: colHeader(c) });
+        out.push({ dow: dowOfCol[c], col: c, start, end, text, header: colHeader(c), excluded: excludedCol[c] });
       }
     }
     // 병합 안 된 채 같은 글자가 이어진 칸은 하나의 수업으로 합침
@@ -1197,14 +1232,16 @@ function extractTimetableClasses(data){
   }
   return res || [];
 }
-let ttTeacherName = '';
+let ttTeacherName = '이은정';
+let ttExcludeWords = 'TEST,테스트';
 let ttClassesCache = null;
 function getMyClasses(){
   if(!timetableData) return [];
   if(!ttClassesCache) ttClassesCache = extractTimetableClasses(timetableData);
   const name = ttTeacherName.trim();
   if(!name) return ttClassesCache;
-  return ttClassesCache.filter(c => c.text.includes(name) || c.header.includes(name));
+  // 머리글(열 제목)에 내 이름이 적힌 열의 수업만 비교
+  return ttClassesCache.filter(c => c.header.replace(/\s+/g,'').includes(name.replace(/\s+/g,'')));
 }
 let ttLoading = null;
 async function ensureTimetableLoaded(){
@@ -1230,7 +1267,7 @@ function renderMyClassesList(){
     const items = list.filter(c=>c.dow===d).sort((a,b)=>a.start-b.start);
     if(!items.length) return;
     html += `<div style="margin-bottom:6px; font-size:13px;"><b>${DOW_CHARS[d]}</b> · ` +
-      items.map(c=>`${minToHm(c.start)}~${minToHm(c.end)} ${escapeHtml(c.text.replace(/\s+/g,' ').slice(0,20))}`).join(' / ') + '</div>';
+      items.map(c=>`${minToHm(c.start)}~${minToHm(c.end)} ${escapeHtml(c.text.replace(/\s+/g,' ').slice(0,20))}${c.excluded ? ' <span style="opacity:.6;">(🧪겹침 제외)</span>' : ''}`).join(' / ') + '</div>';
   });
   if(!ttTeacherName) html += '<p class="hint">설정에서 "내 이름"을 넣으면 내 수업만 골라서 확인합니다.</p>';
   box.innerHTML = html;
@@ -1241,7 +1278,7 @@ function getDaySchedule(dateKey){
   const items = [];
   const dow = new Date(dateKey + 'T00:00:00').getDay();
   getMyClasses().filter(c=>c.dow===dow).forEach(c=>{
-    items.push({ kind:'class', label: c.text.replace(/\s+/g,' '), start:c.start, end:c.end });
+    items.push({ kind: c.excluded ? 'test' : 'class', label: c.text.replace(/\s+/g,' '), start:c.start, end:c.end });
   });
   const ev = collectCalEvents()[dateKey] || { absent:[], makeup:[], other:[] };
   ev.makeup.forEach(m=>{
@@ -1259,9 +1296,10 @@ function getDaySchedule(dateKey){
   return items;
 }
 function findConflicts(dateKey, start, end, ignoreRecord){
-  return getDaySchedule(dateKey).filter(it => it.record !== ignoreRecord && it.start < end && start < it.end);
+  return getDaySchedule(dateKey).filter(it => it.kind !== 'test' && it.record !== ignoreRecord && it.start < end && start < it.end);
 }
-const SCHED_ICON = { class:'📚', makeup:'🔁', other:'📌' };
+const SCHED_ICON = { class:'📚', makeup:'🔁', other:'📌', test:'🧪' };
+function itemsClash(a, b){ return a !== b && a.kind !== 'test' && b.kind !== 'test' && a.start < b.end && b.start < a.end; }
 function renderDaySchedule(){
   const box = document.getElementById('daySchedule');
   if(!box || !dayDetailDate) return;
@@ -1276,7 +1314,7 @@ function renderDaySchedule(){
     html += '<div class="hint" style="margin:0;">시간이 정해진 수업·일정이 없습니다</div>';
   }else{
     items.forEach((it,i)=>{
-      const clash = items.some((o,j)=> j!==i && o.start < it.end && it.start < o.end);
+      const clash = items.some(o=> itemsClash(it, o));
       html += `<div style="display:flex; gap:6px; padding:3px 0;${clash ? ' color:var(--coral); font-weight:700;' : ''}">
         <span style="white-space:nowrap;">${minToHm(it.start)}~${minToHm(it.end)}</span>
         <span>${SCHED_ICON[it.kind]} ${escapeHtml(it.label)}${clash ? ' ⚠ 겹침' : ''}</span></div>`;
@@ -1346,6 +1384,9 @@ document.getElementById('saveTimetableUrl').addEventListener('click', async ()=>
   if(id !== CONFIG.timetableSheetId){ timetableData = null; ttClassesCache = null; }
   CONFIG.timetableSheetId = id;
   ttTeacherName = document.getElementById('ttTeacherName').value.trim();
+  ttExcludeWords = document.getElementById('ttExcludeWords').value.trim();
+  ttClassesCache = null;
+  try{ await localStore.set('ttExcludeWords', ttExcludeWords); }catch(e){}
   try{ await localStore.set('timetableSheetId', id); }catch(e){}
   try{ await localStore.set('ttTeacherName', ttTeacherName); }catch(e){}
   renderMyClassesList();
@@ -2233,7 +2274,7 @@ function renderWeekView(){
   const perDay = days.map(d=>{
     const key = dateKeyOf(d);
     const timed = getDaySchedule(key).map(x=>({...x}));
-    timed.forEach((it,i)=>{ it.clash = timed.some((o,j)=> j!==i && o.start < it.end && it.start < o.end); });
+    timed.forEach(it=>{ it.clash = timed.some(o=> itemsClash(it, o)); });
     const ev = events[key] || { absent:[], makeup:[], other:[] };
     const allDay = [];
     const hol = getHolidayName(key);
@@ -3256,6 +3297,8 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
   try{
     const savedName = await localStore.get('ttTeacherName');
     if(savedName && savedName.value){ ttTeacherName = savedName.value; document.getElementById('ttTeacherName').value = savedName.value; }
+    const savedEx = await localStore.get('ttExcludeWords');
+    if(savedEx && savedEx.value !== undefined && savedEx.value !== null){ ttExcludeWords = savedEx.value; document.getElementById('ttExcludeWords').value = savedEx.value; }
   }catch(e){}
   try{
     const savedTt = await localStore.get('timetableSheetId');

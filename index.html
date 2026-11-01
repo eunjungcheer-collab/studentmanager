@@ -382,7 +382,7 @@
   .wk-col.today{background-color:rgba(102,144,196,.06);}
   .wk-ev{position:absolute; border-radius:5px; padding:2px 3px; overflow:hidden; font-size:10px; line-height:1.25; box-sizing:border-box; border:1px solid rgba(0,0,0,.08);}
   .wk-ev b{display:block; font-weight:700; font-size:9.5px; opacity:.8; white-space:nowrap;}
-  .wk-ev .wk-name{display:block; white-space:nowrap; overflow:hidden; text-overflow:clip; font-size:11px; font-weight:600;}
+  .wk-ev .wk-name{display:block; white-space:normal; word-break:keep-all; overflow-wrap:anywhere; font-size:11px; font-weight:600; line-height:1.2;}
   .wk-ev.class{background:var(--violet-soft); border-color:var(--violet);}
   .wk-ev.makeup{background:#D7F0DF; border-color:#3E9B63; color:#1F5A37;}
   .wk-ev.other{background:var(--gold-soft); border-color:var(--gold);}
@@ -2424,8 +2424,27 @@ function layoutLanes(items){
 function wkShortLabel(t){
   const one = String(t||'').replace(/\s+/g,' ').replace(/^(테스트 보강|보강|결석) - /,'').trim();
   const head = one.split(/[(\[（]/)[0].trim();
-  return head || one;
+  // 학생 이름(짧은 글자) 뒤 괄호는 생략, 반 이름처럼 긴 글은 그대로
+  return (head && head.replace(/\s/g,'').length <= 5) ? head : one;
 }
+// 블록에 글자가 다 안 들어가면 글자 크기를 조금씩 줄여서 잘리지 않게
+function fitWeekLabels(grid){
+  grid.querySelectorAll('.wk-ev').forEach(ev=>{
+    const name = ev.querySelector('.wk-name'), time = ev.querySelector('b');
+    if(!name) return;
+    let size = 11;
+    while(size > 7.5 && ev.scrollHeight > ev.clientHeight + 1){
+      size -= 0.5;
+      name.style.fontSize = size + 'px';
+      if(time) time.style.fontSize = Math.min(9.5, size) + 'px';
+    }
+  });
+}
+let _wkResizeTimer = null;
+window.addEventListener('resize', ()=>{
+  clearTimeout(_wkResizeTimer);
+  _wkResizeTimer = setTimeout(()=>{ if(document.getElementById('view-timetable').classList.contains('active')) renderWeekView(); }, 200);
+});
 function renderWeekView(){
   const grid = document.getElementById('wkGrid');
   if(!grid) return;
@@ -2487,6 +2506,7 @@ function renderWeekView(){
   });
   html += '</div>';
   grid.innerHTML = html;
+  fitWeekLabels(grid);
   grid.querySelectorAll('[data-date]').forEach(el=>{
     el.addEventListener('click', e=>{
       e.stopPropagation();

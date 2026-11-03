@@ -3696,7 +3696,7 @@ async function refreshGraderDeadlines(force){
     if(v){ GR.pw = v; try{ sessionStorage.setItem('graderPwTab', v); }catch(e){} document.getElementById('graderPw').value = v; }
   }
   if(!GR.on || !GR.url || !GR.pw) return;
-  if(!force && Date.now() - GR.at < 120000) { updateCopyPreview(); return; }   // 2분 안에 가져온 목록은 다시 받지 않음
+  if(!force && Date.now() - GR.at < 15000) { updateCopyPreview(); return; }   // 15초 안에 가져온 목록은 다시 받지 않음
   if(grBusy) return; grBusy = true;
   try{
     const r = await fetchGraderList();
@@ -3705,6 +3705,10 @@ async function refreshGraderDeadlines(force){
   grBusy = false;
   updateCopyPreview();
 }
+// 채점 앱에서 새로 예약해도 새로고침 없이 반영: 화면으로 돌아올 때 + 30초마다 다시 확인
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshGraderDeadlines(); });
+window.addEventListener('focus', ()=>{ refreshGraderDeadlines(); });
+setInterval(()=>{ if(!document.hidden && GR.on && GR.url && GR.pw) refreshGraderDeadlines(true); }, 30000);
 document.getElementById('graderSaveBtn').addEventListener('click', async ()=>{
   GR.url = document.getElementById('graderUrl').value.trim();
   GR.pw = document.getElementById('graderPw').value;

@@ -2076,7 +2076,8 @@ function buildNoticeContent(){
   const qs = document.getElementById('quizScore').value.trim();
   if(qs) examParts.push(`객관식 ${qs}점`);
   const examLine = examParts.length ? `(${examParts.join(' · ')})` : '';
-  return [common, personal, examLine, graderDeadlineLine()].filter(Boolean).join(' ');
+  const body = [common, personal].filter(Boolean).join(' ');
+  return [body, examLine, graderDeadlineLine()].filter(Boolean).join('\n');
 }
 function updateCopyPreview(){
   setIfNotFocused('copy_book', form.book || '교재를 선택하면 여기 채워집니다');

@@ -810,6 +810,7 @@
     <label>채점 앱 선생님 비밀번호</label>
     <input type="password" id="graderPw" autocomplete="off">
     <label style="display:flex; align-items:center; gap:8px; font-weight:400; margin-top:10px;"><input type="checkbox" id="graderOn" checked style="width:auto; margin:0;"> 알림장 내용에 시험 제출 기한 넣기</label>
+    <label style="display:flex; align-items:flex-start; gap:8px; font-weight:400; margin-top:6px;"><input type="checkbox" id="graderKeep" style="width:auto; margin:3px 0 0;"> <span>이 기기에 비밀번호 저장 <span class="hint" style="margin:0;">(내 컴퓨터에서만 켜세요. 끄면 비밀번호는 이 창을 닫거나 로그아웃할 때 지워지고, 다시 쓸 때 물어봐요)</span></span></label>
     <button class="btn primary" id="graderSaveBtn" style="margin-top:10px;">저장하고 연결 확인</button>
     <p class="hint" id="graderStatus" style="margin-top:10px;">이 값은 이 기기에만 저장됩니다.</p>
   </div>
@@ -2208,6 +2209,7 @@ document.getElementById('shareBtn').addEventListener('click', async ()=>{
   const qs = document.getElementById('quizScore').value.trim();
   if(qs) examParts.push(`객관식 ${qs}점`);
   if(examParts.length) lines.push(`시험 결과: ${examParts.join(' · ')}`);
+  { const gl = graderDeadlineLine(); if(gl) lines.push(gl); }       // [시험 제출 기한] 시험이름 11/4(수) 14:06까지 제출
   if(absent) lines.push(`결석일자: ${absent}${timeRangeText(document.getElementById('absentTime').value, document.getElementById('absentEndTime').value)}`);
   const mct = document.getElementById('makeupClassTime').value;
   if(makeD || makeT) lines.push(`보강일정: ${makeD}${timeRangeText(makeT, document.getElementById('makeupEndTime').value)}${mct ? ` (수업 ${mct}~${document.getElementById('makeupClassEndTime').value}, 나머지 테스트)` : ''}`);
@@ -3632,6 +3634,10 @@ lockInput.addEventListener('input', ()=>{ lockError.style.display = 'none'; });
 
 document.getElementById('logoutBtn').addEventListener('click', async ()=>{
   await localStore.set('unlocked', '');
+  // 채점 앱 비밀번호·불러온 예약 목록은 로그아웃할 때 지운다 (「이 기기에 저장」을 켠 기기만 비밀번호가 남는다)
+  try{ sessionStorage.removeItem('graderPwTab'); }catch(e){}
+  GR.list = []; GR.at = 0; grAsked = false;
+  if(!document.getElementById('graderKeep').checked){ GR.pw = ''; document.getElementById('graderPw').value = ''; await localStore.set('graderPw', ''); }
   appRoot.style.display = 'none';
   lockScreen.style.display = 'flex';
   lockInput.value = '';
@@ -3681,7 +3687,13 @@ async function fetchGraderList(){
   return { ok:true, list: out.assignments || [] };
 }
 let grBusy = false;
+let grAsked = false;
 async function refreshGraderDeadlines(force){
+  if(GR.on && GR.url && !GR.pw && !grAsked){          // 비밀번호를 기기에 저장하지 않은 경우: 처음 쓸 때 한 번 물어본다
+    grAsked = true;
+    const v = prompt('채점 앱 선생님 비밀번호를 입력하세요 (시험 제출 기한을 알림장에 넣으려고 해요. 취소하면 이번에는 넣지 않아요)');
+    if(v){ GR.pw = v; try{ sessionStorage.setItem('graderPwTab', v); }catch(e){} document.getElementById('graderPw').value = v; }
+  }
   if(!GR.on || !GR.url || !GR.pw) return;
   if(!force && Date.now() - GR.at < 120000) { updateCopyPreview(); return; }   // 2분 안에 가져온 목록은 다시 받지 않음
   if(grBusy) return; grBusy = true;
@@ -3696,8 +3708,11 @@ document.getElementById('graderSaveBtn').addEventListener('click', async ()=>{
   GR.url = document.getElementById('graderUrl').value.trim();
   GR.pw = document.getElementById('graderPw').value;
   GR.on = document.getElementById('graderOn').checked;
+  const keep = document.getElementById('graderKeep').checked;
   await localStore.set('graderUrl', GR.url);
-  await localStore.set('graderPw', GR.pw);
+  await localStore.set('graderKeep', keep ? 'true' : 'false');
+  await localStore.set('graderPw', keep ? GR.pw : '');
+  try{ if(keep) sessionStorage.removeItem('graderPwTab'); else sessionStorage.setItem('graderPwTab', GR.pw); }catch(e){}
   await localStore.set('graderOn', GR.on ? 'true' : 'false');
   const st = document.getElementById('graderStatus');
   if(!GR.url || !GR.pw){ st.textContent = '저장했어요. (주소나 비밀번호가 비어 있어서 연결은 안 해요)'; return; }
@@ -3745,7 +3760,10 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
   try{
     const gu = await localStore.get('graderUrl'), gp = await localStore.get('graderPw'), go = await localStore.get('graderOn');
     if(gu && gu.value){ GR.url = gu.value; document.getElementById('graderUrl').value = gu.value; }
+    const gk = await localStore.get('graderKeep');
+    if(gk && gk.value === 'true') document.getElementById('graderKeep').checked = true;
     if(gp && gp.value){ GR.pw = gp.value; document.getElementById('graderPw').value = gp.value; }
+    else { try{ const t = sessionStorage.getItem('graderPwTab'); if(t){ GR.pw = t; document.getElementById('graderPw').value = t; } }catch(e){} }
     if(go && go.value === 'false'){ GR.on = false; document.getElementById('graderOn').checked = false; }
   }catch(e){}
   renderConceptToggle();

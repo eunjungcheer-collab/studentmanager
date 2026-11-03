@@ -803,6 +803,17 @@
     <p class="hint" id="connStatus" style="margin-top:10px;"></p>
   </div>
   <div class="block">
+    <div class="block-title"><span class="n c-teal">⏰</span>채점 앱 연결 (시험 제출 기한)</div>
+    <p class="hint" style="margin-top:0;">자동채점 앱에서 예약한 시험의 <b>제출 기한</b>을, 학생을 고를 때 알림장 내용 끝에 자동으로 붙여 줘요. (아직 제출하지 않은 시험만)</p>
+    <label>채점 앱 Apps Script 웹앱 URL</label>
+    <input type="text" id="graderUrl" placeholder="https://script.google.com/macros/s/ .../exec">
+    <label>채점 앱 선생님 비밀번호</label>
+    <input type="password" id="graderPw" autocomplete="off">
+    <label style="display:flex; align-items:center; gap:8px; font-weight:400; margin-top:10px;"><input type="checkbox" id="graderOn" checked style="width:auto; margin:0;"> 알림장 내용에 시험 제출 기한 넣기</label>
+    <button class="btn primary" id="graderSaveBtn" style="margin-top:10px;">저장하고 연결 확인</button>
+    <p class="hint" id="graderStatus" style="margin-top:10px;">이 값은 이 기기에만 저장됩니다.</p>
+  </div>
+  <div class="block">
     <div class="block-title"><span class="n c-coral">🔒</span>비밀번호 변경</div>
     <label>현재 비밀번호</label>
     <input type="password" id="pw_current" inputmode="numeric" autocomplete="off">
@@ -1675,6 +1686,7 @@ function selectStudent(name){
   const s = DATA.students.find(x=>x.이름===name);
   if(!s) return;
   form.student = s;
+  try{ refreshGraderDeadlines(); }catch(e){}
   studentSearchInput.value = '';
   studentDropdown.style.display = 'none';
   renderStudentChip();
@@ -2063,7 +2075,7 @@ function buildNoticeContent(){
   const qs = document.getElementById('quizScore').value.trim();
   if(qs) examParts.push(`객관식 ${qs}점`);
   const examLine = examParts.length ? `(${examParts.join(' · ')})` : '';
-  return [common, personal, examLine].filter(Boolean).join(' ');
+  return [common, personal, examLine, graderDeadlineLine()].filter(Boolean).join(' ');
 }
 function updateCopyPreview(){
   setIfNotFocused('copy_book', form.book || '교재를 선택하면 여기 채워집니다');
@@ -3642,6 +3654,61 @@ document.getElementById('pw_save').addEventListener('click', async ()=>{
   document.getElementById('pw_confirm').value = '';
 });
 
+// ---------------- 채점 앱 연결: 시험 제출 기한 ----------------
+const GR = { url:'', pw:'', on:true, list:[], at:0, err:'' };
+const grKey = n => String(n||'').replace(/\s+/g,'').toLowerCase();
+function grFmt(iso){
+  const d = new Date(iso); if(isNaN(d)) return '';
+  const w = ['일','월','화','수','목','금','토'][d.getDay()], p = n => String(n).padStart(2,'0');
+  return `${d.getMonth()+1}/${d.getDate()}(${w}) ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function graderPending(){
+  if(!GR.on || !form.student) return [];
+  const k = grKey(form.student.이름), now = Date.now();
+  return GR.list.filter(a => grKey(a.studentName) === k && a.status === 'wait' && new Date(a.deadline).getTime() > now)
+                .sort((a,b)=> new Date(a.deadline) - new Date(b.deadline));
+}
+function graderDeadlineLine(){
+  const L = graderPending();
+  if(!L.length) return '';
+  return L.map(a => `[시험 제출 기한] ${a.examTitle} ${grFmt(a.deadline)}까지 제출`).join(' ');
+}
+async function fetchGraderList(){
+  if(!GR.url || !GR.pw) return { ok:false, error:'채점 앱 주소·비밀번호가 비어 있어요' };
+  const res = await fetch(GR.url, { method:'POST', body: JSON.stringify({ action:'listAssignments', password: GR.pw }) });
+  const out = await res.json();
+  if(!out || !out.ok) return { ok:false, error:(out && out.error) || '불러오지 못했어요' };
+  return { ok:true, list: out.assignments || [] };
+}
+let grBusy = false;
+async function refreshGraderDeadlines(force){
+  if(!GR.on || !GR.url || !GR.pw) return;
+  if(!force && Date.now() - GR.at < 120000) { updateCopyPreview(); return; }   // 2분 안에 가져온 목록은 다시 받지 않음
+  if(grBusy) return; grBusy = true;
+  try{
+    const r = await fetchGraderList();
+    if(r.ok){ GR.list = r.list; GR.at = Date.now(); GR.err = ''; } else { GR.err = r.error; }
+  }catch(e){ GR.err = '채점 앱에 연결하지 못했어요'; }
+  grBusy = false;
+  updateCopyPreview();
+}
+document.getElementById('graderSaveBtn').addEventListener('click', async ()=>{
+  GR.url = document.getElementById('graderUrl').value.trim();
+  GR.pw = document.getElementById('graderPw').value;
+  GR.on = document.getElementById('graderOn').checked;
+  await localStore.set('graderUrl', GR.url);
+  await localStore.set('graderPw', GR.pw);
+  await localStore.set('graderOn', GR.on ? 'true' : 'false');
+  const st = document.getElementById('graderStatus');
+  if(!GR.url || !GR.pw){ st.textContent = '저장했어요. (주소나 비밀번호가 비어 있어서 연결은 안 해요)'; return; }
+  st.textContent = '연결 확인 중...';
+  try{
+    const r = await fetchGraderList();
+    if(r.ok){ GR.list = r.list; GR.at = Date.now(); st.textContent = '✅ 연결됐어요. 예약된 시험 ' + r.list.length + '건을 불러왔어요.'; updateCopyPreview(); }
+    else st.textContent = '⚠️ ' + r.error;
+  }catch(e){ st.textContent = '⚠️ 채점 앱에 연결하지 못했어요. 주소를 확인하세요.'; }
+});
+
 // ---------------- 설정 ----------------
 document.getElementById('saveUrlBtn').addEventListener('click', async ()=>{
   const url = document.getElementById('webAppUrl').value.trim();
@@ -3674,6 +3741,12 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
       CONFIG.timetableSheetId = savedTt.value;
       document.getElementById('timetableUrl').value = savedTt.value;
     }
+  }catch(e){}
+  try{
+    const gu = await localStore.get('graderUrl'), gp = await localStore.get('graderPw'), go = await localStore.get('graderOn');
+    if(gu && gu.value){ GR.url = gu.value; document.getElementById('graderUrl').value = gu.value; }
+    if(gp && gp.value){ GR.pw = gp.value; document.getElementById('graderPw').value = gp.value; }
+    if(go && go.value === 'false'){ GR.on = false; document.getElementById('graderOn').checked = false; }
   }catch(e){}
   renderConceptToggle();
   renderStudentChip();

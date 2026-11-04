@@ -386,6 +386,15 @@
   .wk-ev.class{background:var(--violet-soft); border-color:var(--violet);}
   .wk-ev.makeup{background:#D7F0DF; border-color:#3E9B63; color:#1F5A37;}
   .wk-ev.other{background:var(--gold-soft); border-color:var(--gold);}
+  .wk-col{cursor:copy;}
+  .wk-ev{cursor:pointer;}
+  .wk-ev.addtest{background:repeating-linear-gradient(45deg,#FBE9D0,#FBE9D0 4px,#fff 4px,#fff 8px); border:1px dashed #C98A2E; color:#7A4E12;}
+  .wk-ev.added{box-shadow:inset 3px 0 0 #C98A2E;}
+  .wk-slot-hint{position:absolute; left:1px; right:1px; height:23px; border-radius:5px; background:rgba(201,138,46,.15); border:1px dashed #C98A2E; pointer-events:none; font-size:10px; color:#7A4E12; padding:2px 4px; box-sizing:border-box;}
+  .seg{display:flex; gap:0; border:1px solid #c9d2e0; border-radius:8px; overflow:hidden;}
+  .seg button{flex:1; border:none; background:#fff; padding:8px 4px; font-size:13px; cursor:pointer;}
+  .seg button.on{background:var(--cobalt); color:#fff; font-weight:700;}
+  .seg button + button{border-left:1px solid #c9d2e0;}
   .wk-ev.test{background:repeating-linear-gradient(45deg,#f4f4f6,#f4f4f6 4px,#fff 4px,#fff 8px); border:1px dashed #b9bfca; opacity:.8;}
   .wk-ev.makeuptest{background:repeating-linear-gradient(45deg,#D7F0DF,#D7F0DF 4px,#fff 4px,#fff 8px); border:1px dashed #3E9B63; color:#1F5A37;}
   .wk-ev.moved{background:transparent; border:1px dotted #9aa3b2; opacity:.55;}
@@ -736,9 +745,11 @@
       <span><i style="background:var(--coral-soft);"></i>결석</span>
       <span><i style="border:1px dashed #b9bfca; background:#f4f4f6;"></i>테스트 열 (겹침 제외)</span>
       <span><i style="border:2px dashed var(--violet);"></i>이번 주만 바꾼 수업</span>
+      <span><i style="background:var(--violet-soft); box-shadow:inset 3px 0 0 #C98A2E;"></i>직접 추가한 수업</span>
+      <span><i style="background:#FBE9D0; border:1px dashed #C98A2E;"></i>직접 추가한 테스트</span>
       <span><i style="border:2px solid var(--coral);"></i>시간 겹침</span>
     </div>
-    <p class="hint" style="margin-top:6px;">날짜나 일정을 누르면 그날 일정을 추가·수정할 수 있습니다. 📚 정규 수업 블록을 누르면 <b>이번 주에만</b> 시간을 옮기거나 뺄 수 있습니다 (공유 시간표는 그대로).</p>
+    <p class="hint" style="margin-top:6px;"><b>빈 시간대</b>를 누르면 그 시간에 학생을 수업·테스트로 추가할 수 있습니다 (이번 주만 / 계속 / 날짜까지). 📚 정규 수업 블록을 누르면 <b>이번 주에만</b> 시간을 옮기거나 뺄 수 있고, 요일 머리글을 누르면 그날 결석·보강·일정을 입력합니다. 공유 시간표 시트는 바뀌지 않습니다.</p>
   </div>
   <div class="block">
     <div class="block-title"><span class="n c-violet">🗓️</span>주간 시간표</div>
@@ -803,18 +814,6 @@
     <p class="hint" id="connStatus" style="margin-top:10px;"></p>
   </div>
   <div class="block">
-    <div class="block-title"><span class="n c-teal">⏰</span>채점 앱 연결 (시험 제출 기한)</div>
-    <p class="hint" style="margin-top:0;">자동채점 앱에서 예약한 시험의 <b>제출 기한</b>을, 학생을 고를 때 알림장 내용 끝에 자동으로 붙여 줘요. (아직 제출하지 않은 시험만)</p>
-    <label>채점 앱 Apps Script 웹앱 URL</label>
-    <input type="text" id="graderUrl" placeholder="https://script.google.com/macros/s/ .../exec">
-    <label>채점 앱 선생님 비밀번호</label>
-    <input type="password" id="graderPw" autocomplete="off">
-    <label style="display:flex; align-items:center; gap:8px; font-weight:400; margin-top:10px;"><input type="checkbox" id="graderOn" checked style="width:auto; margin:0;"> 알림장 내용에 시험 제출 기한 넣기</label>
-    <label style="display:flex; align-items:flex-start; gap:8px; font-weight:400; margin-top:6px;"><input type="checkbox" id="graderKeep" style="width:auto; margin:3px 0 0;"> <span>이 기기에 비밀번호 저장 <span class="hint" style="margin:0;">(내 컴퓨터에서만 켜세요. 끄면 비밀번호는 이 창을 닫거나 로그아웃할 때 지워지고, 다시 쓸 때 물어봐요)</span></span></label>
-    <button class="btn primary" id="graderSaveBtn" style="margin-top:10px;">저장하고 연결 확인</button>
-    <p class="hint" id="graderStatus" style="margin-top:10px;">이 값은 이 기기에만 저장됩니다.</p>
-  </div>
-  <div class="block">
     <div class="block-title"><span class="n c-coral">🔒</span>비밀번호 변경</div>
     <label>현재 비밀번호</label>
     <input type="password" id="pw_current" inputmode="numeric" autocomplete="off">
@@ -848,6 +847,51 @@
     <button class="btn primary block-w" id="sameDayUpdate" style="margin-bottom:8px;">기존 기록 수정 (덮어쓰기)</button>
     <button class="btn teal block-w" id="sameDayNew" style="margin-bottom:8px;">새 기록으로 저장</button>
     <button class="btn ghost block-w" id="sameDayCancel">취소</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="ttAddModal" style="display:none; z-index:60;">
+  <div class="modal-box" style="max-width:380px; max-height:88vh; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <b style="font-size:15px;" id="taTitle">시간대에 학생 추가</b>
+      <button class="btn sm" id="taClose">닫기</button>
+    </div>
+    <p class="hint" style="margin:0 0 8px;">공유 시간표 시트는 바뀌지 않고, 이 앱의 주간 일정표에만 추가됩니다.</p>
+    <label style="margin-top:0;">학생</label>
+    <div class="search-wrap">
+      <input type="text" id="taName" placeholder="학생 이름 검색 또는 직접 입력" autocomplete="off">
+      <div class="dropdown" id="taNameDropdown" style="display:none;"></div>
+    </div>
+    <label>종류</label>
+    <div class="seg" id="taKind">
+      <button type="button" data-kind="class" class="on">📚 수업</button>
+      <button type="button" data-kind="test">📝 테스트</button>
+    </div>
+    <p class="hint" id="taKindHint" style="margin:4px 0 0;"></p>
+    <label>요일</label>
+    <select id="taDate"></select>
+    <label>시간</label>
+    <div class="row" style="gap:6px; align-items:center; flex-wrap:nowrap;">
+      <button type="button" class="btn" id="taStartTrigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 시작</button>
+      <span>~</span>
+      <button type="button" class="btn" id="taEndTrigger" style="flex:1; justify-content:flex-start; background:#fff; font-weight:400;">🕐 종료</button>
+    </div>
+    <input type="hidden" id="taStart">
+    <input type="hidden" id="taEnd">
+    <label>기간</label>
+    <div class="seg" id="taPeriod">
+      <button type="button" data-period="once" class="on">이번 주만</button>
+      <button type="button" data-period="forever">계속 유지</button>
+      <button type="button" data-period="until">날짜까지</button>
+    </div>
+    <input type="date" id="taUntil" style="display:none; margin-top:6px;">
+    <p class="hint" id="taPeriodHint" style="margin:4px 0 0;"></p>
+    <div id="taConflict"></div>
+    <button class="btn primary sm block-w" id="taSave" style="margin-top:12px;">추가하기</button>
+    <div class="row" id="taEditBtns" style="margin-top:8px; gap:6px; display:none;">
+      <button class="btn sm" id="taSkip" style="flex:1;">이 날만 빼기</button>
+      <button class="btn sm" id="taDelete" style="flex:1; color:var(--coral); border-color:var(--coral);">삭제 (전체 기간)</button>
+    </div>
   </div>
 </div>
 
@@ -1375,6 +1419,15 @@ function getDaySchedule(dateKey){
       items.push({ ...base, start: hmToMin(ov.start), end: hmToMin(ov.end), changed: moved });
     }
   });
+  // 주간 일정표에서 직접 추가한 학생 (기간 안의 같은 요일마다)
+  (DATA.ttAdds || []).forEach(a=>{
+    if(a.dow !== dow || !a.start || !a.end) return;
+    if(a.from && dateKey < a.from) return;
+    if(a.to && dateKey > a.to) return;
+    if((a.skip||[]).includes(dateKey)) return;
+    items.push({ kind: a.kind === 'test' ? 'addtest' : 'class', added:true, label: a.kind === 'test' ? `테스트 - ${a.name}` : a.name,
+      start: hmToMin(a.start), end: hmToMin(a.end), addId: a.id, addDate: dateKey });
+  });
   // 다른 요일에서 이 날로 옮겨온 수업
   (DATA.ttOverrides || []).forEach(ov=>{
     if(ov.cancel || ov.newDate !== dateKey || ov.date === dateKey || !ov.start || !ov.end) return;
@@ -1412,12 +1465,12 @@ function getDaySchedule(dateKey){
   items.sort((a,b)=> a.start-b.start || a.end-b.end);
   return items;
 }
-function findConflicts(dateKey, start, end, ignoreRecord, ignoreTtKey){
-  return getDaySchedule(dateKey).filter(it => !NO_CLASH[it.kind] && (!ignoreRecord || it.record !== ignoreRecord) && (!ignoreTtKey || it.ttKey !== ignoreTtKey) && it.start < end && start < it.end);
+function findConflicts(dateKey, start, end, ignoreRecord, ignoreTtKey, ignoreAddId){
+  return getDaySchedule(dateKey).filter(it => !NO_CLASH[it.kind] && (!ignoreRecord || it.record !== ignoreRecord) && (!ignoreTtKey || it.ttKey !== ignoreTtKey) && (!ignoreAddId || it.addId !== ignoreAddId) && it.start < end && start < it.end);
 }
-const SCHED_ICON = { class:'📚', makeup:'🔁', other:'📌', test:'🧪', absent:'🚫', makeuptest:'📝', moved:'↪' };
+const SCHED_ICON = { class:'📚', makeup:'🔁', other:'📌', test:'🧪', absent:'🚫', makeuptest:'📝', moved:'↪', addtest:'📝' };
 // 테스트 열·결석은 시간이 겹쳐도 겹침으로 치지 않음
-const NO_CLASH = { test:1, absent:1, makeuptest:1, moved:1 };
+const NO_CLASH = { test:1, absent:1, makeuptest:1, moved:1, addtest:1 };
 function itemsClash(a, b){ return a !== b && !NO_CLASH[a.kind] && !NO_CLASH[b.kind] && a.start < b.end && b.start < a.end; }
 function renderDaySchedule(){
   const box = document.getElementById('daySchedule');
@@ -1436,7 +1489,7 @@ function renderDaySchedule(){
       const clash = items.some(o=> itemsClash(it, o));
       html += `<div style="display:flex; gap:6px; padding:3px 0;${clash ? ' color:var(--coral); font-weight:700;' : ''}">
         <span style="white-space:nowrap;">${minToHm(it.start)}~${minToHm(it.end)}</span>
-        <span>${SCHED_ICON[it.kind]} ${escapeHtml(it.label)}${it.changed ? ' <span style="font-size:11px; opacity:.75;">(이번 주만 변경)</span>' : ''}${clash ? ' ⚠ 겹침' : ''}</span></div>`;
+        <span>${SCHED_ICON[it.kind]} ${escapeHtml(it.label)}${it.changed ? ' <span style="font-size:11px; opacity:.75;">(이번 주만 변경)</span>' : ''}${it.added ? ' <span style="font-size:11px; opacity:.75;">(직접 추가)</span>' : ''}${clash ? ' ⚠ 겹침' : ''}</span></div>`;
     });
   }
   html += '</div>';
@@ -1687,7 +1740,6 @@ function selectStudent(name){
   const s = DATA.students.find(x=>x.이름===name);
   if(!s) return;
   form.student = s;
-  try{ refreshGraderDeadlines(); }catch(e){}
   studentSearchInput.value = '';
   studentDropdown.style.display = 'none';
   renderStudentChip();
@@ -2076,8 +2128,7 @@ function buildNoticeContent(){
   const qs = document.getElementById('quizScore').value.trim();
   if(qs) examParts.push(`객관식 ${qs}점`);
   const examLine = examParts.length ? `(${examParts.join(' · ')})` : '';
-  const body = [common, personal].filter(Boolean).join(' ');
-  return [body, examLine, graderDeadlineLine()].filter(Boolean).join('\n');
+  return [common, personal, examLine].filter(Boolean).join(' ');
 }
 function updateCopyPreview(){
   setIfNotFocused('copy_book', form.book || '교재를 선택하면 여기 채워집니다');
@@ -2210,7 +2261,6 @@ document.getElementById('shareBtn').addEventListener('click', async ()=>{
   const qs = document.getElementById('quizScore').value.trim();
   if(qs) examParts.push(`객관식 ${qs}점`);
   if(examParts.length) lines.push(`시험 결과: ${examParts.join(' · ')}`);
-  { const gl = graderDeadlineLine(); if(gl) lines.push(gl); }       // [시험 제출 기한] 시험이름 11/4(수) 14:06까지 제출
   if(absent) lines.push(`결석일자: ${absent}${timeRangeText(document.getElementById('absentTime').value, document.getElementById('absentEndTime').value)}`);
   const mct = document.getElementById('makeupClassTime').value;
   if(makeD || makeT) lines.push(`보강일정: ${makeD}${timeRangeText(makeT, document.getElementById('makeupEndTime').value)}${mct ? ` (수업 ${mct}~${document.getElementById('makeupClassEndTime').value}, 나머지 테스트)` : ''}`);
@@ -2437,7 +2487,7 @@ function layoutLanes(items){
 }
 // 주간표에는 괄호 앞 이름만 한 줄로 (전체 내용은 누르면 날짜 창에서 확인)
 function wkShortLabel(t){
-  const one = String(t||'').replace(/\s+/g,' ').replace(/^(테스트 보강|보강|결석) - /,'').trim();
+  const one = String(t||'').replace(/\s+/g,' ').replace(/^(테스트 보강|테스트|보강|결석) - /,'').trim();
   const head = one.split(/[(\[（]/)[0].trim();
   // 학생 이름(짧은 글자) 뒤 괄호는 생략, 반 이름처럼 긴 글은 그대로
   return (head && head.replace(/\s/g,'').length <= 5) ? head : one;
@@ -2513,23 +2563,187 @@ function renderWeekView(){
       const top = (it.start - minH*60)*pxPerMin;
       const h = Math.max(16, (it.end - it.start)*pxPerMin - 2);
       const w = 100/it._lanes;
-      const ttAttr = it.ttKey ? ` data-tt-key="${escapeHtml(it.ttKey).replace(/"/g,'&quot;')}" data-tt-date="${it.ttDate}"` : '';
-      html += `<div class="wk-ev ${it.kind}${it.changed?' changed':''}${it.clash?' clash':''}" data-date="${pd.key}"${ttAttr} style="top:${top}px; height:${h}px; left:calc(${w*it._lane}% + 1px); width:calc(${w}% - 2px);" title="${minToHm(it.start)}~${minToHm(it.end)} ${escapeHtml(it.label)}${it.clash?' (시간 겹침)':''}">
-        <b>${minToHm(it.start)}${it.changed?' ↪':''}${it.clash?' ⚠':''}</b><span class="wk-name">${escapeHtml(wkShortLabel(it.label))}</span></div>`;
+      const ttAttr = it.addId ? ` data-add-id="${it.addId}" data-add-date="${it.addDate}"`
+        : it.ttKey ? ` data-tt-key="${escapeHtml(it.ttKey).replace(/"/g,'&quot;')}" data-tt-date="${it.ttDate}"` : '';
+      html += `<div class="wk-ev ${it.kind}${it.added?' added':''}${it.changed?' changed':''}${it.clash?' clash':''}" data-date="${pd.key}"${ttAttr} style="top:${top}px; height:${h}px; left:calc(${w*it._lane}% + 1px); width:calc(${w}% - 2px);" title="${minToHm(it.start)}~${minToHm(it.end)} ${escapeHtml(it.label)}${it.clash?' (시간 겹침)':''}">
+        <b>${minToHm(it.start)}${it.added?' ＋':''}${it.changed?' ↪':''}${it.clash?' ⚠':''}</b><span class="wk-name">${escapeHtml(wkShortLabel(it.label))}</span></div>`;
     });
     html += '</div>';
   });
   html += '</div>';
   grid.innerHTML = html;
   fitWeekLabels(grid);
-  grid.querySelectorAll('[data-date]').forEach(el=>{
+  grid.querySelectorAll('.wk-head[data-date], .wk-allday[data-date], .wk-ev[data-date]').forEach(el=>{
     el.addEventListener('click', e=>{
       e.stopPropagation();
-      if(el.dataset.ttKey) openTtEditor(el.dataset.ttKey, el.dataset.ttDate);
+      if(el.dataset.addId) openTtAdd({ id: el.dataset.addId, date: el.dataset.addDate });
+      else if(el.dataset.ttKey) openTtEditor(el.dataset.ttKey, el.dataset.ttDate);
       else openDayDetail(el.dataset.date);
     });
   });
+  // 빈 시간대 클릭 → 그 시간에 학생 추가 (30분 단위)
+  grid.querySelectorAll('.wk-col[data-date]').forEach(col=>{
+    const slotAt = e => {
+      const y = e.clientY - col.getBoundingClientRect().top;
+      return Math.max(0, Math.min(minH*60 + Math.floor(y/pxPerMin/30)*30, maxH*60 - 30));
+    };
+    col.addEventListener('click', e=>{
+      if(e.target !== col) return;
+      openTtAdd({ date: col.dataset.date, start: slotAt(e) });
+    });
+    col.addEventListener('mousemove', e=>{
+      if(e.target !== col){ const h = col.querySelector('.wk-slot-hint'); if(h) h.remove(); return; }
+      const m = slotAt(e);
+      let h = col.querySelector('.wk-slot-hint');
+      if(!h){ h = document.createElement('div'); h.className = 'wk-slot-hint'; col.appendChild(h); }
+      h.style.top = ((m - minH*60)*pxPerMin) + 'px';
+      h.textContent = '＋ ' + minToHm(m);
+    });
+    col.addEventListener('mouseleave', ()=>{ const h = col.querySelector('.wk-slot-hint'); if(h) h.remove(); });
+  });
 }
+
+// ---------------- 주간 일정표에 학생 직접 추가 ----------------
+let ta = null; // { id, date, kind, period }
+function taSetSeg(segId, attr, val){
+  document.querySelectorAll(`#${segId} button`).forEach(b=>b.classList.toggle('on', b.dataset[attr] === val));
+}
+function taRefreshHints(){
+  document.getElementById('taKindHint').textContent = ta.kind === 'test'
+    ? '테스트는 다른 수업과 시간이 겹쳐도 겹침으로 치지 않습니다.'
+    : '수업은 다른 수업·보강과 겹치면 경고합니다.';
+  const d = document.getElementById('taDate').value;
+  const dd = new Date(d + 'T00:00:00'), dow = DOW_CHARS[dd.getDay()];
+  // 반복 일정을 수정할 때는 원래 시작 날짜 기준으로 안내
+  const fromKey = (ta.period !== 'once' && ta.rec && ta.rec.from !== ta.rec.to) ? ta.rec.from : d;
+  const fd = new Date(fromKey + 'T00:00:00');
+  const until = document.getElementById('taUntil');
+  until.style.display = ta.period === 'until' ? '' : 'none';
+  let t = '';
+  if(ta.period === 'once') t = `${dd.getMonth()+1}/${dd.getDate()}(${dow}) 하루만 들어갑니다. 다음 주에는 없습니다.`;
+  else if(ta.period === 'forever') t = `${fd.getMonth()+1}/${fd.getDate()}부터 매주 ${dow}요일에 계속 들어갑니다.`;
+  else{
+    const u = until.value;
+    t = u ? `${fd.getMonth()+1}/${fd.getDate()}부터 ${u.slice(5).replace('-','/')}까지 매주 ${dow}요일에 들어갑니다.` : '마지막 날짜를 골라주세요.';
+  }
+  document.getElementById('taPeriodHint').textContent = t;
+}
+function taCheckConflict(){
+  if(!ta) return [];
+  const box = document.getElementById('taConflict');
+  const d = document.getElementById('taDate').value;
+  const t = document.getElementById('taStart').value, t2 = document.getElementById('taEnd').value;
+  taRefreshHints();
+  if(!t || !t2 || ta.kind === 'test'){ box.innerHTML = ''; return []; }
+  const s0 = hmToMin(t), e0 = hmToMin(t2);
+  const list = findConflicts(d, s0, e0, null, null, ta.id);
+  box.innerHTML = conflictHtml(list, s0, e0);
+  return list;
+}
+const refreshTaTime = setupTimePair('taStart', 'taEnd', taCheckConflict);
+function openTtAdd(opt){
+  const existing = opt.id ? (DATA.ttAdds || []).find(a => a.id === opt.id) : null;
+  if(opt.id && !existing){ toast('추가한 일정을 찾지 못했습니다'); return; }
+  const date = opt.date;
+  ta = { id: existing ? existing.id : null, date, kind: existing ? existing.kind : 'class', period: 'once', rec: existing };
+  if(existing){
+    ta.period = !existing.to ? 'forever' : (existing.from === existing.to ? 'once' : 'until');
+  }
+  document.getElementById('taTitle').textContent = existing ? '추가한 학생 수정' : '시간대에 학생 추가';
+  document.getElementById('taName').value = existing ? existing.name : '';
+  const sel = document.getElementById('taDate');
+  sel.innerHTML = weekDatesOf(date).map(k=>{ const x = new Date(k+'T00:00:00'); return `<option value="${k}">${DOW_CHARS[x.getDay()]} ${x.getMonth()+1}/${x.getDate()}</option>`; }).join('');
+  sel.value = date;
+  sel.disabled = !!(existing && existing.to !== existing.from); // 반복 일정은 요일을 여기서 바꾸지 않음
+  const st = existing ? existing.start : minToHm(opt.start);
+  document.getElementById('taStart').value = st;
+  document.getElementById('taEnd').value = existing ? existing.end : plusHour(st);
+  refreshTaTime();
+  document.getElementById('taUntil').value = existing && existing.to && existing.to !== existing.from ? existing.to : '';
+  taSetSeg('taKind', 'kind', ta.kind);
+  taSetSeg('taPeriod', 'period', ta.period);
+  document.getElementById('taSave').textContent = existing ? '저장' : '추가하기';
+  document.getElementById('taEditBtns').style.display = existing ? 'flex' : 'none';
+  document.getElementById('taSkip').style.display = existing && existing.from !== existing.to ? '' : 'none';
+  document.getElementById('taNameDropdown').style.display = 'none';
+  taCheckConflict();
+  document.getElementById('ttAddModal').style.display = 'flex';
+  if(!existing) setTimeout(()=>document.getElementById('taName').focus(), 50);
+}
+document.querySelectorAll('#taKind button').forEach(b=>b.addEventListener('click', ()=>{ ta.kind = b.dataset.kind; taSetSeg('taKind','kind',ta.kind); taCheckConflict(); }));
+document.querySelectorAll('#taPeriod button').forEach(b=>b.addEventListener('click', ()=>{
+  ta.period = b.dataset.period; taSetSeg('taPeriod','period',ta.period);
+  if(ta.period === 'until' && !document.getElementById('taUntil').value){
+    const d = new Date(document.getElementById('taDate').value + 'T00:00:00'); d.setDate(d.getDate()+28);
+    document.getElementById('taUntil').value = dateKeyOf(d);
+  }
+  taRefreshHints();
+}));
+document.getElementById('taUntil').addEventListener('change', taRefreshHints);
+document.getElementById('taDate').addEventListener('change', taCheckConflict);
+document.getElementById('taClose').addEventListener('click', ()=>{ document.getElementById('ttAddModal').style.display = 'none'; });
+// 학생 이름 검색 (목록에 없으면 입력한 그대로 사용)
+(function(){
+  const inp = document.getElementById('taName'), dd = document.getElementById('taNameDropdown');
+  const show = ()=>{
+    const q = inp.value.trim();
+    // 이미 정확한 이름을 입력했으면 목록을 닫아 아래 버튼을 가리지 않게
+    if(q && (DATA.students || []).some(x=>x.이름 === q)){ dd.style.display = 'none'; return; }
+    const res = fuzzySearch(q, DATA.students || [], x=>x.이름 + ' ' + (x.학교학년||'')).slice(0,6);
+    if(!res.length){ dd.style.display = 'none'; return; }
+    dd.innerHTML = res.map(x=>`<div class="opt" data-name="${escapeHtml(x.이름)}">${escapeHtml(x.이름)}<div class="sub">${escapeHtml(x.학교학년||'')}</div></div>`).join('');
+    dd.style.display = 'block';
+    dd.querySelectorAll('.opt').forEach(o=>o.addEventListener('mousedown', ev=>{ ev.preventDefault(); inp.value = o.dataset.name; dd.style.display = 'none'; }));
+  };
+  inp.addEventListener('input', show);
+  inp.addEventListener('focus', show);
+  inp.addEventListener('blur', ()=>setTimeout(()=>{ dd.style.display = 'none'; }, 150));
+  inp.addEventListener('keydown', e=>{ if(e.key === 'Enter' || e.key === 'Escape'){ e.preventDefault(); dd.style.display = 'none'; inp.blur(); } });
+})();
+async function taSend(action, params, okMsg){
+  const btns = ['taSave','taSkip','taDelete'].map(id=>document.getElementById(id));
+  btns.forEach(b=>b.disabled = true);
+  try{
+    const res = await apiPost(action, params);
+    if(res.error){ toast(res.error); return; }
+    if(!res.result){ toast('Apps Script를 새 버전으로 배포해야 저장됩니다'); return; }
+    document.getElementById('ttAddModal').style.display = 'none';
+    await loadData();
+    renderWeekView();
+    toast(okMsg);
+  }catch(e){ toast('저장 실패: ' + e.message); }
+  finally{ btns.forEach(b=>b.disabled = false); }
+}
+document.getElementById('taSave').addEventListener('click', async ()=>{
+  const name = document.getElementById('taName').value.trim();
+  const d = document.getElementById('taDate').value;
+  const t = document.getElementById('taStart').value, t2 = document.getElementById('taEnd').value;
+  if(!name){ toast('학생 이름을 입력해주세요'); return; }
+  if(!t || !t2 || hmToMin(t2) <= hmToMin(t)){ toast('시작·종료 시간을 확인해주세요'); return; }
+  let from = d, to = d;
+  if(ta.rec && ta.rec.from !== ta.rec.to) from = ta.rec.from; // 반복 일정 수정 시 시작 날짜 유지
+  if(ta.period === 'forever') to = '';
+  else if(ta.period === 'until'){
+    to = document.getElementById('taUntil').value;
+    if(!to || to < from){ toast('마지막 날짜를 확인해주세요'); return; }
+  }else{ from = d; to = d; }
+  const clash = taCheckConflict();
+  if(clash.length && !confirm('이 시간에 겹치는 수업·일정이 있습니다:\n\n' + clash.map(c=>`${minToHm(c.start)}~${minToHm(c.end)} ${c.label}`).join('\n') + '\n\n그래도 추가할까요?')) return;
+  const dow = new Date(d + 'T00:00:00').getDay();
+  await taSend('saveTtAdd', { id: ta.id || '', name, kind: ta.kind, dow, start: t, end: t2, from, to,
+    skip: ta.rec ? (ta.rec.skip||[]).join(',') : '' }, ta.id ? '수정했습니다' : `${name} 학생을 추가했습니다`);
+});
+document.getElementById('taSkip').addEventListener('click', async ()=>{
+  const r = ta.rec; if(!r) return;
+  if(!confirm(`${ta.date} 하루만 ${r.name} 일정을 뺄까요? (다른 주는 그대로)`)) return;
+  const skip = Array.from(new Set([...(r.skip||[]), ta.date])).join(',');
+  await taSend('saveTtAdd', { id: r.id, name: r.name, kind: r.kind, dow: r.dow, start: r.start, end: r.end, from: r.from, to: r.to, skip }, '이 날만 뺐습니다');
+});
+document.getElementById('taDelete').addEventListener('click', async ()=>{
+  const r = ta.rec; if(!r) return;
+  if(!confirm(`${r.name} 일정을 ${r.from !== r.to ? '모든 주에서 ' : ''}삭제할까요?`)) return;
+  await taSend('deleteTtAdd', { id: r.id }, '삭제했습니다');
+});
 
 // ---------------- 정규 수업 시간 조정 (이번 주만) ----------------
 let ttEd = null;
@@ -3635,10 +3849,6 @@ lockInput.addEventListener('input', ()=>{ lockError.style.display = 'none'; });
 
 document.getElementById('logoutBtn').addEventListener('click', async ()=>{
   await localStore.set('unlocked', '');
-  // 채점 앱 비밀번호·불러온 예약 목록은 로그아웃할 때 지운다 (「이 기기에 저장」을 켠 기기만 비밀번호가 남는다)
-  try{ sessionStorage.removeItem('graderPwTab'); }catch(e){}
-  GR.list = []; GR.at = 0; grAsked = false;
-  if(!document.getElementById('graderKeep').checked){ GR.pw = ''; document.getElementById('graderPw').value = ''; await localStore.set('graderPw', ''); }
   appRoot.style.display = 'none';
   lockScreen.style.display = 'flex';
   lockInput.value = '';
@@ -3659,74 +3869,6 @@ document.getElementById('pw_save').addEventListener('click', async ()=>{
   document.getElementById('pw_current').value = '';
   document.getElementById('pw_new').value = '';
   document.getElementById('pw_confirm').value = '';
-});
-
-// ---------------- 채점 앱 연결: 시험 제출 기한 ----------------
-const GR = { url:'', pw:'', on:true, list:[], at:0, err:'' };
-const grKey = n => String(n||'').replace(/\s+/g,'').toLowerCase();
-function grFmt(iso){
-  const d = new Date(iso); if(isNaN(d)) return '';
-  const w = ['일','월','화','수','목','금','토'][d.getDay()], p = n => String(n).padStart(2,'0');
-  return `${d.getMonth()+1}/${d.getDate()}(${w}) ${p(d.getHours())}:${p(d.getMinutes())}`;
-}
-function graderPending(){
-  if(!GR.on || !form.student) return [];
-  const k = grKey(form.student.이름), now = Date.now();
-  return GR.list.filter(a => grKey(a.studentName) === k && a.status === 'wait' && new Date(a.deadline).getTime() > now)
-                .sort((a,b)=> new Date(a.deadline) - new Date(b.deadline));
-}
-function graderDeadlineLine(){
-  const L = graderPending();
-  if(!L.length) return '';
-  return L.map(a => `[시험 제출 기한] ${a.examTitle} ${grFmt(a.deadline)}까지 제출`).join(' ');
-}
-async function fetchGraderList(){
-  if(!GR.url || !GR.pw) return { ok:false, error:'채점 앱 주소·비밀번호가 비어 있어요' };
-  const res = await fetch(GR.url, { method:'POST', body: JSON.stringify({ action:'listAssignments', password: GR.pw }) });
-  const out = await res.json();
-  if(!out || !out.ok) return { ok:false, error:(out && out.error) || '불러오지 못했어요' };
-  return { ok:true, list: out.assignments || [] };
-}
-let grBusy = false;
-let grAsked = false;
-async function refreshGraderDeadlines(force){
-  if(GR.on && GR.url && !GR.pw && !grAsked){          // 비밀번호를 기기에 저장하지 않은 경우: 처음 쓸 때 한 번 물어본다
-    grAsked = true;
-    const v = prompt('채점 앱 선생님 비밀번호를 입력하세요 (시험 제출 기한을 알림장에 넣으려고 해요. 취소하면 이번에는 넣지 않아요)');
-    if(v){ GR.pw = v; try{ sessionStorage.setItem('graderPwTab', v); }catch(e){} document.getElementById('graderPw').value = v; }
-  }
-  if(!GR.on || !GR.url || !GR.pw) return;
-  if(!force && Date.now() - GR.at < 15000) { updateCopyPreview(); return; }   // 15초 안에 가져온 목록은 다시 받지 않음
-  if(grBusy) return; grBusy = true;
-  try{
-    const r = await fetchGraderList();
-    if(r.ok){ GR.list = r.list; GR.at = Date.now(); GR.err = ''; } else { GR.err = r.error; }
-  }catch(e){ GR.err = '채점 앱에 연결하지 못했어요'; }
-  grBusy = false;
-  updateCopyPreview();
-}
-// 채점 앱에서 새로 예약해도 새로고침 없이 반영: 화면으로 돌아올 때 + 30초마다 다시 확인
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshGraderDeadlines(); });
-window.addEventListener('focus', ()=>{ refreshGraderDeadlines(); });
-setInterval(()=>{ if(!document.hidden && GR.on && GR.url && GR.pw) refreshGraderDeadlines(true); }, 30000);
-document.getElementById('graderSaveBtn').addEventListener('click', async ()=>{
-  GR.url = document.getElementById('graderUrl').value.trim();
-  GR.pw = document.getElementById('graderPw').value;
-  GR.on = document.getElementById('graderOn').checked;
-  const keep = document.getElementById('graderKeep').checked;
-  await localStore.set('graderUrl', GR.url);
-  await localStore.set('graderKeep', keep ? 'true' : 'false');
-  await localStore.set('graderPw', keep ? GR.pw : '');
-  try{ if(keep) sessionStorage.removeItem('graderPwTab'); else sessionStorage.setItem('graderPwTab', GR.pw); }catch(e){}
-  await localStore.set('graderOn', GR.on ? 'true' : 'false');
-  const st = document.getElementById('graderStatus');
-  if(!GR.url || !GR.pw){ st.textContent = '저장했어요. (주소나 비밀번호가 비어 있어서 연결은 안 해요)'; return; }
-  st.textContent = '연결 확인 중...';
-  try{
-    const r = await fetchGraderList();
-    if(r.ok){ GR.list = r.list; GR.at = Date.now(); st.textContent = '✅ 연결됐어요. 예약된 시험 ' + r.list.length + '건을 불러왔어요.'; updateCopyPreview(); }
-    else st.textContent = '⚠️ ' + r.error;
-  }catch(e){ st.textContent = '⚠️ 채점 앱에 연결하지 못했어요. 주소를 확인하세요.'; }
 });
 
 // ---------------- 설정 ----------------
@@ -3761,15 +3903,6 @@ document.getElementById('reloadDataBtn').addEventListener('click', loadData);
       CONFIG.timetableSheetId = savedTt.value;
       document.getElementById('timetableUrl').value = savedTt.value;
     }
-  }catch(e){}
-  try{
-    const gu = await localStore.get('graderUrl'), gp = await localStore.get('graderPw'), go = await localStore.get('graderOn');
-    if(gu && gu.value){ GR.url = gu.value; document.getElementById('graderUrl').value = gu.value; }
-    const gk = await localStore.get('graderKeep');
-    if(gk && gk.value === 'true') document.getElementById('graderKeep').checked = true;
-    if(gp && gp.value){ GR.pw = gp.value; document.getElementById('graderPw').value = gp.value; }
-    else { try{ const t = sessionStorage.getItem('graderPwTab'); if(t){ GR.pw = t; document.getElementById('graderPw').value = t; } }catch(e){} }
-    if(go && go.value === 'false'){ GR.on = false; document.getElementById('graderOn').checked = false; }
   }catch(e){}
   renderConceptToggle();
   renderStudentChip();

@@ -382,7 +382,7 @@
   .wk-col.today{background-color:rgba(102,144,196,.06);}
   .wk-ev{position:absolute; border-radius:5px; padding:2px 3px; overflow:hidden; font-size:10px; line-height:1.25; box-sizing:border-box; border:1px solid rgba(0,0,0,.08);}
   .wk-ev b{display:block; font-weight:700; font-size:9.5px; opacity:.8; white-space:nowrap;}
-  .wk-ev .wk-name{display:block; white-space:normal; word-break:keep-all; overflow-wrap:anywhere; font-size:11px; font-weight:600; line-height:1.2;}
+  .wk-ev .wk-name{display:block; white-space:normal; word-break:keep-all; overflow-wrap:normal; font-size:11px; font-weight:600; line-height:1.2; overflow:hidden;}
   .wk-ev.class{background:var(--violet-soft); border-color:var(--violet);}
   .wk-ev.makeup{background:#D7F0DF; border-color:#3E9B63; color:#1F5A37;}
   .wk-ev.other{background:var(--gold-soft); border-color:var(--gold);}
@@ -392,14 +392,14 @@
   .tt-warn{margin:0 0 8px; padding:8px 10px; border-radius:8px; background:#FFF4E5; border:1px solid #F5C27A; font-size:12.5px; line-height:1.5;}
   .wk-col{cursor:copy;}
   .wk-ev{cursor:pointer;}
-  .wk-ev.addtest{background:repeating-linear-gradient(45deg,#FBE9D0,#FBE9D0 4px,#fff 4px,#fff 8px); border:1px dashed #C98A2E; color:#7A4E12;}
-  .wk-ev.added{box-shadow:inset 3px 0 0 #C98A2E;}
+  .wk-ev.added{background:repeating-linear-gradient(45deg,#E4E7EC,#E4E7EC 4px,#fff 4px,#fff 8px); border:1px solid #8E96A3; color:#2F3540;}
+  .wk-ev.addtest{background:repeating-linear-gradient(45deg,#E4E7EC,#E4E7EC 4px,#fff 4px,#fff 8px); border:1px dashed #8E96A3; color:#2F3540;}
   .wk-slot-hint{position:absolute; left:1px; right:1px; height:23px; border-radius:5px; background:rgba(201,138,46,.15); border:1px dashed #C98A2E; pointer-events:none; font-size:10px; color:#7A4E12; padding:2px 4px; box-sizing:border-box;}
   .seg{display:flex; gap:0; border:1px solid #c9d2e0; border-radius:8px; overflow:hidden;}
   .seg button{flex:1; border:none; background:#fff; padding:8px 4px; font-size:13px; cursor:pointer;}
   .seg button.on{background:var(--cobalt); color:#fff; font-weight:700;}
   .seg button + button{border-left:1px solid #c9d2e0;}
-  .wk-ev.test{background:repeating-linear-gradient(45deg,#f4f4f6,#f4f4f6 4px,#fff 4px,#fff 8px); border:1px dashed #b9bfca; opacity:.8;}
+  .wk-ev.test{background:repeating-linear-gradient(45deg,var(--violet-soft),var(--violet-soft) 4px,#fff 4px,#fff 8px); border:1px dashed var(--violet);}
   .wk-ev.makeuptest{background:repeating-linear-gradient(45deg,#D7F0DF,#D7F0DF 4px,#fff 4px,#fff 8px); border:1px dashed #3E9B63; color:#1F5A37;}
   .wk-ev.moved{background:transparent; border:1px dotted #9aa3b2; opacity:.55;}
   .wk-ev.changed{border:2px dashed var(--violet);}
@@ -756,10 +756,9 @@
       <span><i style="background:repeating-linear-gradient(45deg,#D7F0DF,#D7F0DF 2px,#fff 2px,#fff 4px); border:1px dashed #3E9B63;"></i>테스트 보강</span>
       <span><i style="background:var(--gold-soft); border:1px solid var(--gold);"></i>기타일정</span>
       <span><i style="background:var(--coral-soft);"></i>결석</span>
-      <span><i style="border:1px dashed #b9bfca; background:#f4f4f6;"></i>테스트 열 (겹침 제외)</span>
+      <span><i style="background:repeating-linear-gradient(45deg,var(--violet-soft),var(--violet-soft) 2px,#fff 2px,#fff 4px); border:1px dashed var(--violet);"></i>테스트 학생 (겹침 제외)</span>
       <span><i style="border:2px dashed var(--violet);"></i>이번 주만 바꾼 수업</span>
-      <span><i style="background:var(--violet-soft); box-shadow:inset 3px 0 0 #C98A2E;"></i>직접 추가한 수업</span>
-      <span><i style="background:#FBE9D0; border:1px dashed #C98A2E;"></i>직접 추가한 테스트</span>
+      <span><i style="background:repeating-linear-gradient(45deg,#E4E7EC,#E4E7EC 2px,#fff 2px,#fff 4px); border:1px solid #8E96A3;"></i>직접 추가한 학생 (테스트는 점선)</span>
       <span><i style="border:2px solid var(--coral);"></i>시간 겹침</span>
     </div>
     <p class="hint" style="margin-top:6px;"><b>빈 시간대</b>를 누르면 그 시간에 학생을 수업·테스트로 추가합니다 (이번 주만 / 계속 / 날짜까지). <b>수업이 있는 시간</b>은 블록을 누른 뒤 "이 시간에 학생 추가"를 고르면 겹쳐도 추가할 수 있고, 📚 정규 수업은 같은 메뉴에서 <b>이번 주에만</b> 시간을 옮기거나 뺄 수 있습니다. 요일 머리글을 누르면 그날 결석·보강·일정을 입력합니다. 공유 시간표 시트는 바뀌지 않습니다.</p>
@@ -2673,15 +2672,28 @@ function wkShortLabel(t){
   return (head && head.replace(/\s/g,'').length <= 5) ? head : one;
 }
 // 블록에 글자가 다 안 들어가면 글자 크기를 조금씩 줄여서 잘리지 않게
+// 블록 안에서 글자가 넘치거나 단어가 쪼개지지 않게: 글자 크기를 줄이고, 그래도 안 되면 줄임표(…)
 function fitWeekLabels(grid){
   grid.querySelectorAll('.wk-ev').forEach(ev=>{
     const name = ev.querySelector('.wk-name'), time = ev.querySelector('b');
     if(!name) return;
+    const over = ()=> ev.scrollHeight > ev.clientHeight + 1 || name.scrollWidth > name.clientWidth + 1;
     let size = 11;
-    while(size > 7.5 && ev.scrollHeight > ev.clientHeight + 1){
+    while(size > 7 && over()){
       size -= 0.5;
       name.style.fontSize = size + 'px';
       if(time) time.style.fontSize = Math.min(9.5, size) + 'px';
+    }
+    if(name.scrollWidth > name.clientWidth + 1){ name.style.overflowWrap = 'anywhere'; } // 아주 긴 한 단어만 예외로 줄바꿈
+    if(ev.scrollHeight > ev.clientHeight + 1){
+      // 남는 높이만큼만 줄을 보여주고 나머지는 … (전체 내용은 블록을 누르면 보임)
+      const lh = parseFloat(getComputedStyle(name).lineHeight) || size * 1.2;
+      const avail = ev.clientHeight - (time ? time.offsetHeight : 0) - 4;
+      const lines = Math.max(1, Math.floor(avail / lh));
+      name.style.display = '-webkit-box';
+      name.style.webkitBoxOrient = 'vertical';
+      name.style.webkitLineClamp = String(lines);
+      name.style.maxHeight = (lines * lh) + 'px';
     }
   });
 }
@@ -2728,7 +2740,15 @@ function renderWeekView(){
   perDay.forEach(pd=>pd.timed.forEach(it=>{ minH = Math.min(minH, Math.floor(it.start/60)); maxH = Math.max(maxH, Math.ceil(it.end/60)); }));
   const HOUR = 46, pxPerMin = HOUR/60, height = (maxH-minH)*HOUR;
 
-  let html = `<div class="wk-grid" style="--wk-hour:${HOUR}px;">`;
+  // 나란히 놓인 블록이 많은 날은 그만큼 더 넓게 (블록 하나당 최소 52px)
+  const colDefs = perDay.map(pd => {
+    if(!pd.timed.length) return pd.allDay.length ? [60,'0.45fr'] : [38,'0.25fr'];
+    const lanes = Math.max(1, ...pd.timed.map(it => it._lanes || 1));
+    return [Math.max(96, lanes*52), lanes > 2 ? '1.3fr' : '1fr'];
+  });
+  const gridCols = '34px ' + colDefs.map(([mn,fr]) => `minmax(${mn}px,${fr})`).join(' ');
+  const gridMin = 34 + colDefs.reduce((a,[mn]) => a + mn, 0);
+  let html = `<div class="wk-grid" style="--wk-hour:${HOUR}px; grid-template-columns:${gridCols}; min-width:${gridMin}px;">`;
   html += '<div></div>';
   perDay.forEach(pd=>{
     const dow = pd.d.getDay();

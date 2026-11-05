@@ -392,14 +392,15 @@
   .tt-warn{margin:0 0 8px; padding:8px 10px; border-radius:8px; background:#FFF4E5; border:1px solid #F5C27A; font-size:12.5px; line-height:1.5;}
   .wk-col{cursor:copy;}
   .wk-ev{cursor:pointer;}
-  .wk-ev.added{background:repeating-linear-gradient(45deg,#E4E7EC,#E4E7EC 4px,#fff 4px,#fff 8px); border:1px solid #8E96A3; color:#2F3540;}
-  .wk-ev.addtest{background:repeating-linear-gradient(45deg,#E4E7EC,#E4E7EC 4px,#fff 4px,#fff 8px); border:1px dashed #8E96A3; color:#2F3540;}
+  .wk-ev.added{background:repeating-linear-gradient(-45deg,#C4C9D1,#C4C9D1 3px,#F4F5F7 3px,#F4F5F7 7px); border:2px solid #5F6773; color:#1F242C;}
+  .wk-ev.addtest{background:repeating-linear-gradient(-45deg,#C4C9D1,#C4C9D1 3px,#F4F5F7 3px,#F4F5F7 7px); border:2px dashed #5F6773; color:#1F242C;}
+  .wk-tag{display:inline-block; margin-left:3px; padding:0 4px; border-radius:6px; background:#5F6773; color:#fff; font-size:8.5px; font-weight:700; vertical-align:1px; opacity:1;}
   .wk-slot-hint{position:absolute; left:1px; right:1px; height:23px; border-radius:5px; background:rgba(201,138,46,.15); border:1px dashed #C98A2E; pointer-events:none; font-size:10px; color:#7A4E12; padding:2px 4px; box-sizing:border-box;}
   .seg{display:flex; gap:0; border:1px solid #c9d2e0; border-radius:8px; overflow:hidden;}
   .seg button{flex:1; border:none; background:#fff; padding:8px 4px; font-size:13px; cursor:pointer;}
   .seg button.on{background:var(--cobalt); color:#fff; font-weight:700;}
   .seg button + button{border-left:1px solid #c9d2e0;}
-  .wk-ev.test{background:repeating-linear-gradient(45deg,var(--violet-soft),var(--violet-soft) 4px,#fff 4px,#fff 8px); border:1px dashed var(--violet);}
+  .wk-ev.test{background:repeating-linear-gradient(45deg,#BFD0EA,#BFD0EA 4px,#EEF3FB 4px,#EEF3FB 8px); border:1px dashed #4F7BB8; color:#1E3A66;}
   .wk-ev.makeuptest{background:repeating-linear-gradient(45deg,#D7F0DF,#D7F0DF 4px,#fff 4px,#fff 8px); border:1px dashed #3E9B63; color:#1F5A37;}
   .wk-ev.moved{background:transparent; border:1px dotted #9aa3b2; opacity:.55;}
   .wk-ev.changed{border:2px dashed var(--violet);}
@@ -756,9 +757,9 @@
       <span><i style="background:repeating-linear-gradient(45deg,#D7F0DF,#D7F0DF 2px,#fff 2px,#fff 4px); border:1px dashed #3E9B63;"></i>테스트 보강</span>
       <span><i style="background:var(--gold-soft); border:1px solid var(--gold);"></i>기타일정</span>
       <span><i style="background:var(--coral-soft);"></i>결석</span>
-      <span><i style="background:repeating-linear-gradient(45deg,var(--violet-soft),var(--violet-soft) 2px,#fff 2px,#fff 4px); border:1px dashed var(--violet);"></i>테스트 학생 (겹침 제외)</span>
+      <span><i style="background:repeating-linear-gradient(45deg,#BFD0EA,#BFD0EA 2px,#EEF3FB 2px,#EEF3FB 4px); border:1px dashed #4F7BB8;"></i>테스트 학생 (파란 빗금, 겹침 제외)</span>
       <span><i style="border:2px dashed var(--violet);"></i>이번 주만 바꾼 수업</span>
-      <span><i style="background:repeating-linear-gradient(45deg,#E4E7EC,#E4E7EC 2px,#fff 2px,#fff 4px); border:1px solid #8E96A3;"></i>직접 추가한 학생 (테스트는 점선)</span>
+      <span><i style="background:repeating-linear-gradient(-45deg,#C4C9D1,#C4C9D1 2px,#F4F5F7 2px,#F4F5F7 4px); border:2px solid #5F6773;"></i>직접 추가한 학생 (회색 빗금 + <b>추가</b> 표시, 테스트는 점선)</span>
       <span><i style="border:2px solid var(--coral);"></i>시간 겹침</span>
     </div>
     <p class="hint" style="margin-top:6px;"><b>빈 시간대</b>를 누르면 그 시간에 학생을 수업·테스트로 추가합니다 (이번 주만 / 계속 / 날짜까지). <b>수업이 있는 시간</b>은 블록을 누른 뒤 "이 시간에 학생 추가"를 고르면 겹쳐도 추가할 수 있고, 📚 정규 수업은 같은 메뉴에서 <b>이번 주에만</b> 시간을 옮기거나 뺄 수 있습니다. 요일 머리글을 누르면 그날 결석·보강·일정을 입력합니다. 공유 시간표 시트는 바뀌지 않습니다.</p>
@@ -2772,7 +2773,7 @@ function renderWeekView(){
         : it.ttKey ? ` data-tt-key="${escapeHtml(it.ttKey).replace(/"/g,'&quot;')}" data-tt-date="${it.ttDate}"` : '';
       const timeAttr = ` data-start="${it.start}" data-end="${it.end}" data-label="${escapeHtml(it.label).replace(/"/g,'&quot;')}"`;
       html += `<div class="wk-ev ${it.kind}${it.added?' added':''}${it.changed?' changed':''}${it.clash?' clash':''}" data-date="${pd.key}"${ttAttr}${timeAttr} style="top:${top}px; height:${h}px; left:calc(${w*it._lane}% + 1px); width:calc(${w}% - 2px);" title="${minToHm(it.start)}~${minToHm(it.end)} ${escapeHtml(it.label)}${it.clash?' (시간 겹침)':''}">
-        <b>${minToHm(it.start)}${it.added?' ＋':''}${it.changed?' ↪':''}${it.clash?' ⚠':''}</b><span class="wk-name">${escapeHtml(wkShortLabel(it.label))}</span></div>`;
+        <b>${minToHm(it.start)}${it.added?'<span class="wk-tag">추가</span>':''}${it.changed?' ↪':''}${it.clash?' ⚠':''}</b><span class="wk-name">${escapeHtml(wkShortLabel(it.label))}</span></div>`;
     });
     html += '</div>';
   });

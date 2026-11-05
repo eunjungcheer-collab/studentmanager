@@ -388,8 +388,8 @@
   .wk-ev{position:absolute; border-radius:5px; padding:2px 3px; overflow:hidden; font-size:10px; line-height:1.25; box-sizing:border-box; border:1px solid rgba(0,0,0,.08);}
   .wk-ev b{display:block; font-weight:700; font-size:9.5px; opacity:.8; white-space:nowrap;}
   .wk-ev .wk-name{display:block; white-space:normal; word-break:keep-all; overflow-wrap:normal; font-size:11px; font-weight:600; line-height:1.2; overflow:hidden;}
-  .wk-ev.class{background:var(--violet-soft); border-color:var(--violet);}
-  .wk-ev.makeup{background:#D7F0DF; border-color:#3E9B63; color:#1F5A37;}
+  .wk-ev.class{background:#CFE2F6; border:1.5px solid #4A82C0; color:#153A63;}
+  .wk-ev.makeup{background:#DFEDE8; border:1px solid #8DB8AA; color:#2C5247;}
   .wk-ev.other{background:var(--gold-soft); border-color:var(--gold);}
   .mk-chip{display:inline-flex; align-items:center; gap:2px; margin:3px 4px 0 0; padding:1px 2px 1px 7px; border-radius:10px; background:#fff; border:1px solid var(--coral); color:var(--coral); font-size:12px;}
   .mk-chip button{border:none; background:transparent; color:var(--coral); font-size:12px; padding:0 4px; cursor:pointer; line-height:1.4;}
@@ -397,16 +397,15 @@
   .tt-warn{margin:0 0 8px; padding:8px 10px; border-radius:8px; background:#FFF4E5; border:1px solid #F5C27A; font-size:12.5px; line-height:1.5;}
   .wk-col{cursor:copy;}
   .wk-ev{cursor:pointer;}
-  .wk-ev.added{background:#DCEFEF; border:1px solid #79AFB3; color:#1F4F53;}
-  .wk-ev.addtest{background:#EEF7F7; border:1px dashed #79AFB3; color:#1F4F53;}
-  .wk-tag{display:inline-block; margin-left:3px; padding:0 4px; border-radius:6px; background:#5E9EA3; color:#fff; font-size:8.5px; font-weight:700; vertical-align:1px; opacity:1;}
+  .wk-ev.addtest{background:#ECE9F2; border:1px solid #ADA6C2; color:#4B4562;}
+  .wk-tag{display:inline-block; margin-left:3px; padding:0 4px; border-radius:6px; background:#8C84A6; color:#fff; font-size:8.5px; font-weight:700; vertical-align:1px; opacity:1;}
   .wk-slot-hint{position:absolute; left:1px; right:1px; height:23px; border-radius:5px; background:rgba(201,138,46,.15); border:1px dashed #C98A2E; pointer-events:none; font-size:10px; color:#7A4E12; padding:2px 4px; box-sizing:border-box;}
   .seg{display:flex; gap:0; border:1px solid #c9d2e0; border-radius:8px; overflow:hidden;}
   .seg button{flex:1; border:none; background:#fff; padding:8px 4px; font-size:13px; cursor:pointer;}
   .seg button.on{background:var(--cobalt); color:#fff; font-weight:700;}
   .seg button + button{border-left:1px solid #c9d2e0;}
-  .wk-ev.test{background:#ECE7F6; border:1px solid #A797CF; color:#463A72;}
-  .wk-ev.makeuptest{background:#EEF8F1; border:1px dashed #6DB287; color:#1F5A37;}
+  .wk-ev.test{background:#ECE9F2; border:1px solid #ADA6C2; color:#4B4562;}
+  .wk-ev.makeuptest{background:#DFEDE8; border:1px solid #8DB8AA; color:#2C5247;}
   .wk-ev.moved{background:transparent; border:1px dotted #9aa3b2; opacity:.55;}
   .wk-ev.changed{border:2px dashed var(--violet);}
   .wk-ev.absent{background:var(--coral-soft); border:1px dashed var(--coral);}
@@ -757,14 +756,12 @@
     <div id="wkNotice"></div>
     <div class="wk-wrap"><div id="wkGrid"></div></div>
     <div class="wk-legend">
-      <span><i style="background:var(--violet-soft); border:1px solid var(--violet);"></i>정규 수업</span>
-      <span><i style="background:#D7F0DF; border:1px solid #3E9B63;"></i>수업 보강</span>
-      <span><i style="background:#EEF8F1; border:1px dashed #6DB287;"></i>테스트 보강</span>
+      <span><i style="background:#CFE2F6; border:1.5px solid #4A82C0;"></i>정규 수업</span>
+      <span><i style="background:#DFEDE8; border:1px solid #8DB8AA;"></i>보강</span>
       <span><i style="background:var(--gold-soft); border:1px solid var(--gold);"></i>기타일정</span>
       <span><i style="background:var(--coral-soft);"></i>결석</span>
-      <span><i style="background:#ECE7F6; border:1px solid #A797CF;"></i>테스트 학생 (겹침 제외)</span>
+      <span><i style="background:#ECE9F2; border:1px solid #ADA6C2;"></i>테스트 (추가한 테스트는 <b>추가</b> 표시, 겹침 제외)</span>
       <span><i style="border:2px dashed var(--violet);"></i>이번 주만 바꾼 수업</span>
-      <span><i style="background:#DCEFEF; border:1px solid #79AFB3;"></i>직접 추가한 학생 (<b>추가</b> 표시, 테스트는 점선)</span>
       <span><i style="border:2px solid var(--coral);"></i>시간 겹침</span>
     </div>
     <p class="hint" style="margin-top:6px;"><b>빈 시간대</b>를 누르면 그 시간에 학생을 수업·테스트로 추가합니다 (이번 주만 / 계속 / 날짜까지). <b>수업이 있는 시간</b>은 블록을 누른 뒤 "이 시간에 학생 추가"를 고르면 겹쳐도 추가할 수 있고, 📚 정규 수업은 같은 메뉴에서 <b>이번 주에만</b> 시간을 옮기거나 뺄 수 있습니다. 요일 머리글을 누르면 그날 결석·보강·일정을 입력합니다. 공유 시간표 시트는 바뀌지 않습니다.</p>
@@ -2732,6 +2729,13 @@ function renderWeekView(){
     const key = dateKeyOf(d);
     const timed = getDaySchedule(key).map(x=>({...x}));
     timed.forEach(it=>{ it.clash = timed.some(o=> itemsClash(it, o)); });
+    for(let i=timed.length-1;i>=0;i--){
+      const t = timed[i];
+      if(t.kind !== 'makeuptest' || !t.record) continue;
+      const main = timed.find(o => o !== t && o.record === t.record && o.kind === 'makeup');
+      if(main){ main.start = Math.min(main.start, t.start); main.end = Math.max(main.end, t.end); timed.splice(i,1); }
+      else t.kind = 'makeup';
+    }
     const ev = events[key] || { absent:[], makeup:[], other:[] };
     const allDay = [];
     const hol = getHolidayName(key);

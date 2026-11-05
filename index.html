@@ -397,16 +397,16 @@
   .tt-warn{margin:0 0 8px; padding:8px 10px; border-radius:8px; background:#FFF4E5; border:1px solid #F5C27A; font-size:12.5px; line-height:1.5;}
   .wk-col{cursor:copy;}
   .wk-ev{cursor:pointer;}
-  .wk-ev.added{background:repeating-linear-gradient(-45deg,#C4C9D1,#C4C9D1 3px,#F4F5F7 3px,#F4F5F7 7px); border:2px solid #5F6773; color:#1F242C;}
-  .wk-ev.addtest{background:repeating-linear-gradient(-45deg,#C4C9D1,#C4C9D1 3px,#F4F5F7 3px,#F4F5F7 7px); border:2px dashed #5F6773; color:#1F242C;}
-  .wk-tag{display:inline-block; margin-left:3px; padding:0 4px; border-radius:6px; background:#5F6773; color:#fff; font-size:8.5px; font-weight:700; vertical-align:1px; opacity:1;}
+  .wk-ev.added{background:#DCEFEF; border:1px solid #79AFB3; color:#1F4F53;}
+  .wk-ev.addtest{background:#EEF7F7; border:1px dashed #79AFB3; color:#1F4F53;}
+  .wk-tag{display:inline-block; margin-left:3px; padding:0 4px; border-radius:6px; background:#5E9EA3; color:#fff; font-size:8.5px; font-weight:700; vertical-align:1px; opacity:1;}
   .wk-slot-hint{position:absolute; left:1px; right:1px; height:23px; border-radius:5px; background:rgba(201,138,46,.15); border:1px dashed #C98A2E; pointer-events:none; font-size:10px; color:#7A4E12; padding:2px 4px; box-sizing:border-box;}
   .seg{display:flex; gap:0; border:1px solid #c9d2e0; border-radius:8px; overflow:hidden;}
   .seg button{flex:1; border:none; background:#fff; padding:8px 4px; font-size:13px; cursor:pointer;}
   .seg button.on{background:var(--cobalt); color:#fff; font-weight:700;}
   .seg button + button{border-left:1px solid #c9d2e0;}
-  .wk-ev.test{background:repeating-linear-gradient(45deg,#BFD0EA,#BFD0EA 4px,#EEF3FB 4px,#EEF3FB 8px); border:1px dashed #4F7BB8; color:#1E3A66;}
-  .wk-ev.makeuptest{background:repeating-linear-gradient(45deg,#D7F0DF,#D7F0DF 4px,#fff 4px,#fff 8px); border:1px dashed #3E9B63; color:#1F5A37;}
+  .wk-ev.test{background:#ECE7F6; border:1px solid #A797CF; color:#463A72;}
+  .wk-ev.makeuptest{background:#EEF8F1; border:1px dashed #6DB287; color:#1F5A37;}
   .wk-ev.moved{background:transparent; border:1px dotted #9aa3b2; opacity:.55;}
   .wk-ev.changed{border:2px dashed var(--violet);}
   .wk-ev.absent{background:var(--coral-soft); border:1px dashed var(--coral);}
@@ -759,12 +759,12 @@
     <div class="wk-legend">
       <span><i style="background:var(--violet-soft); border:1px solid var(--violet);"></i>정규 수업</span>
       <span><i style="background:#D7F0DF; border:1px solid #3E9B63;"></i>수업 보강</span>
-      <span><i style="background:repeating-linear-gradient(45deg,#D7F0DF,#D7F0DF 2px,#fff 2px,#fff 4px); border:1px dashed #3E9B63;"></i>테스트 보강</span>
+      <span><i style="background:#EEF8F1; border:1px dashed #6DB287;"></i>테스트 보강</span>
       <span><i style="background:var(--gold-soft); border:1px solid var(--gold);"></i>기타일정</span>
       <span><i style="background:var(--coral-soft);"></i>결석</span>
-      <span><i style="background:repeating-linear-gradient(45deg,#BFD0EA,#BFD0EA 2px,#EEF3FB 2px,#EEF3FB 4px); border:1px dashed #4F7BB8;"></i>테스트 학생 (파란 빗금, 겹침 제외)</span>
+      <span><i style="background:#ECE7F6; border:1px solid #A797CF;"></i>테스트 학생 (겹침 제외)</span>
       <span><i style="border:2px dashed var(--violet);"></i>이번 주만 바꾼 수업</span>
-      <span><i style="background:repeating-linear-gradient(-45deg,#C4C9D1,#C4C9D1 2px,#F4F5F7 2px,#F4F5F7 4px); border:2px solid #5F6773;"></i>직접 추가한 학생 (회색 빗금 + <b>추가</b> 표시, 테스트는 점선)</span>
+      <span><i style="background:#DCEFEF; border:1px solid #79AFB3;"></i>직접 추가한 학생 (<b>추가</b> 표시, 테스트는 점선)</span>
       <span><i style="border:2px solid var(--coral);"></i>시간 겹침</span>
     </div>
     <p class="hint" style="margin-top:6px;"><b>빈 시간대</b>를 누르면 그 시간에 학생을 수업·테스트로 추가합니다 (이번 주만 / 계속 / 날짜까지). <b>수업이 있는 시간</b>은 블록을 누른 뒤 "이 시간에 학생 추가"를 고르면 겹쳐도 추가할 수 있고, 📚 정규 수업은 같은 메뉴에서 <b>이번 주에만</b> 시간을 옮기거나 뺄 수 있습니다. 요일 머리글을 누르면 그날 결석·보강·일정을 입력합니다. 공유 시간표 시트는 바뀌지 않습니다.</p>
@@ -812,7 +812,7 @@
   </div>
   <div class="block">
     <div class="block-title"><span class="n c-teal">📅</span>구글 캘린더 자동 연동</div>
-    <p class="hint">결석·보강·기타일정은 저장하는 순간 Apps Script가 구글 캘린더에 직접 등록합니다. 따로 연결하거나 로그인할 필요가 없고, 휴대폰·PC 어디서 저장해도 똑같이 작동합니다.</p>
+    <p class="hint">결석·보강·기타일정은 저장하는 순간 Apps Script가 구글 캘린더에 직접 등록합니다. 주간 일정표에서 추가한 수업·테스트나 이번 주만 옮긴 수업은 캘린더에 올리지 않습니다. 따로 연결하거나 로그인할 필요가 없고, 휴대폰·PC 어디서 저장해도 똑같이 작동합니다.</p>
     <p class="hint" id="calInfoStatus" style="margin-top:8px;">연결된 캘린더 확인 중…</p>
     <label style="margin-top:14px;">캘린더에 빠진 일정 한 번에 등록</label>
     <p class="hint">캘린더 ID가 비어 있는 결석·보강·기타일정을 찾아 등록합니다. 이미 구글 캘린더에 직접 만들어 둔 일정이 있으면 중복될 수 있으니 먼저 확인해주세요.</p>
@@ -2560,7 +2560,7 @@ async function runSyncMissing(fromDate){
   const status = document.getElementById('syncMissingStatus');
   const btns = [document.getElementById('syncMissingFuture'), document.getElementById('syncMissingAll')];
   btns.forEach(b=>b.disabled=true);
-  let total = 0, errors = [];
+  let total = 0, errors = [], cleanedTotal = 0;
   try{
     for(let round=0; round<30; round++){
       status.textContent = `등록 중… (${total}건 완료)`;
@@ -2568,10 +2568,11 @@ async function runSyncMissing(fromDate){
       if(res.error){ errors.push(res.error); break; }
       if(res.done === undefined){ errors.push('Apps Script를 새 버전으로 배포해주세요'); break; }
       total += res.done;
+      cleanedTotal += (res.cleaned || 0);
       if(res.errors && res.errors.length) errors = errors.concat(res.errors);
       if(!res.remaining || res.done === 0) break;
     }
-    status.textContent = `${total}건을 캘린더에 등록했습니다` + (errors.length ? ` · 실패 ${errors.length}건: ${errors.slice(0,3).join(' / ')}` : '');
+    status.textContent = `${total}건을 캘린더에 등록했습니다` + (cleanedTotal ? ` · 추가 수업·테스트 일정 ${cleanedTotal}개는 캘린더에서 지웠습니다` : '') + (errors.length ? ` · 실패 ${errors.length}건: ${errors.slice(0,3).join(' / ')}` : '');
     toast(`${total}건을 캘린더에 등록했습니다`);
     await loadData();
     renderCalendar();

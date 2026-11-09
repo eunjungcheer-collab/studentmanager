@@ -3150,15 +3150,15 @@ function renderWeekView(){
     const movedTest = t => t.kind === 'moved' && t.ttClass && t.ttClass.excluded;
     const left = layoutLanes(timed.filter(t => !isTest(t) && !movedTest(t)));
     const right = layoutLanes(testBlocks.concat(timed.filter(movedTest)));
-    const split = (left.length && right.length) ? 62 : (right.length ? 0 : 100);
-    left.forEach(it=>{ const w = split / it._lanes; it._x = w*it._lane; it._w = w; });
-    right.forEach(it=>{ const w = (100 - split) / it._lanes; it._x = split + w*it._lane; it._w = w; });
     const leftLanes = left.length ? Math.max(...left.map(x=>x._lanes)) : 0;
     const rightLanes = right.length ? Math.max(...right.map(x=>x._lanes)) : 0;
-    // 요일 칸 최소 너비: 수업 한 줄당 56px, 테스트 칸은 72px 이상 보이도록
-    let minW = 96;
-    if(leftLanes && rightLanes) minW = Math.max(minW, Math.ceil(leftLanes*56/0.62), Math.ceil(rightLanes*72/0.38));
-    else minW = Math.max(minW, (leftLanes || rightLanes) * 56);
+    // 요일 칸 너비: 나란히 놓인 블록 하나당 수업 56px · 테스트 60px만큼만 (테스트가 많아도 칸이 과하게 넓어지지 않게)
+    const LW = 56, RW = 60;
+    const need = leftLanes*LW + rightLanes*RW;
+    const split = (leftLanes && rightLanes) ? 100 * leftLanes*LW / need : (rightLanes ? 0 : 100);
+    left.forEach(it=>{ const w = split / it._lanes; it._x = w*it._lane; it._w = w; });
+    right.forEach(it=>{ const w = (100 - split) / it._lanes; it._x = split + w*it._lane; it._w = w; });
+    const minW = Math.max(96, need);
     return { d, key, timed: left.concat(right), allDay, hol, lanesTotal: leftLanes + rightLanes, minW };
   });
 
@@ -3171,7 +3171,7 @@ function renderWeekView(){
   const colDefs = perDay.map(pd => {
     if(!pd.timed.length) return pd.allDay.length ? [60,'0.45fr'] : [38,'0.25fr'];
     const lanes = Math.max(1, pd.lanesTotal || 1);
-    return [pd.minW || 96, lanes > 2 ? '1.3fr' : '1fr'];
+    return [pd.minW || 96, '1fr'];
   });
   const gridCols = '34px ' + colDefs.map(([mn,fr]) => `minmax(${mn}px,${fr})`).join(' ');
   const gridMin = 34 + colDefs.reduce((a,[mn]) => a + mn, 0);

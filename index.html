@@ -513,7 +513,10 @@
     <div id="bookChip"></div>
 
     <div id="lessonArea" style="display:none; margin-top:12px;">
-      <label>오늘 진도</label>
+      <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:8px;">
+        <label style="margin-bottom:6px;">오늘 진도</label>
+        <button type="button" class="btn sm" id="openBuiltinBtn" style="margin-bottom:6px; font-size:12px;">📘 기본 진도표에서 불러오기</button>
+      </div>
       <div class="search-wrap">
         <input type="text" id="lessonSearch" placeholder="진도 검색 또는 새 진도 입력 (예: 1단원 물질)" autocomplete="off">
         <div class="dropdown" id="lessonDropdown" style="display:none;"></div>
@@ -869,6 +872,18 @@
     <button class="btn primary block-w" id="sameDayUpdate" style="margin-bottom:8px;">기존 기록 수정 (덮어쓰기)</button>
     <button class="btn teal block-w" id="sameDayNew" style="margin-bottom:8px;">새 기록으로 저장</button>
     <button class="btn ghost block-w" id="sameDayCancel">취소</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="builtinModal" style="display:none; z-index:60;">
+  <div class="modal-box" style="max-width:420px; max-height:85vh; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <b style="font-size:15px;">📘 기본 진도표에서 불러오기</b>
+      <button class="btn sm" id="builtinClose">닫기</button>
+    </div>
+    <p class="hint" style="margin:0 0 8px;">교재 PDF로 만든 소단원별 진도·과제 목록입니다. 고른 진도는 오늘 진도로 들어가고, 과제·알림장을 적어 저장하면 그때 과제DB(구글 시트)에 추가됩니다.</p>
+    <select id="builtinBook"></select>
+    <div id="builtinList" style="margin-top:8px;"></div>
   </div>
 </div>
 
@@ -1429,7 +1444,6 @@ function mergeBuiltinCurriculum(sheetCurri){
   sheetBooks.forEach(book=>{ if(!usedBooks.has(book) && !out[book]) out[book] = sheetCurri[book]; });
   return out;
 }
-DATA.curriculum = mergeBuiltinCurriculum({});
 let form = {
   student: null,
   book: '',
@@ -2181,7 +2195,6 @@ async function loadData(){
     const data = await apiGet();
     if(data.error) throw new Error(data.error);
     DATA = data;
-    DATA.curriculum = mergeBuiltinCurriculum(DATA.curriculum || {});
     if(status) status.innerHTML = '<span class="status-dot ok"></span>연결됨 · 학생 ' + DATA.students.length + '명, 교재 ' + Object.keys(DATA.curriculum).length + '종' +
       (DATA.recordsLimited ? ` · 수업기록은 최근 180일(${DATA.recordsCutoff} 이후)만 불러왔습니다` : '') +
       (DATA.version ? '' : ' · <b style="color:var(--coral);">Apps Script를 새 버전으로 배포해주세요</b>');
@@ -2433,8 +2446,11 @@ function renderLessonDropdown(){
     html += `<div class="add-new" id="useOnceLessonBtn">✓ "${q}" 이번 수업에만 사용 (목록 저장 안 함)</div>`;
     html += `<div class="add-new" id="addNewLessonBtn">+ "${q}" 새 진도로 추가</div>`;
   }
+  if(Object.keys(BUILTIN_CURRICULUM).length) html += `<div class="add-new" id="openBuiltinFromDd">📘 기본 진도표에서 불러오기</div>`;
   lessonDropdown.innerHTML = html;
   lessonDropdown.style.display = 'block';
+  const bb = document.getElementById('openBuiltinFromDd');
+  if(bb) bb.addEventListener('mousedown', ev=>{ ev.preventDefault(); openBuiltinPicker(); });
   lessonDropdown.querySelectorAll('.opt').forEach(el=>el.addEventListener('click', ()=>selectLesson(parseInt(el.dataset.idx))));
   const addBtn = document.getElementById('addNewLessonBtn');
   if(addBtn) addBtn.addEventListener('click', ()=>openNewCurriForm(q));
@@ -2524,6 +2540,55 @@ async function saveCurriculum(payload){
   }
   return apiPost('updateCurriculum', payload);
 }
+// ---------------- 기본 진도표 불러오기 (원할 때만) ----------------
+function builtinItemsOf(bName){
+  return (BUILTIN_CURRICULUM[bName] || []).map(x=>({
+    lesson: String(typeof x === 'string' ? x : x.lesson).trim(),
+    homework: typeof x === 'string' ? '' : (x.homework || ''),
+    commonNotice: typeof x === 'string' ? '' : (x.commonNotice || '')
+  }));
+}
+function renderBuiltinList(){
+  const bName = document.getElementById('builtinBook').value;
+  const sheetList = DATA.curriculum[form.book] || [];
+  const box = document.getElementById('builtinList');
+  box.innerHTML = builtinItemsOf(bName).map((it,i)=>{
+    const inSheet = sheetList.some(l => l.lesson === it.lesson);
+    return `<div class="opt" data-i="${i}" style="padding:8px 10px; border:1px solid var(--line,#dde3ec); border-radius:8px; margin-bottom:6px; cursor:pointer; background:#fff;">
+      <b style="font-size:13.5px;">${escapeHtml(it.lesson)}</b>${inSheet ? ' <span style="font-size:11.5px; color:var(--violet);">· 시트에 저장된 진도 있음 (알림장 포함)</span>' : ''}
+      <div style="font-size:12px; opacity:.75; margin-top:2px;">${escapeHtml(it.homework)}</div></div>`;
+  }).join('') || '<div class="hint">항목이 없습니다</div>';
+  box.querySelectorAll('[data-i]').forEach(el=>el.addEventListener('click', ()=>{
+    const it = builtinItemsOf(bName)[+el.dataset.i];
+    document.getElementById('builtinModal').style.display = 'none';
+    pickBuiltinLesson(it);
+  }));
+}
+function openBuiltinPicker(){
+  if(!form.book){ toast('교재를 먼저 골라주세요'); return; }
+  const books = Object.keys(BUILTIN_CURRICULUM);
+  if(!books.length){ toast('기본 진도표가 없습니다'); return; }
+  lessonDropdown.style.display = 'none';
+  const sel = document.getElementById('builtinBook');
+  sel.innerHTML = books.map(b=>`<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
+  const match = books.find(b => bookKey(b) === bookKey(form.book));
+  sel.value = match || books[0];
+  renderBuiltinList();
+  document.getElementById('builtinModal').style.display = 'flex';
+}
+// 고른 기본 진도를 오늘 진도로: 시트에 같은 진도가 있으면 시트 내용(알림장 포함)을 그대로 사용
+function pickBuiltinLesson(it){
+  const list = DATA.curriculum[form.book] = DATA.curriculum[form.book] || [];
+  let idx = list.findIndex(l => l.lesson === it.lesson);
+  if(idx === -1){
+    list.push({ lesson: it.lesson, homework: it.homework, commonNotice: it.commonNotice, builtin:true, builtinHomework: it.homework, builtinNotice: it.commonNotice });
+    idx = list.length - 1;
+  }
+  selectLesson(idx);
+}
+document.getElementById('openBuiltinBtn').addEventListener('click', openBuiltinPicker);
+document.getElementById('builtinBook').addEventListener('change', renderBuiltinList);
+document.getElementById('builtinClose').addEventListener('click', ()=>{ document.getElementById('builtinModal').style.display = 'none'; });
 async function refreshSelectedLessonAfterSave(lessonNameForLookup){
   await loadData();
   if(DATA.curriculum[form.book]){

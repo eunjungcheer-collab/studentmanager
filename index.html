@@ -1958,6 +1958,7 @@ function getDaySchedule(dateKey){
     const ov = ovFor(c, dateKey);
     if(!ov){ items.push(base); return; }
     // 옮기거나 뺀 수업은 원래 자리에 아무것도 표시하지 않음 (뺀 수업은 시간표 탭 아래 '앱에서 뺀 수업'에서 되돌림)
+    const moved = ov.cancel || ov.newDate !== dateKey || hmToMin(ov.start) !== c.start || hmToMin(ov.end) !== c.end;
     if(!ov.cancel && ov.newDate === dateKey && ov.start && ov.end){
       items.push({ ...base, start: hmToMin(ov.start), end: hmToMin(ov.end), changed: moved });
     }

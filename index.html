@@ -761,7 +761,7 @@
       <span><i style="background:#DFEDE8; border:1px solid #8DB8AA;"></i>보강</span>
       <span><i style="background:var(--gold-soft); border:1px solid var(--gold);"></i>기타일정</span>
       <span><i style="background:var(--coral-soft);"></i>결석</span>
-      <span><i style="background:#ECE9F2; border:1px solid #ADA6C2;"></i>테스트 (추가한 테스트는 <b>추가</b> 표시, 겹침 제외)</span>
+      <span><i style="background:#ECE9F2; border:1px solid #ADA6C2;"></i>테스트 (겹치는 시간은 한 칸에 이름만 나열, 겹침 제외)</span>
       <span><i style="border:2px dashed var(--violet);"></i>이번 주만 바꾼 수업</span>
       <span><i style="border:2px solid var(--coral);"></i>시간 겹침</span>
     </div>
@@ -2814,7 +2814,32 @@ function renderWeekView(){
     ev.absent.forEach(a=>{ if(!a.time) allDay.push({ cls:'absent', text:`결석 ${a.name}` }); });
     ev.makeup.forEach(m=>{ if(!m.time) allDay.push({ cls:'other', text:`보강 ${m.name}` }); });
     ev.other.forEach(o=>{ if(!o.time) allDay.push({ cls:'other', text:o.title }); });
-    return { d, key, timed: layoutLanes(timed), allDay, hol };
+    // 테스트(TEST 열·추가 테스트)는 시간이 겹치는 것끼리 한 블록으로 묶어 이름만 나열
+    const isTest = t => t.kind === 'test' || t.kind === 'addtest';
+    const groups = [];
+    timed.filter(isTest).sort((a,b)=> a.start-b.start || a.end-b.end).forEach(t=>{
+      const g = groups[groups.length-1];
+      if(g && t.start < g.end){ g.members.push(t); g.end = Math.max(g.end, t.end); }
+      else groups.push({ start:t.start, end:t.end, members:[t] });
+    });
+    const testBlocks = groups.map(g=>({
+      kind:'test', start:g.start, end:g.end, testGroup:true,
+      label: Array.from(new Set(g.members.map(m => wkShortLabel(m.label)))).join(', '),
+      members: g.members.map(m => ({ name: wkShortLabel(m.label), start:m.start, end:m.end, id:m.addId||'', date:m.addDate||'' }))
+    }));
+    // 수업·보강·일정은 왼쪽 한 줄(겹칠 때만 나눔), 테스트는 오른쪽 한 줄
+    const left = layoutLanes(timed.filter(t => !isTest(t)));
+    const right = layoutLanes(testBlocks);
+    const split = (left.length && right.length) ? 62 : (right.length ? 0 : 100);
+    left.forEach(it=>{ const w = split / it._lanes; it._x = w*it._lane; it._w = w; });
+    right.forEach(it=>{ const w = (100 - split) / it._lanes; it._x = split + w*it._lane; it._w = w; });
+    const leftLanes = left.length ? Math.max(...left.map(x=>x._lanes)) : 0;
+    const rightLanes = right.length ? Math.max(...right.map(x=>x._lanes)) : 0;
+    // 요일 칸 최소 너비: 수업 한 줄당 56px, 테스트 칸은 72px 이상 보이도록
+    let minW = 96;
+    if(leftLanes && rightLanes) minW = Math.max(minW, Math.ceil(leftLanes*56/0.62), Math.ceil(rightLanes*72/0.38));
+    else minW = Math.max(minW, (leftLanes || rightLanes) * 56);
+    return { d, key, timed: left.concat(right), allDay, hol, lanesTotal: leftLanes + rightLanes, minW };
   });
 
   // 보여줄 시간 범위 (기본 13~22시, 일정에 맞춰 늘어남)
@@ -2825,8 +2850,8 @@ function renderWeekView(){
   // 나란히 놓인 블록이 많은 날은 그만큼 더 넓게 (블록 하나당 최소 52px)
   const colDefs = perDay.map(pd => {
     if(!pd.timed.length) return pd.allDay.length ? [60,'0.45fr'] : [38,'0.25fr'];
-    const lanes = Math.max(1, ...pd.timed.map(it => it._lanes || 1));
-    return [Math.max(96, lanes*52), lanes > 2 ? '1.3fr' : '1fr'];
+    const lanes = Math.max(1, pd.lanesTotal || 1);
+    return [pd.minW || 96, lanes > 2 ? '1.3fr' : '1fr'];
   });
   const gridCols = '34px ' + colDefs.map(([mn,fr]) => `minmax(${mn}px,${fr})`).join(' ');
   const gridMin = 34 + colDefs.reduce((a,[mn]) => a + mn, 0);
@@ -2849,14 +2874,14 @@ function renderWeekView(){
     pd.timed.forEach(it=>{
       const top = (it.start - minH*60)*pxPerMin;
       const h = Math.max(16, (it.end - it.start)*pxPerMin - 2);
-      const w = 100/it._lanes;
-      const ttAttr = it.addId ? ` data-add-id="${it.addId}" data-add-date="${it.addDate}"`
+      const ttAttr = it.testGroup ? ` data-members="${escapeHtml(JSON.stringify(it.members)).replace(/"/g,'&quot;')}"`
+        : it.addId ? ` data-add-id="${it.addId}" data-add-date="${it.addDate}"`
         : it.ttKey ? ` data-tt-key="${escapeHtml(it.ttKey).replace(/"/g,'&quot;')}" data-tt-date="${it.ttDate}"` : '';
       const joinedLabel = (it.joined||[]).length ? ' + ' + it.joined.map(j=>j.name).join(', ') : '';
       const timeAttr = ` data-start="${it.start}" data-end="${it.end}" data-label="${escapeHtml(it.label + joinedLabel).replace(/"/g,'&quot;')}"` +
         ((it.joined||[]).length ? ` data-joined="${escapeHtml(JSON.stringify(it.joined)).replace(/"/g,'&quot;')}"` : '');
-      html += `<div class="wk-ev ${it.kind}${it.added?' added':''}${it.changed?' changed':''}${it.clash?' clash':''}" data-date="${pd.key}"${ttAttr}${timeAttr} style="top:${top}px; height:${h}px; left:calc(${w*it._lane}% + 3px); width:calc(${w}% - 5px);" title="${minToHm(it.start)}~${minToHm(it.end)} ${escapeHtml(it.label)}${it.clash?' (시간 겹침)':''}">
-        <b>${minToHm(it.start)}${it.added?'<span class="wk-tag">추가</span>':''}${it.changed?' ↪':''}${it.clash?' ⚠':''}</b><span class="wk-name">${escapeHtml(wkShortLabel(it.label))}${(it.joined||[]).map(j=>` <span class="wk-joined">+ ${escapeHtml(j.name)}</span>`).join('')}</span></div>`;
+      html += `<div class="wk-ev ${it.kind}${it.added?' added':''}${it.changed?' changed':''}${it.clash?' clash':''}" data-date="${pd.key}"${ttAttr}${timeAttr} style="top:${top}px; height:${h}px; left:calc(${it._x}% + 3px); width:calc(${it._w}% - 5px);" title="${it.testGroup ? escapeHtml(it.members.map(m=>`${minToHm(m.start)}~${minToHm(m.end)} ${m.name}`).join(' / ')) : minToHm(it.start)+'~'+minToHm(it.end)+' '+escapeHtml(it.label)}${it.clash?' (시간 겹침)':''}">
+        <b>${minToHm(it.start)}${it.changed?' ↪':''}${it.clash?' ⚠':''}</b><span class="wk-name">${escapeHtml(wkShortLabel(it.label))}${(it.joined||[]).map(j=>` <span class="wk-joined">+ ${escapeHtml(j.name)}</span>`).join('')}</span></div>`;
     });
     html += '</div>';
   });
@@ -2900,6 +2925,14 @@ function openWkAction(el){
     `${DOW_CHARS[x.getDay()]} ${x.getMonth()+1}/${x.getDate()} · ${minToHm(st)}~${minToHm(en)}<br><span style="font-weight:400;">${escapeHtml(el.dataset.label || '')}</span>`;
   const acts = [];
   acts.push({ text:'＋ 이 시간에 학생 추가 (겹쳐도 추가)', primary:true, fn:()=>openTtAdd({ date:d, start:st, end:en }) });
+  if(el.dataset.members){
+    try{
+      const ms = JSON.parse(el.dataset.members);
+      document.getElementById('wkActTitle').innerHTML += '<div style="font-weight:400; font-size:12.5px; margin-top:4px;">' +
+        ms.map(m=>`📝 ${minToHm(m.start)}~${minToHm(m.end)} ${escapeHtml(m.name)}`).join('<br>') + '</div>';
+      ms.filter(m=>m.id).forEach(m => acts.push({ text:`✎ ${m.name} 테스트 수정·삭제`, fn:()=>openTtAdd({ id: m.id, date: m.date }) }));
+    }catch(e){}
+  }
   if(el.dataset.joined){
     try{ JSON.parse(el.dataset.joined).forEach(j => acts.push({ text:`✎ 함께 넣은 ${j.name} 수정·삭제`, fn:()=>openTtAdd({ id: j.id, date: j.date }) })); }catch(e){}
   }

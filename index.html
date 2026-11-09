@@ -1077,9 +1077,314 @@
 </div>
 
 <!-- 기본 진도 목록: 교재 PDF에서 소단원별로 만든 목록. 앱에만 들어 있고 구글 시트에는 저장되지 않습니다.
-     과제·알림장을 넣어 저장한 항목만 과제DB 시트에 저장됩니다. 형식: { "교재명": ["진도1", "진도2", ...] } -->
+     과제·알림장을 바꿔 저장한 항목만 과제DB 시트에 저장됩니다.
+     형식: { "교재명": [ {"lesson":"진도명", "homework":"기본 과제"}, ... ] }  (문자열만 넣어도 됨)
+     오투 1-1·1-2·2-1·2-2(진도교재+시험대비교재), 3-1(진도교재) 교사용 PDF 차례에서 만든 목록 -->
 <script type="application/json" id="builtinCurriculum">
-{}
+{
+"오투 1-1": [
+{
+"lesson": "Ⅰ-1. 과학과 인류의 지속가능한 삶",
+"homework": "진도교재 8~17쪽 / 시험대비교재 2~7쪽"
+},
+{
+"lesson": "Ⅰ. 과학과 인류의 지속가능한 삶 단원 평가",
+"homework": "진도교재 18~19쪽 (단원 평가 문제)"
+},
+{
+"lesson": "Ⅱ-1. 생물의 구성",
+"homework": "진도교재 24~33쪽 / 시험대비교재 8~15쪽"
+},
+{
+"lesson": "Ⅱ-2. 생물다양성과 분류",
+"homework": "진도교재 34~47쪽 / 시험대비교재 16~22쪽"
+},
+{
+"lesson": "Ⅱ-3. 생물다양성보전",
+"homework": "진도교재 48~55쪽 / 시험대비교재 23~28쪽"
+},
+{
+"lesson": "Ⅱ. 생물의 구성과 다양성 단원 평가",
+"homework": "진도교재 56~60쪽 (단원 평가 문제)"
+},
+{
+"lesson": "Ⅲ-1. 열의 이동",
+"homework": "진도교재 66~79쪽 / 시험대비교재 29~35쪽"
+},
+{
+"lesson": "Ⅲ-2. 비열과 열팽창",
+"homework": "진도교재 80~92쪽 / 시험대비교재 36~44쪽"
+},
+{
+"lesson": "Ⅲ. 열 단원 평가",
+"homework": "진도교재 93~96쪽 (단원 평가 문제)"
+},
+{
+"lesson": "Ⅳ-1. 물질을 구성하는 입자의 운동",
+"homework": "진도교재 102~109쪽 / 시험대비교재 45~50쪽"
+},
+{
+"lesson": "Ⅳ-2. 물질의 상태와 상태 변화",
+"homework": "진도교재 110~123쪽 / 시험대비교재 51~57쪽"
+},
+{
+"lesson": "Ⅳ-3. 상태 변화와 열에너지",
+"homework": "진도교재 124~136쪽 / 시험대비교재 58~66쪽"
+},
+{
+"lesson": "Ⅳ. 물질의 상태 변화 단원 평가",
+"homework": "진도교재 137~141쪽 (단원 평가 문제)"
+}
+],
+"오투 1-2": [
+{
+"lesson": "Ⅴ-1. 힘의 표현과 평형",
+"homework": "진도교재 8~13쪽 / 시험대비교재 2~8쪽"
+},
+{
+"lesson": "Ⅴ-2. 여러 가지 힘",
+"homework": "진도교재 14~27쪽 / 시험대비교재 9~17쪽"
+},
+{
+"lesson": "Ⅴ-3. 힘의 작용과 운동 상태 변화",
+"homework": "진도교재 28~37쪽 / 시험대비교재 18~24쪽"
+},
+{
+"lesson": "Ⅴ. 힘의 작용 단원 평가",
+"homework": "진도교재 38~42쪽 (단원 평가 문제)"
+},
+{
+"lesson": "Ⅵ-1. 기체의 압력",
+"homework": "진도교재 48~55쪽 / 시험대비교재 25~30쪽"
+},
+{
+"lesson": "Ⅵ-2. 기체의 압력 및 온도와 부피 관계",
+"homework": "진도교재 56~68쪽 / 시험대비교재 31~38쪽"
+},
+{
+"lesson": "Ⅵ. 기체의 성질 단원 평가",
+"homework": "진도교재 69~72쪽 (단원 평가 문제)"
+},
+{
+"lesson": "Ⅶ-1. 태양계의 구성",
+"homework": "진도교재 78~91쪽 / 시험대비교재 39~47쪽"
+},
+{
+"lesson": "Ⅶ-2. 지구의 운동",
+"homework": "진도교재 92~105쪽 / 시험대비교재 48~54쪽"
+},
+{
+"lesson": "Ⅶ-3. 달의 운동",
+"homework": "진도교재 106~118쪽 / 시험대비교재 55~62쪽"
+},
+{
+"lesson": "Ⅶ. 태양계 단원 평가",
+"homework": "진도교재 119~122쪽 (단원 평가 문제)"
+}
+],
+"오투 2-1": [
+{
+"lesson": "Ⅰ-1. 물질의 특성⑴",
+"homework": "진도교재 8~13쪽 / 시험대비교재 2~7쪽"
+},
+{
+"lesson": "Ⅰ-2. 물질의 특성⑵",
+"homework": "진도교재 14~25쪽 / 시험대비교재 8~17쪽"
+},
+{
+"lesson": "Ⅰ-3. 혼합물의 분리⑴",
+"homework": "진도교재 26~33쪽 / 시험대비교재 18~23쪽"
+},
+{
+"lesson": "Ⅰ-4. 혼합물의 분리⑵",
+"homework": "진도교재 34~43쪽 / 시험대비교재 24~29쪽"
+},
+{
+"lesson": "Ⅰ. 물질의 특성 단원 평가",
+"homework": "진도교재 44~47쪽 (단원 평가 문제)"
+},
+{
+"lesson": "Ⅱ-1. 지권의 구성",
+"homework": "진도교재 52~61쪽 / 시험대비교재 30~38쪽"
+},
+{
+"lesson": "Ⅱ-2. 암석의 종류와 순환",
+"homework": "진도교재 62~75쪽 / 시험대비교재 39~46쪽"
+},
+{
+"lesson": "Ⅱ-3. 대륙 이동과 판의 경계",
+"homework": "진도교재 76~81쪽 / 시험대비교재 47~52쪽"
+},
+{
+"lesson": "Ⅱ. 지권의 변화 단원 평가",
+"homework": "진도교재 82~86쪽 (단원 평가 문제)"
+},
+{
+"lesson": "Ⅲ-1. 물체를 보는 과정과 상",
+"homework": "진도교재 92~103쪽 / 시험대비교재 53~58쪽"
+},
+{
+"lesson": "Ⅲ-2. 물체의 색과 빛의 합성",
+"homework": "진도교재 104~111쪽 / 시험대비교재 59~64쪽"
+},
+{
+"lesson": "Ⅲ-3. 파동과 소리",
+"homework": "진도교재 112~121쪽 / 시험대비교재 65~71쪽"
+},
+{
+"lesson": "Ⅲ. 빛과 파동 단원 평가",
+"homework": "진도교재 122~125쪽 (단원 평가 문제)"
+},
+{
+"lesson": "Ⅳ-1. 원소와 화합물",
+"homework": "진도교재 130~143쪽 / 시험대비교재 72~80쪽"
+},
+{
+"lesson": "Ⅳ-2. 물질의 구성 입자",
+"homework": "진도교재 144~152쪽 / 시험대비교재 81~88쪽"
+},
+{
+"lesson": "Ⅳ. 물질의 구성 단원 평가",
+"homework": "진도교재 153~156쪽 (단원 평가 문제)"
+}
+],
+"오투 2-2": [
+{
+"lesson": "Ⅴ-1. 광합성",
+"homework": "진도교재 8~15쪽 / 시험대비교재 2~7쪽"
+},
+{
+"lesson": "Ⅴ-2. 식물의 호흡",
+"homework": "진도교재 16~23쪽 / 시험대비교재 8~14쪽"
+},
+{
+"lesson": "Ⅴ. 식물과 에너지 단원 평가",
+"homework": "진도교재 24~27쪽 (단원 평가 문제)"
+},
+{
+"lesson": "Ⅵ-1. 소화",
+"homework": "진도교재 32~43쪽 / 시험대비교재 15~22쪽"
+},
+{
+"lesson": "Ⅵ-2. 순환",
+"homework": "진도교재 44~53쪽 / 시험대비교재 23~30쪽"
+},
+{
+"lesson": "Ⅵ-3. 호흡",
+"homework": "진도교재 54~63쪽 / 시험대비교재 31~37쪽"
+},
+{
+"lesson": "Ⅵ-4. 배설",
+"homework": "진도교재 64~72쪽 / 시험대비교재 38~44쪽"
+},
+{
+"lesson": "Ⅵ. 동물과 에너지 단원 평가",
+"homework": "진도교재 73~76쪽 (단원 평가 문제)"
+},
+{
+"lesson": "Ⅶ-1. 전기의 발생",
+"homework": "진도교재 82~91쪽 / 시험대비교재 45~52쪽"
+},
+{
+"lesson": "Ⅶ-2. 전기 회로와 에너지",
+"homework": "진도교재 92~105쪽 / 시험대비교재 53~59쪽"
+},
+{
+"lesson": "Ⅶ-3. 전류의 자기 작용",
+"homework": "진도교재 106~117쪽 / 시험대비교재 60~66쪽"
+},
+{
+"lesson": "Ⅶ. 전기와 자기 단원 평가",
+"homework": "진도교재 118~121쪽 (단원 평가 문제)"
+},
+{
+"lesson": "Ⅷ-1. 별까지의 거리",
+"homework": "진도교재 126~131쪽 / 시험대비교재 67~71쪽"
+},
+{
+"lesson": "Ⅷ-2. 별의 특성",
+"homework": "진도교재 132~141쪽 / 시험대비교재 72~80쪽"
+},
+{
+"lesson": "Ⅷ-3. 우리은하와 우주 탐사",
+"homework": "진도교재 142~152쪽 / 시험대비교재 81~88쪽"
+},
+{
+"lesson": "Ⅷ. 별과 우주 단원 평가",
+"homework": "진도교재 153~156쪽 (단원 평가 문제)"
+}
+],
+"오투 3-1": [
+{
+"lesson": "Ⅰ-1. 물질 변화와 화학 반응식",
+"homework": "진도교재 8~17쪽"
+},
+{
+"lesson": "Ⅰ-2. 화학 반응의 규칙",
+"homework": "진도교재 18~31쪽"
+},
+{
+"lesson": "Ⅰ-3. 화학 반응과 열에너지",
+"homework": "진도교재 32~38쪽"
+},
+{
+"lesson": "Ⅰ. 화학 반응의 규칙성 단원 평가",
+"homework": "진도교재 39~42쪽 (단원 평가 문제)"
+},
+{
+"lesson": "Ⅱ-1. 기권과 기후 변화",
+"homework": "진도교재 48~59쪽"
+},
+{
+"lesson": "Ⅱ-2. 대기 중의 물",
+"homework": "진도교재 60~73쪽"
+},
+{
+"lesson": "Ⅱ-3. 기압과 바람",
+"homework": "진도교재 74~83쪽"
+},
+{
+"lesson": "Ⅱ-4. 날씨의 변화",
+"homework": "진도교재 84~93쪽"
+},
+{
+"lesson": "Ⅱ. 날씨와 기후 변화 단원 평가",
+"homework": "진도교재 94~97쪽 (단원 평가 문제)"
+},
+{
+"lesson": "Ⅲ-1. 수권의 분포와 활용",
+"homework": "진도교재 102~107쪽"
+},
+{
+"lesson": "Ⅲ-2. 해수의 특성",
+"homework": "진도교재 108~117쪽"
+},
+{
+"lesson": "Ⅲ-3. 해수의 순환",
+"homework": "진도교재 118~123쪽"
+},
+{
+"lesson": "Ⅲ. 수권과 해수의 순환 단원 평가",
+"homework": "진도교재 124~127쪽 (단원 평가 문제)"
+},
+{
+"lesson": "Ⅳ-1. 물체의 운동",
+"homework": "진도교재 132~143쪽"
+},
+{
+"lesson": "Ⅳ-2. 일과 에너지",
+"homework": "진도교재 144~153쪽"
+},
+{
+"lesson": "Ⅳ-3. 역학적 에너지 전환과 보존",
+"homework": "진도교재 154~161쪽"
+},
+{
+"lesson": "Ⅳ. 운동과 에너지 단원 평가",
+"homework": "진도교재 162~165쪽 (단원 평가 문제)"
+}
+]
+}
 </script>
 <script>
 // ---------------- 상태 ----------------
@@ -1089,21 +1394,31 @@ let DATA = { students: [], curriculum: {}, records: [], generalEvents: [] };
 let BUILTIN_CURRICULUM = {};
 try{ BUILTIN_CURRICULUM = JSON.parse(document.getElementById('builtinCurriculum').textContent || '{}'); }catch(e){ BUILTIN_CURRICULUM = {}; }
 // 시트의 과제DB와 합치기: 기본 진도 순서대로 보여주고, 시트에 저장된 같은 진도는 시트 내용(과제·알림장)을 사용
+// 교재 이름 비교용: "오투 중학과학 2-1" = "오투2-1" = "오투 2-1"
+function bookKey(name){ return String(name||'').replace(/\s+/g,'').replace(/중학과학|중등과학|중학|중등|과학|중(?=\d)/g,'').toLowerCase(); }
 function mergeBuiltinCurriculum(sheetCurri){
   const out = {};
-  Object.keys(BUILTIN_CURRICULUM).forEach(book=>{
-    const sheetList = (sheetCurri && sheetCurri[book]) || [];
+  const sheetBooks = Object.keys(sheetCurri || {});
+  const usedBooks = new Set();
+  Object.keys(BUILTIN_CURRICULUM).forEach(bName=>{
+    // 시트에 같은 교재(이름 표기만 다른 것 포함)가 있으면 시트의 교재 이름을 사용
+    const sheetBook = sheetBooks.find(b => bookKey(b) === bookKey(bName));
+    const book = sheetBook || bName;
+    if(sheetBook) usedBooks.add(sheetBook);
+    const sheetList = (sheetBook && sheetCurri[sheetBook]) || [];
     const used = new Set();
-    const list = (BUILTIN_CURRICULUM[book] || []).map(name=>{
-      const lesson = String(name).trim();
+    const list = (BUILTIN_CURRICULUM[bName] || []).map(x=>{
+      const lesson = String(typeof x === 'string' ? x : x.lesson).trim();
+      const defHw = typeof x === 'string' ? '' : (x.homework || '');
+      const defNotice = typeof x === 'string' ? '' : (x.commonNotice || '');
       const hit = sheetList.find(l => l.lesson === lesson);
       if(hit){ used.add(hit); return hit; }
-      return { lesson, homework:'', commonNotice:'', builtin:true };
+      return { lesson, homework:defHw, commonNotice:defNotice, builtin:true, builtinHomework:defHw, builtinNotice:defNotice };
     });
     sheetList.forEach(l=>{ if(!used.has(l)) list.push(l); }); // 시트에만 있는 진도는 뒤에
     out[book] = list;
   });
-  Object.keys(sheetCurri || {}).forEach(book=>{ if(!out[book]) out[book] = sheetCurri[book]; });
+  sheetBooks.forEach(book=>{ if(!usedBooks.has(book) && !out[book]) out[book] = sheetCurri[book]; });
   return out;
 }
 DATA.curriculum = mergeBuiltinCurriculum({});
@@ -2081,7 +2396,7 @@ function renderLessonDropdown(){
   if(results.length===0){ html += '<div class="empty">유사한 진도가 없습니다</div>'; }
   else results.forEach((l,idx)=>{
     const realIdx = lessons.indexOf(l);
-    html += `<div class="opt" data-idx="${realIdx}">${l.lesson}<div class="sub">${l.builtin ? '<span style="opacity:.6;">기본 진도 · 과제를 넣어 저장하면 시트에 추가됩니다</span>' : (l.homework||'').slice(0,40)}</div></div>`;
+    html += `<div class="opt" data-idx="${realIdx}">${l.lesson}<div class="sub">${l.builtin ? `<span style="opacity:.6;">기본</span> ${(l.homework||'').slice(0,40)}` : (l.homework||'').slice(0,40)}</div></div>`;
   });
   const exists = lessons.some(l=>l.lesson===q);
   if(q && !exists){
@@ -2481,7 +2796,8 @@ document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
     const res = await apiPost(action, payload);
     if(res.error){ toast(res.error); return; }
     let curriNote = '';
-    if(form.book && form.lesson && form.lesson.builtin && (payload.homework || document.getElementById('commonNoticeText').value.trim())){
+    const hwNow = (payload.homework || '').trim(), ntNow = document.getElementById('commonNoticeText').value.trim();
+    if(form.book && form.lesson && form.lesson.builtin && (hwNow && hwNow !== (form.lesson.builtinHomework||'') || ntNow && ntNow !== (form.lesson.builtinNotice||''))){
       try{
         const r2 = await saveCurriculum({ book: form.book, lesson: form.lesson.lesson });
         if(!r2.error) curriNote = ' · 이 진도의 과제를 과제DB에도 저장했습니다';

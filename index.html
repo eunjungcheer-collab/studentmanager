@@ -1076,10 +1076,37 @@
   </div>
 </div>
 
+<!-- 기본 진도 목록: 교재 PDF에서 소단원별로 만든 목록. 앱에만 들어 있고 구글 시트에는 저장되지 않습니다.
+     과제·알림장을 넣어 저장한 항목만 과제DB 시트에 저장됩니다. 형식: { "교재명": ["진도1", "진도2", ...] } -->
+<script type="application/json" id="builtinCurriculum">
+{}
+</script>
 <script>
 // ---------------- 상태 ----------------
 let CONFIG = { webAppUrl: 'https://script.google.com/macros/s/AKfycbypEPpo_ah7GwsKXHm7K8gnrWkhHtJcSyafLysb2_-5B5Wq9tf1rdc8NQXmG22YvOUg/exec', timetableSheetId: '' };
 let DATA = { students: [], curriculum: {}, records: [], generalEvents: [] };
+// ---------------- 기본 진도 목록 (앱 내장) ----------------
+let BUILTIN_CURRICULUM = {};
+try{ BUILTIN_CURRICULUM = JSON.parse(document.getElementById('builtinCurriculum').textContent || '{}'); }catch(e){ BUILTIN_CURRICULUM = {}; }
+// 시트의 과제DB와 합치기: 기본 진도 순서대로 보여주고, 시트에 저장된 같은 진도는 시트 내용(과제·알림장)을 사용
+function mergeBuiltinCurriculum(sheetCurri){
+  const out = {};
+  Object.keys(BUILTIN_CURRICULUM).forEach(book=>{
+    const sheetList = (sheetCurri && sheetCurri[book]) || [];
+    const used = new Set();
+    const list = (BUILTIN_CURRICULUM[book] || []).map(name=>{
+      const lesson = String(name).trim();
+      const hit = sheetList.find(l => l.lesson === lesson);
+      if(hit){ used.add(hit); return hit; }
+      return { lesson, homework:'', commonNotice:'', builtin:true };
+    });
+    sheetList.forEach(l=>{ if(!used.has(l)) list.push(l); }); // 시트에만 있는 진도는 뒤에
+    out[book] = list;
+  });
+  Object.keys(sheetCurri || {}).forEach(book=>{ if(!out[book]) out[book] = sheetCurri[book]; });
+  return out;
+}
+DATA.curriculum = mergeBuiltinCurriculum({});
 let form = {
   student: null,
   book: '',
@@ -1809,6 +1836,7 @@ async function loadData(){
     const data = await apiGet();
     if(data.error) throw new Error(data.error);
     DATA = data;
+    DATA.curriculum = mergeBuiltinCurriculum(DATA.curriculum || {});
     if(status) status.innerHTML = '<span class="status-dot ok"></span>연결됨 · 학생 ' + DATA.students.length + '명, 교재 ' + Object.keys(DATA.curriculum).length + '종' +
       (DATA.recordsLimited ? ` · 수업기록은 최근 180일(${DATA.recordsCutoff} 이후)만 불러왔습니다` : '') +
       (DATA.version ? '' : ' · <b style="color:var(--coral);">Apps Script를 새 버전으로 배포해주세요</b>');
@@ -2053,7 +2081,7 @@ function renderLessonDropdown(){
   if(results.length===0){ html += '<div class="empty">유사한 진도가 없습니다</div>'; }
   else results.forEach((l,idx)=>{
     const realIdx = lessons.indexOf(l);
-    html += `<div class="opt" data-idx="${realIdx}">${l.lesson}<div class="sub">${(l.homework||'').slice(0,40)}</div></div>`;
+    html += `<div class="opt" data-idx="${realIdx}">${l.lesson}<div class="sub">${l.builtin ? '<span style="opacity:.6;">기본 진도 · 과제를 넣어 저장하면 시트에 추가됩니다</span>' : (l.homework||'').slice(0,40)}</div></div>`;
   });
   const exists = lessons.some(l=>l.lesson===q);
   if(q && !exists){
@@ -2136,6 +2164,21 @@ function selectLesson(idx){
   updateCurriButtonVisibility();
 }
 
+// 과제·알림장 저장: 기본 진도(시트에 아직 없음)는 과제DB에 새로 추가, 시트에 있는 진도는 수정
+async function saveCurriculum(payload){
+  if(form.lesson && form.lesson.builtin){
+    const item = {
+      book: payload.book,
+      lesson: payload.newLesson || payload.lesson,
+      homework: payload.homework !== undefined ? payload.homework : document.getElementById('homeworkText').value.trim(),
+      commonNotice: payload.commonNotice !== undefined ? payload.commonNotice : document.getElementById('commonNoticeText').value.trim()
+    };
+    const res = await apiPost('addCurriculumBatch', { items: JSON.stringify([item]) });
+    if(res.error) return res;
+    return { result:'success', addedToSheet:true };
+  }
+  return apiPost('updateCurriculum', payload);
+}
 async function refreshSelectedLessonAfterSave(lessonNameForLookup){
   await loadData();
   if(DATA.curriculum[form.book]){
@@ -2154,7 +2197,7 @@ document.getElementById('updateHomeworkBtn').addEventListener('click', async ()=
     homework: document.getElementById('homeworkText').value.trim()
   };
   try{
-    const res = await apiPost('updateCurriculum', payload);
+    const res = await saveCurriculum(payload);
     if(res.error){ toast(res.error); return; }
     toast('과제를 시트에 저장했습니다');
     await refreshSelectedLessonAfterSave(payload.lesson);
@@ -2169,7 +2212,7 @@ document.getElementById('updateNoticeBtn').addEventListener('click', async ()=>{
     commonNotice: document.getElementById('commonNoticeText').value.trim()
   };
   try{
-    const res = await apiPost('updateCurriculum', payload);
+    const res = await saveCurriculum(payload);
     if(res.error){ toast(res.error); return; }
     toast('공통알림장을 시트에 저장했습니다');
     await refreshSelectedLessonAfterSave(payload.lesson);
@@ -2186,7 +2229,7 @@ document.getElementById('lessonRenameSave').addEventListener('click', async ()=>
     newLesson: newLesson
   };
   try{
-    const res = await apiPost('updateCurriculum', payload);
+    const res = await saveCurriculum(payload);
     if(res.error){ toast(res.error); return; }
     toast('진도명을 시트에 저장했습니다');
     await refreshSelectedLessonAfterSave(newLesson);
@@ -2208,7 +2251,7 @@ document.getElementById('updateAllCurriBtn').addEventListener('click', async ()=
     commonNotice: document.getElementById('commonNoticeText').value.trim()
   };
   try{
-    const res = await apiPost('updateCurriculum', payload);
+    const res = await saveCurriculum(payload);
     if(res.error){ toast(res.error); return; }
     toast('진도·과제·알림장을 모두 시트에 저장했습니다');
     await refreshSelectedLessonAfterSave(newLesson);
@@ -2437,7 +2480,14 @@ document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
   try{
     const res = await apiPost(action, payload);
     if(res.error){ toast(res.error); return; }
-    toast((action === 'updateRecord' ? '기존 수업기록을 수정했습니다' : '오늘 수업기록을 저장했습니다') + calNote(res));
+    let curriNote = '';
+    if(form.book && form.lesson && form.lesson.builtin && (payload.homework || document.getElementById('commonNoticeText').value.trim())){
+      try{
+        const r2 = await saveCurriculum({ book: form.book, lesson: form.lesson.lesson });
+        if(!r2.error) curriNote = ' · 이 진도의 과제를 과제DB에도 저장했습니다';
+      }catch(e){}
+    }
+    toast((action === 'updateRecord' ? '기존 수업기록을 수정했습니다' : '오늘 수업기록을 저장했습니다') + calNote(res) + curriNote);
     await loadData();
   }catch(err){ toast('저장 실패: ' + err.message); }
 });

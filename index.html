@@ -3143,11 +3143,13 @@ function renderWeekView(){
     const testBlocks = groups.map(g=>({
       kind:'test', start:g.start, end:g.end, testGroup:true,
       label: Array.from(new Set(g.members.map(m => wkShortLabel(m.label)))).join(', '),
-      members: g.members.map(m => ({ name: wkShortLabel(m.label), start:m.start, end:m.end, id:m.addId||'', date:m.addDate||'' }))
+      members: g.members.map(m => ({ name: wkShortLabel(m.label), start:m.start, end:m.end, id:m.addId||'', date:m.addDate||'', ttKey:m.ttKey||'', ttDate:m.ttDate||'', changed:!!m.changed }))
     }));
     // 수업·보강·일정은 왼쪽 한 줄(겹칠 때만 나눔), 테스트는 오른쪽 한 줄
-    const left = layoutLanes(timed.filter(t => !isTest(t)));
-    const right = layoutLanes(testBlocks);
+    // 이번 주에 옮긴 TEST 학생의 원래 자리(흐리게)는 테스트 칸 쪽에 표시
+    const movedTest = t => t.kind === 'moved' && t.ttClass && t.ttClass.excluded;
+    const left = layoutLanes(timed.filter(t => !isTest(t) && !movedTest(t)));
+    const right = layoutLanes(testBlocks.concat(timed.filter(movedTest)));
     const split = (left.length && right.length) ? 62 : (right.length ? 0 : 100);
     left.forEach(it=>{ const w = split / it._lanes; it._x = w*it._lane; it._w = w; });
     right.forEach(it=>{ const w = (100 - split) / it._lanes; it._x = split + w*it._lane; it._w = w; });
@@ -3248,13 +3250,17 @@ function openWkAction(el){
       const ms = JSON.parse(el.dataset.members);
       document.getElementById('wkActTitle').innerHTML += '<div style="font-weight:400; font-size:12.5px; margin-top:4px;">' +
         ms.map(m=>`📝 ${minToHm(m.start)}~${minToHm(m.end)} ${escapeHtml(m.name)}`).join('<br>') + '</div>';
-      ms.filter(m=>m.id).forEach(m => acts.push({ text:`✎ ${m.name} 테스트 수정·삭제`, fn:()=>openTtAdd({ id: m.id, date: m.date }) }));
+      ms.forEach(m => {
+        // 직접 추가한 테스트: 시간·기간 수정·삭제 / 시간표 시트의 TEST 학생: 이번 주만 시간 조정
+        if(m.id) acts.push({ text:`✎ ${m.name} 테스트 시간 수정·삭제`, fn:()=>openTtAdd({ id: m.id, date: m.date }) });
+        else if(m.ttKey) acts.push({ text:`↪ ${m.name} 테스트 시간 조정 (이번 주만)${m.changed ? ' · 바꿈' : ''}`, fn:()=>openTtEditor(m.ttKey, m.ttDate) });
+      });
     }catch(e){}
   }
   if(el.dataset.joined){
-    try{ JSON.parse(el.dataset.joined).forEach(j => acts.push({ text:`✎ 함께 넣은 ${j.name} 수정·삭제`, fn:()=>openTtAdd({ id: j.id, date: j.date }) })); }catch(e){}
+    try{ JSON.parse(el.dataset.joined).forEach(j => acts.push({ text:`✎ 함께 넣은 ${j.name} 시간 수정·삭제`, fn:()=>openTtAdd({ id: j.id, date: j.date }) })); }catch(e){}
   }
-  if(el.dataset.addId) acts.push({ text:'✎ 추가한 학생 수정·삭제', fn:()=>openTtAdd({ id: el.dataset.addId, date: el.dataset.addDate }) });
+  if(el.dataset.addId) acts.push({ text:'✎ 추가한 학생 시간 수정·삭제', fn:()=>openTtAdd({ id: el.dataset.addId, date: el.dataset.addDate }) });
   else if(el.dataset.ttKey) acts.push({ text:'↪ 이 수업 시간 조정 (이번 주만)', fn:()=>openTtEditor(el.dataset.ttKey, el.dataset.ttDate) });
   acts.push({ text:'📅 그날 결석·보강·일정 보기', fn:()=>openDayDetail(d) });
   const box = document.getElementById('wkActBtns');

@@ -762,7 +762,7 @@
       <span><i style="background:var(--gold-soft); border:1px solid var(--gold);"></i>기타일정</span>
       <span><i style="background:var(--coral-soft);"></i>결석</span>
       <span><i style="background:#ECE9F2; border:1px solid #ADA6C2;"></i>테스트 (같은 시간끼리 한 칸에 이름 나열, 겹침 제외)</span>
-      <span><i style="border:2px dashed var(--violet);"></i>이번 주만 바꾼 수업</span>
+      <span><i style="border:2px dashed var(--violet);"></i>앱에서 바꾼 수업</span>
       <span><i style="border:2px solid var(--coral);"></i>시간 겹침</span>
     </div>
     <p class="hint" style="margin-top:6px;"><b>빈 시간대</b>를 누르면 그 시간에 학생을 수업·테스트로 추가합니다 (이번 주만 / 계속 / 날짜까지). <b>수업이 있는 시간</b>은 블록을 누른 뒤 "이 시간에 학생 추가"를 고르면 겹쳐도 추가할 수 있고, 📚 정규 수업은 같은 메뉴에서 <b>이번 주에만</b> 시간을 옮기거나 뺄 수 있습니다. 요일 머리글을 누르면 그날 결석·보강·일정을 입력합니다. 공유 시간표 시트는 바뀌지 않습니다.</p>
@@ -930,11 +930,11 @@
 <div class="modal-overlay" id="ttEditModal" style="display:none; z-index:60;">
   <div class="modal-box" style="max-width:380px; max-height:85vh; overflow-y:auto;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-      <b style="font-size:15px;">수업 시간 조정 (이번 주만)</b>
+      <b style="font-size:15px;">수업 시간 조정</b>
       <button class="btn sm" id="ttEdClose">닫기</button>
     </div>
     <div id="ttEdInfo" style="font-size:13px; line-height:1.6; margin-bottom:6px;"></div>
-    <p class="hint" style="margin:0 0 8px;">공유 시간표 시트는 바뀌지 않습니다. 이 주에만 적용되고, 다음 주는 원래 시간표대로 돌아갑니다.</p>
+    <p class="hint" style="margin:0 0 8px;">공유 시간표 시트는 바뀌지 않고, 이 앱의 시간표에서만 바뀝니다. 아래 기간에서 이번 주만 바꿀지, 앞으로 계속 바꿀지 고르세요.</p>
     <label style="margin-top:0;">요일</label>
     <select id="ttEdDate"></select>
     <label>시간</label>
@@ -945,10 +945,18 @@
     </div>
     <input type="hidden" id="ttEdStart">
     <input type="hidden" id="ttEdEnd">
+    <label>기간</label>
+    <div class="seg" id="ttEdPeriod">
+      <button type="button" data-period="once" class="on">이번 주만</button>
+      <button type="button" data-period="forever">계속</button>
+      <button type="button" data-period="until">날짜까지</button>
+    </div>
+    <input type="date" id="ttEdUntil" style="display:none; margin-top:6px;">
+    <p class="hint" id="ttEdPeriodHint" style="margin:4px 0 0;"></p>
     <div id="ttEdConflict"></div>
     <button class="btn primary sm block-w" id="ttEdSave" style="margin-top:12px;">이 시간으로 바꾸기</button>
     <div class="row" style="margin-top:8px; gap:6px;">
-      <button class="btn sm" id="ttEdCancelClass" style="flex:1; color:var(--coral); border-color:var(--coral);">이 날 수업 빼기</button>
+      <button class="btn sm" id="ttEdCancelClass" style="flex:1; color:var(--coral); border-color:var(--coral);">수업 빼기</button>
       <button class="btn sm" id="ttEdReset" style="flex:1;">원래대로</button>
     </div>
   </div>
@@ -1799,9 +1807,9 @@ function renderMyClassesList(){
   if(!ttTeacherName) html += '<p class="hint">설정에서 "내 이름"을 넣으면 내 수업만 골라서 확인합니다.</p>';
   const orphans = overridesByClass().orphans;
   if(orphans.length){
-    html += `<div style="margin-top:10px; font-weight:700; font-size:13px;">⚠ 적용되지 않는 이번 주 변경 ${orphans.length}개</div>
+    html += `<div style="margin-top:10px; font-weight:700; font-size:13px;">⚠ 적용되지 않는 수업 변경 ${orphans.length}개</div>
       <p class="hint" style="margin:2px 0 6px;">시간표 칸의 글자나 시간이 바뀌어 원래 수업을 찾지 못한 변경입니다. 필요 없으면 지우고, 주간 일정표에서 다시 바꿔주세요.</p>` +
-      orphans.map((o,i)=>`<div class="cal-event-row" style="align-items:center;"><span style="flex:1; font-size:12.5px;">${o.date} ${escapeHtml(o.label || o.key)} → ${o.cancel ? '빼기' : `${o.newDate} ${o.start}~${o.end}`}</span>
+      orphans.map((o,i)=>`<div class="cal-event-row" style="align-items:center;"><span style="flex:1; font-size:12.5px;">${o.date} ${escapeHtml(o.label || o.key)} → ${o.cancel ? '빼기' : `${o.newDate} ${o.start}~${o.end}`}${o.repeat ? ` (매주${o.repeatTo ? ', ' + o.repeatTo + '까지' : ', 계속'})` : ''}</span>
         <button class="btn sm" data-del-orphan="${i}" style="color:var(--coral); border-color:var(--coral);">삭제</button></div>`).join('');
   }
   box.innerHTML = html;
@@ -1834,9 +1842,10 @@ function timetableWarnings(){
   if(odd.length){
     out.push(`시간을 이상하게 읽은 수업이 ${odd.length}개 있습니다 (예: ${escapeHtml(wkShortLabel(odd[0].text))} ${minToHm(odd[0].start)}~${minToHm(odd[0].end)}). 시간표 탭 아래 "내 수업" 목록을 확인해주세요.`);
   }
-  const recentOrphans = overridesByClass().orphans.filter(o => o.date >= dateKeyOf(new Date(Date.now() - 7*864e5)));
+  const weekAgo = dateKeyOf(new Date(Date.now() - 7*864e5));
+  const recentOrphans = overridesByClass().orphans.filter(o => o.date >= weekAgo || (o.repeat && (!o.repeatTo || o.repeatTo >= weekAgo)));
   if(recentOrphans.length){
-    out.push(`이번 주 변경 ${recentOrphans.length}개가 시간표의 어떤 수업인지 찾지 못해 적용되지 않았습니다 (시간표 칸이 바뀌었을 수 있어요). 시간표 탭 아래에서 확인·삭제할 수 있습니다.`);
+    out.push(`앱에서 바꾼 수업 ${recentOrphans.length}개가 시간표의 어떤 수업인지 찾지 못해 적용되지 않았습니다 (시간표 칸이 바뀌었을 수 있어요). 시간표 탭 아래에서 확인·삭제할 수 있습니다.`);
   }
   return out;
 }
@@ -1865,20 +1874,39 @@ function resolveOvClass(ov, classes){
   return null;
 }
 // "수업키@원래날짜" → 변경 (키가 그대로인 변경을 우선)
-let _ovCache = { data:null, classes:null, map:null, orphans:null };
+let _ovCache = { data:null, classes:null, map:null, orphans:null, repeats:null };
 function overridesByClass(){
   const classes = getMyClasses();
   if(_ovCache.data === DATA.ttOverrides && _ovCache.classes === classes) return _ovCache;
-  const map = {}, orphans = [];
+  const map = {}, orphans = [], repeats = {};
   const list = (DATA.ttOverrides || []).slice().sort((a,b)=> (classes.some(x=>ttClassKey(x)===b.key)?1:0) - (classes.some(x=>ttClassKey(x)===a.key)?1:0));
   list.forEach(ov=>{
     const c = resolveOvClass(ov, classes);
     if(!c){ orphans.push(ov); return; }
     const k = ttClassKey(c) + '@' + ov.date;
     if(!map[k]) map[k] = { ov, c };
+    if(ov.repeat){ const rk = ttClassKey(c); (repeats[rk] = repeats[rk] || []).push({ ov, c }); }
   });
-  _ovCache = { data: DATA.ttOverrides, classes, map, orphans };
+  Object.values(repeats).forEach(l => l.sort((a,b)=> a.ov.date < b.ov.date ? 1 : -1)); // 늦게 시작한 반복이 우선
+  _ovCache = { data: DATA.ttOverrides, classes, map, orphans, repeats };
   return _ovCache;
+}
+function addDaysKey(k, n){ const d = new Date(k + 'T00:00:00'); d.setDate(d.getDate() + n); return dateKeyOf(d); }
+function daysBetweenKeys(a, b){ return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 864e5); }
+// 이 날짜에 이 수업에 적용되는 변경: ① 그 날짜에 저장한 변경 ② 그 전부터 매주 반복 중인 변경
+// 반환: { ...변경, date: 이 날짜, newDate: 이 주에 옮겨 갈 날짜, src: 저장된 원래 줄, inherited: 반복에서 온 것인지 }
+function ovFor(c, dateKey){
+  const info = overridesByClass(), k = ttClassKey(c);
+  const hit = info.map[k + '@' + dateKey];
+  if(hit) return { ...hit.ov, src: hit.ov, inherited:false };
+  const list = (info.repeats && info.repeats[k]) || [];
+  for(const r of list){
+    const o = r.ov;
+    if(o.date < dateKey && (!o.repeatTo || dateKey <= o.repeatTo)){
+      return { ...o, date: dateKey, newDate: addDaysKey(dateKey, daysBetweenKeys(o.date, o.newDate || o.date)), src: o, inherited:true };
+    }
+  }
+  return null;
 }
 function getDaySchedule(dateKey){
   const items = [];
@@ -1888,8 +1916,7 @@ function getDaySchedule(dateKey){
   classes.filter(c=>c.dow===dow).forEach(c=>{
     const key = ttClassKey(c), label = c.text.replace(/\s+/g,' ');
     const base = { kind: c.excluded ? 'test' : 'class', label, start:c.start, end:c.end, ttKey:key, ttDate:dateKey, ttClass:c };
-    const hit = ovInfo.map[key + '@' + dateKey];
-    const ov = hit ? hit.ov : null;
+    const ov = ovFor(c, dateKey);
     if(!ov){ items.push(base); return; }
     // 이번 주에 바꾼 수업: 원래 자리는 흐리게 표시 (겹침 계산 안 함)
     const moved = ov.cancel || ov.newDate !== dateKey || hmToMin(ov.start) !== c.start || hmToMin(ov.end) !== c.end;
@@ -1908,8 +1935,11 @@ function getDaySchedule(dateKey){
       start: hmToMin(a.start), end: hmToMin(a.end), addId: a.id, addDate: dateKey });
   });
   // 다른 요일에서 이 날로 옮겨온 수업
-  Object.values(ovInfo.map).forEach(({ ov, c })=>{
-    if(ov.cancel || ov.newDate !== dateKey || ov.date === dateKey || !ov.start || !ov.end) return;
+  const weekKeys = weekDatesOf(dateKey);
+  classes.filter(c => c.dow !== dow).forEach(c=>{
+    const orig = weekKeys.find(k => new Date(k + 'T00:00:00').getDay() === c.dow);
+    const ov = orig ? ovFor(c, orig) : null;
+    if(!ov || ov.cancel || ov.newDate !== dateKey || ov.date === dateKey || !ov.start || !ov.end) return;
     items.push({ kind: c.excluded ? 'test' : 'class', label: c.text.replace(/\s+/g,' '), start: hmToMin(ov.start), end: hmToMin(ov.end), ttKey: ttClassKey(c), ttDate: ov.date, ttClass: c, changed: true });
   });
   const ev = collectCalEvents()[dateKey] || { absent:[], makeup:[], other:[] };
@@ -3253,7 +3283,7 @@ function openWkAction(el){
       ms.forEach(m => {
         // 직접 추가한 테스트: 시간·기간 수정·삭제 / 시간표 시트의 TEST 학생: 이번 주만 시간 조정
         if(m.id) acts.push({ text:`✎ ${m.name} 테스트 시간 수정·삭제`, fn:()=>openTtAdd({ id: m.id, date: m.date }) });
-        else if(m.ttKey) acts.push({ text:`↪ ${m.name} 테스트 시간 조정 (이번 주만)${m.changed ? ' · 바꿈' : ''}`, fn:()=>openTtEditor(m.ttKey, m.ttDate) });
+        else if(m.ttKey) acts.push({ text:`↪ ${m.name} 테스트 시간 조정${m.changed ? ' · 바꿈' : ''}`, fn:()=>openTtEditor(m.ttKey, m.ttDate) });
       });
     }catch(e){}
   }
@@ -3261,7 +3291,7 @@ function openWkAction(el){
     try{ JSON.parse(el.dataset.joined).forEach(j => acts.push({ text:`✎ 함께 넣은 ${j.name} 시간 수정·삭제`, fn:()=>openTtAdd({ id: j.id, date: j.date }) })); }catch(e){}
   }
   if(el.dataset.addId) acts.push({ text:'✎ 추가한 학생 시간 수정·삭제', fn:()=>openTtAdd({ id: el.dataset.addId, date: el.dataset.addDate }) });
-  else if(el.dataset.ttKey) acts.push({ text:'↪ 이 수업 시간 조정 (이번 주만)', fn:()=>openTtEditor(el.dataset.ttKey, el.dataset.ttDate) });
+  else if(el.dataset.ttKey) acts.push({ text:'↪ 이 수업 시간 조정·빼기', fn:()=>openTtEditor(el.dataset.ttKey, el.dataset.ttDate) });
   acts.push({ text:'📅 그날 결석·보강·일정 보기', fn:()=>openDayDetail(d) });
   const box = document.getElementById('wkActBtns');
   box.innerHTML = acts.map((a,i)=>`<button class="btn ${a.primary?'primary ':''}sm block-w" data-i="${i}" style="margin-top:6px;">${a.text}</button>`).join('');
@@ -3436,23 +3466,49 @@ function weekDatesOf(dateKey){
 function openTtEditor(key, date){
   const c = getMyClasses().find(x => ttClassKey(x) === key);
   if(!c){ toast('시간표에서 이 수업을 찾지 못했습니다'); return; }
-  const hit = overridesByClass().map[key + '@' + date];
-  const ov = hit ? hit.ov : null;
-  ttEd = { key, date, c, ov };
+  const eff = ovFor(c, date);
+  const src = eff ? eff.src : null;
+  ttEd = { key, date, c, eff, src, period: src && src.repeat ? (src.repeatTo ? 'until' : 'forever') : 'once' };
   const dd = new Date(date + 'T00:00:00');
+  const md = k => { const x = new Date(k + 'T00:00:00'); return `${x.getMonth()+1}/${x.getDate()}`; };
+  let cur = '';
+  if(eff){
+    const what = eff.cancel ? '수업 빼기' : (()=>{ const n = new Date(eff.newDate+'T00:00:00'); return `${DOW_CHARS[n.getDay()]} ${eff.start}~${eff.end}`; })();
+    const when = src.repeat ? `매주 · ${md(src.date)}부터 ${src.repeatTo ? md(src.repeatTo) + '까지' : '계속'}` : '이번 주만';
+    cur = `<br><span style="color:var(--violet);">지금 변경: ${what} (${when})</span>`;
+  }
   document.getElementById('ttEdInfo').innerHTML =
-    `<b>${escapeHtml(c.text.replace(/\s+/g,' '))}</b><br>원래: ${DOW_CHARS[c.dow]} ${dd.getMonth()+1}/${dd.getDate()} ${minToHm(c.start)}~${minToHm(c.end)}` +
-    (ov ? `<br><span style="color:var(--violet);">이번 주 변경: ${ov.cancel ? '수업 빼기' : (()=>{ const n = new Date(ov.newDate+'T00:00:00'); return `${DOW_CHARS[n.getDay()]} ${n.getMonth()+1}/${n.getDate()} ${ov.start}~${ov.end}`; })()}</span>` : '');
+    `<b>${escapeHtml(c.text.replace(/\s+/g,' '))}</b><br>공유 시간표: ${DOW_CHARS[c.dow]} ${dd.getMonth()+1}/${dd.getDate()} ${minToHm(c.start)}~${minToHm(c.end)}` + cur;
   const sel = document.getElementById('ttEdDate');
   sel.innerHTML = weekDatesOf(date).map(k=>{ const x = new Date(k+'T00:00:00'); return `<option value="${k}">${DOW_CHARS[x.getDay()]} ${x.getMonth()+1}/${x.getDate()}${k===date?' (원래 요일)':''}</option>`; }).join('');
-  sel.value = (ov && !ov.cancel) ? ov.newDate : date;
-  document.getElementById('ttEdStart').value = (ov && !ov.cancel && ov.start) ? ov.start : minToHm(c.start);
-  document.getElementById('ttEdEnd').value = (ov && !ov.cancel && ov.end) ? ov.end : minToHm(c.end);
+  sel.value = (eff && !eff.cancel) ? eff.newDate : date;
+  document.getElementById('ttEdStart').value = (eff && !eff.cancel && eff.start) ? eff.start : minToHm(c.start);
+  document.getElementById('ttEdEnd').value = (eff && !eff.cancel && eff.end) ? eff.end : minToHm(c.end);
+  document.getElementById('ttEdUntil').value = src && src.repeatTo ? src.repeatTo : '';
   refreshTtEdTime();
-  document.getElementById('ttEdReset').style.display = ov ? '' : 'none';
+  taSetSeg('ttEdPeriod', 'period', ttEd.period);
+  ttEdRefreshPeriod();
+  document.getElementById('ttEdReset').style.display = eff ? '' : 'none';
   checkTtEdConflict();
   document.getElementById('ttEditModal').style.display = 'flex';
 }
+function ttEdRefreshPeriod(){
+  const until = document.getElementById('ttEdUntil');
+  until.style.display = ttEd.period === 'until' ? '' : 'none';
+  const dd = new Date(ttEd.date + 'T00:00:00'), dow = DOW_CHARS[dd.getDay()], from = `${dd.getMonth()+1}/${dd.getDate()}`;
+  let t;
+  if(ttEd.period === 'once') t = `${from} 한 번만 바뀝니다. 다음 주는 원래 시간표대로입니다.`;
+  else if(ttEd.period === 'forever') t = `${from}부터 매주 ${dow}요일 수업이 계속 바뀐 대로 보입니다 (공유 시간표는 그대로).`;
+  else t = until.value ? `${from}부터 ${until.value.slice(5).replace('-','/')}까지 매주 바뀌고, 그 뒤에는 원래대로 돌아갑니다.` : '마지막 날짜를 골라주세요.';
+  document.getElementById('ttEdPeriodHint').textContent = t;
+}
+document.querySelectorAll('#ttEdPeriod button').forEach(b=>b.addEventListener('click', ()=>{
+  ttEd.period = b.dataset.period; taSetSeg('ttEdPeriod', 'period', ttEd.period);
+  const u = document.getElementById('ttEdUntil');
+  if(ttEd.period === 'until' && !u.value) u.value = addDaysKey(ttEd.date, 28);
+  ttEdRefreshPeriod();
+}));
+document.getElementById('ttEdUntil').addEventListener('change', ttEdRefreshPeriod);
 function checkTtEdConflict(){
   if(!ttEd) return [];
   const box = document.getElementById('ttEdConflict');
@@ -3467,46 +3523,138 @@ function checkTtEdConflict(){
 const refreshTtEdTime = setupTimePair('ttEdStart', 'ttEdEnd', checkTtEdConflict);
 document.getElementById('ttEdDate').addEventListener('change', checkTtEdConflict);
 document.getElementById('ttEdClose').addEventListener('click', ()=>{ document.getElementById('ttEditModal').style.display = 'none'; });
-async function sendTtOverride(action, extra){
+
+// ---- 저장 요청 만들기 ----
+// 저장된 변경 한 줄을 그대로 다시 저장할 때의 값 (over로 일부만 바꿈)
+function ovParams(o, over){
+  return { key:o.key, date:o.date, newDate:o.newDate || o.date, start:o.start || '', end:o.end || '', cancel:o.cancel ? 'Y' : '',
+    label:o.label || '', repeat:o.repeat ? 'Y' : '', repeatTo:o.repeatTo || '', replaceKey:'', ...over };
+}
+// 반복 변경을 X 다음 같은 요일부터 다시 이어가기
+function ovRestartAfter(src, X){
+  const nd = addDaysKey(src.date, 7 * Math.ceil((daysBetweenKeys(src.date, X) + 1) / 7));
+  if(src.repeatTo && nd > src.repeatTo) return null;
+  return ['saveTtOverride', ovParams(src, { date: nd, newDate: addDaysKey(nd, daysBetweenKeys(src.date, src.newDate || src.date)) })];
+}
+// 이 수업의 변경 중 날짜가 [a, b] 안에 있는 것 (b가 없으면 끝까지)
+function ovRowsIn(c, a, b){
+  const classes = getMyClasses();
+  return (DATA.ttOverrides || []).filter(o => o.date >= a && (!b || o.date <= b) && resolveOvClass(o, classes) === c);
+}
+// 이 날짜 이전에 시작해서 이 날짜까지 이어지는 반복 변경 (가장 늦게 시작한 것)
+function ovSeriesBefore(c, date){
+  const list = (overridesByClass().repeats || {})[ttClassKey(c)] || [];
+  const r = list.find(r => r.ov.date < date && (!r.ov.repeatTo || date <= r.ov.repeatTo));
+  return r ? r.ov : null;
+}
+function ttEdUntilValue(){
+  if(ttEd.period === 'forever') return '';
+  return document.getElementById('ttEdUntil').value;
+}
+function ttEdPeriodOk(){
+  if(ttEd.period === 'once') return true;
+  if(!(DATA.version && DATA.version >= '2026-11-10')){ toast('계속·날짜까지로 바꾸려면 Apps Script를 새 버전으로 배포해주세요'); return false; }
+  if(ttEd.period === 'until'){
+    const u = ttEdUntilValue();
+    if(!u || u < ttEd.date){ toast('마지막 날짜를 확인해주세요'); return false; }
+  }
+  return true;
+}
+// 기간 [date, to] 을 비우기: 앞에서 이어지던 반복은 date 전까지로 자르고, 기간 안의 변경은 지움
+// (기간이 끝난 뒤에도 이어져야 하는 반복은 to 다음 주부터 다시 이어감)
+function ovClearRangeOps(c, date, to, keepExactAtDate){
+  const ops = [];
+  const ser = ovSeriesBefore(c, date);
+  if(ser){
+    ops.push(['saveTtOverride', ovParams(ser, { repeatTo: addDaysKey(date, -1) })]);
+    if(to){ const r = ovRestartAfter(ser, to); if(r) ops.push(r); }
+  }
+  ovRowsIn(c, date, to).forEach(o=>{
+    if(o.repeat && to && (!o.repeatTo || o.repeatTo > to)){ const r = ovRestartAfter(o, to); if(r) ops.push(r); }
+    if(keepExactAtDate && o.date === date) return; // 같은 줄을 곧 덮어쓸 예정
+    ops.push(['deleteTtOverride', { key: o.key, date: o.date }]);
+  });
+  return ops;
+}
+// 새 변경 저장: vals = { newDate, start, end, cancel }
+function ttEdChangeOps(vals){
+  const { key, date, c, eff, src } = ttEd;
+  const label = c.text.replace(/\s+/g,' ');
+  const replaceKey = (src && !eff.inherited && src.key !== key) ? src.key : '';
+  const base = { key, date, replaceKey, newDate: vals.newDate, start: vals.start || '', end: vals.end || '', cancel: vals.cancel ? 'Y' : '', label };
+  if(ttEd.period === 'once'){
+    const ops = [];
+    // 이 날짜에서 시작한 반복 변경이면, 반복은 다음 주부터 이어지게
+    if(src && src.repeat && !eff.inherited){ const r = ovRestartAfter(src, date); if(r) ops.push(r); }
+    ops.push(['saveTtOverride', { ...base, repeat:'', repeatTo:'' }]);
+    return ops;
+  }
+  const to = ttEdUntilValue();
+  const ops = ovClearRangeOps(c, date, to, true);
+  ops.push(['saveTtOverride', { ...base, repeat:'Y', repeatTo: to }]);
+  return ops;
+}
+// 원래 시간표대로 되돌리기
+function ttEdResetOps(){
+  const { key, date, c, eff, src } = ttEd;
+  if(!eff) return [];
+  if(ttEd.period === 'once'){
+    const ops = [];
+    const original = ['saveTtOverride', { key, date, replaceKey:'', newDate: date, start: minToHm(c.start), end: minToHm(c.end), cancel:'', label: c.text.replace(/\s+/g,' '), repeat:'', repeatTo:'' }];
+    if(eff.inherited){ ops.push(original); return ops; }
+    if(src.repeat){ const r = ovRestartAfter(src, date); if(r) ops.push(r); }
+    // 앞에서 이어지는 반복이 있으면 이 날만 원래 시간으로 저장, 없으면 이 날 변경을 지움
+    if(ovSeriesBefore(c, date)) ops.push(['saveTtOverride', { ...original[1], replaceKey: src.key !== key ? src.key : '' }]);
+    else ops.push(['deleteTtOverride', { key: src.key, date }]);
+    return ops;
+  }
+  return ovClearRangeOps(c, date, ttEdUntilValue(), false);
+}
+async function runTtOps(ops, okMsg){
   const btns = ['ttEdSave','ttEdCancelClass','ttEdReset'].map(id=>document.getElementById(id));
   btns.forEach(b=>b.disabled = true);
   try{
-    // 칸 글자가 바뀌어 예전 키로 저장된 변경이면 그 줄을 고치거나 지움
-    const oldKey = ttEd.ov ? ttEd.ov.key : '';
-    const params = action === 'deleteTtOverride'
-      ? { key: oldKey || ttEd.key, date: ttEd.date }
-      : { key: ttEd.key, date: ttEd.date, replaceKey: (oldKey && oldKey !== ttEd.key) ? oldKey : '', ...extra };
-    const res = await apiPost(action, params);
-    if(res.error){ toast(res.error); return false; }
-    if(action === 'saveTtOverride' && !res.result){ toast('Apps Script를 새 버전으로 배포해야 저장됩니다'); return false; }
-    sendTtOverride.last = res;
+    let last = {};
+    for(const [action, params] of ops){
+      const res = await apiPost(action, params);
+      if(res.error){ toast(res.error); return false; }
+      if(action === 'saveTtOverride' && !res.result){ toast('Apps Script를 새 버전으로 배포해야 저장됩니다'); return false; }
+      last = res;
+    }
     document.getElementById('ttEditModal').style.display = 'none';
     await loadData();
     renderWeekView();
+    if(typeof renderMyClassesList === 'function') try{ renderMyClassesList(); }catch(e){}
     if(document.getElementById('dayDetailModal').style.display === 'flex') renderDayDetailList();
+    toast(okMsg + calNote(last));
     return true;
   }catch(e){ toast('저장 실패: ' + e.message); return false; }
   finally{ btns.forEach(b=>b.disabled = false); }
 }
+const ttPeriodWord = () => ttEd.period === 'once' ? '이번 주' : ttEd.period === 'forever' ? '앞으로 계속' : '정한 기간 동안';
 document.getElementById('ttEdSave').addEventListener('click', async ()=>{
   const d = document.getElementById('ttEdDate').value;
   const t = document.getElementById('ttEdStart').value, t2 = document.getElementById('ttEdEnd').value;
   if(!t || !t2 || hmToMin(t2) <= hmToMin(t)){ toast('시작·종료 시간을 확인해주세요'); return; }
+  if(!ttEdPeriodOk()) return;
   if(d === ttEd.date && hmToMin(t) === ttEd.c.start && hmToMin(t2) === ttEd.c.end){
-    if(ttEd.ov) await sendTtOverride('deleteTtOverride', {});
+    // 공유 시간표와 같은 시간으로 되돌림
+    if(ttEd.eff) await runTtOps(ttEdResetOps(), `${ttPeriodWord()} 원래 시간표대로 되돌렸습니다`);
     else document.getElementById('ttEditModal').style.display = 'none';
     return;
   }
   const clash = checkTtEdConflict();
   if(clash.length && !confirm('바꾼 시간에 겹치는 수업·일정이 있습니다:\n\n' + clash.map(c=>`${minToHm(c.start)}~${minToHm(c.end)} ${c.label}`).join('\n') + '\n\n그래도 바꿀까요?')) return;
-  if(await sendTtOverride('saveTtOverride', { newDate: d, start: t, end: t2, label: ttEd.c.text.replace(/\s+/g,' ') })) toast('이번 주 수업 시간을 바꿨습니다' + calNote(sendTtOverride.last));
+  await runTtOps(ttEdChangeOps({ newDate: d, start: t, end: t2 }), `${ttPeriodWord()} 수업 시간을 바꿨습니다`);
 });
 document.getElementById('ttEdCancelClass').addEventListener('click', async ()=>{
-  if(!confirm('이 날 이 수업을 시간표에서 뺄까요? (이번 주만)')) return;
-  if(await sendTtOverride('saveTtOverride', { newDate: ttEd.date, start:'', end:'', cancel:'Y', label: ttEd.c.text.replace(/\s+/g,' ') })) toast('이번 주 이 수업을 뺐습니다' + calNote(sendTtOverride.last));
+  if(!ttEdPeriodOk()) return;
+  if(!confirm(`이 수업을 ${ttPeriodWord()} 시간표에서 뺄까요? (공유 시간표는 그대로)`)) return;
+  await runTtOps(ttEdChangeOps({ newDate: ttEd.date, start:'', end:'', cancel:true }), `${ttPeriodWord()} 이 수업을 뺐습니다`);
 });
 document.getElementById('ttEdReset').addEventListener('click', async ()=>{
-  if(await sendTtOverride('deleteTtOverride', {})) toast('원래 시간표로 되돌렸습니다' + calNote(sendTtOverride.last));
+  if(!ttEdPeriodOk()) return;
+  await runTtOps(ttEdResetOps(), `${ttPeriodWord()} 원래 시간표대로 되돌렸습니다`);
 });
 document.getElementById('wkPrev').addEventListener('click', ()=>{ wkStart.setDate(wkStart.getDate()-7); renderWeekView(); });
 document.getElementById('wkNext').addEventListener('click', ()=>{ wkStart.setDate(wkStart.getDate()+7); renderWeekView(); });

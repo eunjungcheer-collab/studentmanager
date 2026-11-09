@@ -652,6 +652,7 @@
   <div class="record-actions">
   <button class="btn primary block-w" id="saveRecordBtn" style="padding:13px; font-size:14.5px;">오늘 수업기록 저장</button>
   <button class="btn block-w" id="shareBtn">카톡 / 문자로 공유할 내용 복사</button>
+  <label style="display:flex;gap:6px;align-items:center;font-size:12.5px;margin-top:6px;"><input type="checkbox" id="hwToApp" checked> 학생 앱 숙제란에도 올리고 알림 보내기 (채점 앱 비밀번호 필요)</label>
   </div>
 
 </section>
@@ -2922,6 +2923,33 @@ document.getElementById('shareBtn').addEventListener('click', async ()=>{
   if(makeD || makeT) lines.push(`보강일정: ${makeD}${timeRangeText(makeT, document.getElementById('makeupEndTime').value)}${mct ? ` (수업 ${mct}~${document.getElementById('makeupClassEndTime').value}, 나머지 테스트)` : ''}`);
   const text = lines.join('\n');
   await copyText(text);
+  const hwChk = document.getElementById('hwToApp');
+  if(hwChk && hwChk.checked){
+    if(!hw){ toast('복사됨 · 오늘 과제가 비어 있어서 학생 앱 숙제란에는 올리지 않았어요'); return; }
+    const GURL = 'https://script.google.com/macros/s/AKfycbxZXQVyOPSNgg0K2uBG28r_vy9RaxnbQkbbWuNiaoiS_x-AX6qVk4NKLnXrHetgn8Nc/exec';
+    let pw = ''; try{ pw = sessionStorage.getItem('graderPwTab') || ''; }catch(e){}
+    if(!pw){
+      pw = prompt('학생 앱 숙제란에 올리려면 채점 앱 선생님 비밀번호가 필요해요. 입력해 주세요') || '';
+      if(!pw){ toast('복사됨 · 비밀번호가 없어 학생 앱에는 못 올렸어요'); return; }
+      try{ sessionStorage.setItem('graderPwTab', pw); }catch(e){}
+    }
+    toast('학생 앱 숙제란에 올리는 중...');
+    try{
+      const resp = await fetch(GURL, { method:'POST', body: JSON.stringify({ action:'addHomework', password: pw, studentName: form.student.이름, bookLesson: bl, homework: hw, text }) });
+      let r = null; try{ r = JSON.parse(await resp.text()); }catch(e){ r = null; }
+      if(!r){ alert('복사는 됐어요.\n\n학생 앱 숙제란 등록 실패: 채점 앱 서버 응답이 이상해요. Apps Script를 새 버전으로 다시 배포했는지 확인해 주세요.'); return; }
+      if(!r.ok){
+        const er = String(r.error||'');
+        if(/비밀번호|로그인/.test(er)){ try{ sessionStorage.removeItem('graderPwTab'); }catch(e){} alert('복사는 됐어요.\n\n학생 앱 숙제란 등록 실패: 채점 앱 비밀번호가 틀렸어요. 다시 눌러서 올바른 비밀번호를 넣어 주세요.'); }
+        else if(/unknown/i.test(er)) alert('복사는 됐어요.\n\n학생 앱 숙제란 등록 실패: 채점 앱 Apps Script가 예전 버전이에요. 새 버전으로 다시 배포해 주세요.');
+        else alert('복사는 됐어요.\n\n학생 앱 숙제란 등록 실패: ' + er);
+        return;
+      }
+      if(r.skipped) return;
+      if(!r.registered) alert('복사는 됐어요.\n\n숙제는 저장됐지만 「' + form.student.이름 + '」 이름으로 가입한 학생이 없어요. 학생 앱 가입 이름과 알림장 이름이 똑같아야 해요.');
+      else toast(r.pushed ? '복사됨 · 학생 앱 숙제 등록 + 알림 전송 ✅' : '복사됨 · 학생 앱 숙제 등록 ✅ (이 학생은 알림이 꺼져 있어 푸시는 못 보냈어요)');
+    }catch(e){ alert('복사는 됐어요.\n\n학생 앱 숙제란 등록 실패(연결 오류): ' + (e && e.message || e)); }
+  }
 });
 
 // ---------------- 결석/보강 일정 캘린더 연동 ----------------

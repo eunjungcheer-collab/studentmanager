@@ -761,7 +761,7 @@
       <span><i style="background:#DFEDE8; border:1px solid #8DB8AA;"></i>보강</span>
       <span><i style="background:var(--gold-soft); border:1px solid var(--gold);"></i>기타일정</span>
       <span><i style="background:var(--coral-soft);"></i>결석</span>
-      <span><i style="background:#ECE9F2; border:1px solid #ADA6C2;"></i>테스트 (겹치는 시간은 한 칸에 이름만 나열, 겹침 제외)</span>
+      <span><i style="background:#ECE9F2; border:1px solid #ADA6C2;"></i>테스트 (같은 시간끼리 한 칸에 이름 나열, 겹침 제외)</span>
       <span><i style="border:2px dashed var(--violet);"></i>이번 주만 바꾼 수업</span>
       <span><i style="border:2px solid var(--coral);"></i>시간 겹침</span>
     </div>
@@ -3130,13 +3130,15 @@ function renderWeekView(){
     ev.absent.forEach(a=>{ if(!a.time) allDay.push({ cls:'absent', text:`결석 ${a.name}` }); });
     ev.makeup.forEach(m=>{ if(!m.time) allDay.push({ cls:'other', text:`보강 ${m.name}` }); });
     ev.other.forEach(o=>{ if(!o.time) allDay.push({ cls:'other', text:o.title }); });
-    // 테스트(TEST 열·추가 테스트)는 시간이 겹치는 것끼리 한 블록으로 묶어 이름만 나열
+    // 테스트(TEST 열·추가 테스트)는 시작·끝 시간이 똑같은 학생끼리만 한 블록으로 묶어 이름만 나열
+    // (시간이 다르면 따로 블록 → 테스트 칸 안에서 나란히, 각자 자기 시간만큼 길게)
     const isTest = t => t.kind === 'test' || t.kind === 'addtest';
-    const groups = [];
+    const groups = [], byRange = {};
     timed.filter(isTest).sort((a,b)=> a.start-b.start || a.end-b.end).forEach(t=>{
-      const g = groups[groups.length-1];
-      if(g && t.start < g.end){ g.members.push(t); g.end = Math.max(g.end, t.end); }
-      else groups.push({ start:t.start, end:t.end, members:[t] });
+      const k = t.start + '-' + t.end;
+      if(byRange[k]){ byRange[k].members.push(t); return; }
+      byRange[k] = { start:t.start, end:t.end, members:[t] };
+      groups.push(byRange[k]);
     });
     const testBlocks = groups.map(g=>({
       kind:'test', start:g.start, end:g.end, testGroup:true,

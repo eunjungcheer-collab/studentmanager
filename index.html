@@ -5183,7 +5183,19 @@ async function renderRecordHome(){
   const alertBox = document.getElementById('mkAlert');
   const need = studentsNeedingMakeup();
   const total = need.reduce((n,x)=> n + x.st.remaining.length, 0);
-  alertBox.innerHTML = total ? `<div class="mk-alert" id="mkAlertBtn">🔁 <span>보강이 안 잡힌 결석 <b>${total}건</b> (${need.length}명) · ${need.slice(0,4).map(x=>escapeHtml(x.name)).join(', ')}${need.length > 4 ? ' 외' : ''}</span><span style="margin-left:auto; font-size:12.5px; white-space:nowrap;">보강 잡기 ›</span></div>` : '';
+  // 지금 남은 결석 목록. ✕로 닫으면 이 목록을 기억해 두고, 새 결석이 생기기 전까지 다시 띄우지 않음
+  const sig = need.flatMap(x => x.st.remaining.map(d => x.name + '|' + d));
+  let hidden = [];
+  try{ hidden = JSON.parse(localStorage.getItem('mkAlertHidden') || '[]'); }catch(e){}
+  const fresh = sig.filter(k => !hidden.includes(k));
+  alertBox.innerHTML = (total && fresh.length) ? `<div class="mk-alert" id="mkAlertBtn">🔁 <span>보강이 안 잡힌 결석 <b>${total}건</b> (${need.length}명) · ${need.slice(0,4).map(x=>escapeHtml(x.name)).join(', ')}${need.length > 4 ? ' 외' : ''}</span><span style="margin-left:auto; font-size:12.5px; white-space:nowrap;">보강 잡기 ›</span><button type="button" id="mkAlertClose" title="알림 닫기" style="border:none; background:none; font-size:16px; cursor:pointer; color:var(--ink-soft); padding:0 2px 0 6px;">✕</button></div>` : '';
+  const cl = document.getElementById('mkAlertClose');
+  if(cl) cl.onclick = (e)=>{
+    e.stopPropagation();
+    try{ localStorage.setItem('mkAlertHidden', JSON.stringify(sig)); }catch(err){}
+    alertBox.innerHTML = '';
+    toast('알림을 닫았습니다. 새 결석이 생기면 다시 알려드려요 (결석을 아예 지우려면 시간표 탭 보강 목록에서 날짜 옆 ✕)');
+  };
   const ab = document.getElementById('mkAlertBtn');
   if(ab) ab.onclick = ()=>{
     activateTab('timetable');

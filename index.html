@@ -5534,14 +5534,38 @@ async function makeWeekImage(){
   const grid = document.getElementById('wkGrid');
   const holder = document.createElement('div');
   holder.style.cssText = 'position:fixed; left:-10000px; top:0; background:#fff; padding:14px;';
-  const w = Math.max(grid.scrollWidth, 760);
+  const w = Math.max(grid.scrollWidth, 1150); // 넓게 펼쳐서 칸마다 글자가 잘 보이게
   holder.style.width = (w + 28) + 'px';
   const title = document.createElement('div');
   title.textContent = '주간 시간표 · ' + document.getElementById('wkLabel').textContent;
   title.style.cssText = 'font:700 16px sans-serif; margin:0 0 10px; color:#2E3A4F;';
   const clone = grid.cloneNode(true); clone.id = 'wkGridClone'; clone.style.width = w + 'px';
-  holder.appendChild(title); holder.appendChild(clone);
+  // 처음 보는 사람도 알 수 있게: 칸마다 종류를 적고, 문제풀이·테스트는 연하게
+  const legend = document.createElement('div');
+  legend.style.cssText = 'display:flex; gap:14px; font:12px sans-serif; color:#4a5568; margin:0 0 10px;';
+  legend.innerHTML = '<span><i style="display:inline-block; width:12px; height:12px; vertical-align:-2px; margin-right:4px; background:#CFE2F6; border:1.5px solid #4A82C0; border-radius:3px;"></i>수업</span>' +
+    '<span><i style="display:inline-block; width:12px; height:12px; vertical-align:-2px; margin-right:4px; background:#F6F4FA; border:1px dashed #CFC9DD; border-radius:3px;"></i>문제풀이 및 테스트</span>' +
+    '<span><i style="display:inline-block; width:12px; height:12px; vertical-align:-2px; margin-right:4px; background:#DFEDE8; border:1px solid #8DB8AA; border-radius:3px;"></i>보강</span>';
+  const TAG = { class:'수업', test:'문제풀이 및 테스트', addtest:'문제풀이 및 테스트', makeup:'보강', makeuptest:'문제풀이 및 테스트' };
+  clone.querySelectorAll('.wk-ev').forEach(ev=>{
+    const kind = ['class','addtest','test','makeuptest','makeup'].find(k => ev.classList.contains(k));
+    if(!kind) return;
+    const tag = document.createElement('div');
+    tag.textContent = TAG[kind];
+    tag.style.cssText = 'font-size:9px; font-weight:700; line-height:1.2; opacity:.85; word-break:keep-all;';
+    ev.insertBefore(tag, ev.firstChild);
+    // 공유용 그림에는 겹침 경고(빨간 테두리·⚠)를 빼고 깔끔하게
+    if(ev.classList.contains('clash')){ ev.classList.remove('clash'); ev.querySelectorAll('b').forEach(x => x.textContent = x.textContent.replace(/\s*⚠/g, '')); }
+    if(kind === 'test' || kind === 'addtest' || kind === 'makeuptest'){
+      ev.style.background = '#F6F4FA'; ev.style.border = '1px dashed #CFC9DD'; ev.style.color = '#7A7590';
+      ev.querySelectorAll('b').forEach(x => x.style.fontWeight = '600');
+    }
+  });
+  holder.appendChild(title); holder.appendChild(legend); holder.appendChild(clone);
   document.body.appendChild(holder);
+  // 종류 글자를 넣은 만큼 이름 글자 크기 다시 맞춤
+  clone.querySelectorAll('.wk-name').forEach(n=>{ n.style.fontSize = ''; n.style.display = ''; n.style.webkitLineClamp = ''; n.style.maxHeight = ''; });
+  try{ fitWeekLabels(clone); }catch(e){}
   try{
     const canvas = await html2canvas(holder, { backgroundColor:'#ffffff', scale: 2, useCORS:true, logging:false });
     return await new Promise(r => canvas.toBlob(r, 'image/png'));

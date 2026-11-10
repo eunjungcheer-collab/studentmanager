@@ -454,6 +454,7 @@
     #view-manage > .block:first-child{ grid-column:1; }
     #manageResults{ grid-column:1; }
     #manageDetail{ grid-column:2; grid-row:1 / span 2; margin-top:0; }
+    #progBlock, #calBlock{ grid-column:1 / -1; }
     #saveRecordBtn, #shareBtn{ max-width:420px; }
     .record-actions{ display:flex; gap:10px; }
     .record-actions .btn{ width:auto; flex:1; }
@@ -742,43 +743,6 @@
     </div>
   </div>
 
-  <div class="block">
-    <div class="block-title"><span class="n c-teal">📊</span>학생별 진도·과제 현황</div>
-    <div class="row" style="gap:6px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
-      <input type="text" id="progFilter" placeholder="이름·교재로 거르기" style="flex:1; min-width:140px; margin:0;">
-      <select id="progSort" style="width:auto; margin:0;">
-        <option value="old">수업 오래된 순</option>
-        <option value="name">이름순</option>
-        <option value="hw">과제 안 해온 순</option>
-        <option value="book">교재순</option>
-      </select>
-    </div>
-    <div style="max-height:420px; overflow:auto;"><table class="prog-table" id="progTable"></table></div>
-    <p class="hint" style="margin:6px 0 0;">마지막 수업이 14일 넘은 학생은 붉게 표시됩니다. 과제는 최근 30일 과제 확인(○△✕) 기준이고, 이름을 누르면 학생 이력을 엽니다.</p>
-  </div>
-
-  <div class="block">
-    <div class="block-title"><span class="n c-teal">📲</span>학생 앱 숙제 현황 (했어요 확인)</div>
-    <div class="row" style="gap:6px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
-      <button class="btn primary sm" id="hwBoardLoad" style="margin:0;">불러오기</button>
-      <input type="text" id="hwBoardFilter" placeholder="이름으로 거르기" style="flex:1; min-width:120px; margin:0;">
-      <label style="font-size:12.5px;display:flex;gap:4px;align-items:center;"><input type="checkbox" id="hwBoardOnlyNo"> 안 한 학생만</label>
-    </div>
-    <div id="hwBoardSum" class="hint" style="margin:0 0 6px;"></div>
-    <div id="hwBoardList" style="max-height:420px; overflow:auto;"><span class="hint">「불러오기」를 누르면 학생 앱에 올린 숙제와 학생이 눌러 둔 「했어요」 현황이 보여요 (채점 앱 비밀번호 필요).</span></div>
-  </div>
-
-  <div class="block">
-    <div class="block-title"><span class="n c-violet">📅</span>결석·보강 달력</div>
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-      <button class="btn sm" id="calPrevMonth">‹ 이전달</button>
-      <b id="calMonthLabel" style="font-size:14px;"></b>
-      <button class="btn sm" id="calNextMonth">다음달 ›</button>
-    </div>
-    <div id="calGrid" class="cal-grid cal-grid-detailed"></div>
-    <div id="calEventList" style="margin-top:10px;"></div>
-    <p class="hint">날짜를 누르면 그날의 결석·보강을 확인하거나 새로 추가·수정·삭제할 수 있습니다.</p>
-  </div>
   <div id="manageResults"></div>
 
   <div class="block" id="manageDetail" style="display:none;">
@@ -826,6 +790,32 @@
     <div class="block-title" id="recentTitle"><span class="n c-coral">≡</span>수업 이력</div>
     <div id="md_records"></div>
     <button class="btn ghost sm" id="md_loadAll" style="display:none; margin-top:8px;">180일보다 이전 기록까지 불러오기</button>
+  </div>
+  <div class="block" id="progBlock">
+    <div class="block-title"><span class="n c-teal">📊</span>학생별 진도·과제 현황</div>
+    <div class="row" style="gap:6px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+      <input type="text" id="progFilter" placeholder="이름·교재로 거르기" style="flex:1; min-width:140px; margin:0;">
+      <select id="progSort" style="width:auto; margin:0;">
+        <option value="old">수업 오래된 순</option>
+        <option value="name">이름순</option>
+        <option value="hw">과제 안 해온 순</option>
+        <option value="book">교재순</option>
+      </select>
+    </div>
+    <div style="max-height:420px; overflow:auto;"><table class="prog-table" id="progTable"></table></div>
+    <p class="hint" style="margin:6px 0 0;">마지막 수업이 14일 넘은 학생은 붉게 표시됩니다. 과제는 최근 30일 과제 확인(○△✕) 기준이고, 이름을 누르면 학생 이력을 엽니다.</p>
+  </div>
+
+  <div class="block" id="calBlock">
+    <div class="block-title"><span class="n c-violet">📅</span>결석·보강 달력</div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <button class="btn sm" id="calPrevMonth">‹ 이전달</button>
+      <b id="calMonthLabel" style="font-size:14px;"></b>
+      <button class="btn sm" id="calNextMonth">다음달 ›</button>
+    </div>
+    <div id="calGrid" class="cal-grid cal-grid-detailed"></div>
+    <div id="calEventList" style="margin-top:10px;"></div>
+    <p class="hint">날짜를 누르면 그날의 결석·보강을 확인하거나 새로 추가·수정·삭제할 수 있습니다.</p>
   </div>
 </section>
 
@@ -4872,7 +4862,16 @@ function openManageDetail(name){
   showCompactView();
 
   renderStudentHistory(name);
-  document.getElementById('md_loadAll').style.display = (DATA.recordsLimited && !LOAD_ALL_RECORDS) ? '' : 'none';
+  // 180일보다 이전 기록도 자동으로 불러옴 (처음 한 번만, 불러오는 동안은 최근 기록부터 보여줌)
+  document.getElementById('md_loadAll').style.display = 'none';
+  if(DATA.recordsLimited && !LOAD_ALL_RECORDS){
+    LOAD_ALL_RECORDS = true;
+    document.getElementById('md_records').insertAdjacentHTML('afterbegin', '<p class="hint" id="histLoading" style="margin:0 0 6px;">이전 기록까지 불러오는 중…</p>');
+    loadData().then(()=>{
+      const cur = document.getElementById('md_originalName');
+      if(cur && cur.value === name && document.getElementById('manageDetail').style.display !== 'none'){ renderCompactInfo(DATA.students.find(x=>x.이름===name) || { 이름:name }); renderStudentHistory(name, true); }
+    });
+  }
   document.getElementById('md_loadAll').onclick = async ()=>{
     LOAD_ALL_RECORDS = true;
     toast('이전 기록까지 불러오는 중…');
@@ -5539,46 +5538,6 @@ function renderProgressBoard(){
   table.querySelectorAll('[data-prog-name]').forEach(td=>td.addEventListener('click', ()=> openManageDetail(td.dataset.progName)));
 }
 document.getElementById('progFilter').addEventListener('input', renderProgressBoard);
-// ---------------- 학생 앱 숙제 현황 (채점 앱의 Homework 시트) ----------------
-let HWB = [];
-async function loadHwBoard(){
-  const list = document.getElementById('hwBoardList'), sum = document.getElementById('hwBoardSum');
-  let pw = ''; try{ pw = sessionStorage.getItem('graderPwTab') || ''; }catch(e){}
-  if(!pw){ pw = prompt('채점 앱 선생님 비밀번호를 입력해 주세요') || ''; if(!pw) return; try{ sessionStorage.setItem('graderPwTab', pw); }catch(e){} }
-  list.innerHTML = '<span class="hint">불러오는 중...</span>';
-  try{
-    const resp = await fetch('https://script.google.com/macros/s/AKfycbxZXQVyOPSNgg0K2uBG28r_vy9RaxnbQkbbWuNiaoiS_x-AX6qVk4NKLnXrHetgn8Nc/exec', { method:'POST', body: JSON.stringify({ action:'listHomework', password: pw }) });
-    const r = JSON.parse(await resp.text());
-    if(!r.ok){ if(/로그인|비밀번호/.test(r.error||'')){ try{ sessionStorage.removeItem('graderPwTab'); }catch(e){} } throw new Error(r.error || '불러오지 못했어요'); }
-    HWB = r.items || []; renderHwBoard();
-  }catch(e){ list.innerHTML = '<span style="color:#C1392B;">' + escapeHtml(e.message || String(e)) + (/unknown/i.test(e.message||'') ? ' (채점 앱 Apps Script를 새 버전으로 배포했는지 확인하세요)' : '') + '</span>'; sum.textContent = ''; }
-}
-function renderHwBoard(){
-  const list = document.getElementById('hwBoardList'), sum = document.getElementById('hwBoardSum');
-  const q = document.getElementById('hwBoardFilter').value.trim().toLowerCase(), onlyNo = document.getElementById('hwBoardOnlyNo').checked;
-  let items = HWB.filter(x => !q || String(x.name).toLowerCase().includes(q));
-  if(!items.length){ list.innerHTML = '<span class="hint">올린 숙제가 없어요.</span>'; sum.textContent = ''; return; }
-  const dueTxt = d => d ? String(d).slice(5,10).replace('-','/') : '';
-  const groups = {};
-  items.forEach(x => { const k = x.date + '|' + x.bookLesson + '|' + x.homework; (groups[k] = groups[k] || { date:x.date, bl:x.bookLesson, hw:x.homework, due:x.dueAt, st:[] }).st.push(x); });
-  const gl = Object.keys(groups).map(k => groups[k]).sort((a,b)=> a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
-  const top = gl.filter(g => g.date === gl[0].date), tot = top.reduce((n,g)=>n+g.st.length,0), dn = top.reduce((n,g)=>n+g.st.filter(s=>s.doneAt).length,0);
-  sum.innerHTML = `<b>${escapeHtml(gl[0].date)}</b> 숙제 · ${tot}명 중 <b style="color:#1b7a45;">${dn}명 했어요</b>, <b style="color:#C1392B;">${tot-dn}명 아직</b>`;
-  let h = '', last = '';
-  gl.forEach(g => {
-    const nd = g.st.filter(s => !s.doneAt), dd = g.st.filter(s => s.doneAt);
-    if(onlyNo && !nd.length) return;
-    if(g.date !== last){ h += `<div style="font-weight:800;margin:10px 0 2px;color:var(--ink-soft);">${escapeHtml(g.date)}</div>`; last = g.date; }
-    h += `<div style="border:1px solid var(--line,#e5e7eb);border-radius:10px;padding:8px 10px;margin:6px 0;"><div style="font-size:12px;opacity:.7;">${escapeHtml(g.bl||'')}${g.due ? ' · <b style="color:#C1392B;">마감 ' + dueTxt(g.due) + '</b>' : ''}</div><div style="white-space:pre-wrap;margin:3px 0 6px;">${escapeHtml(g.hw)}</div>`
-      + nd.map(s=>`<span style="display:inline-block;padding:2px 9px;margin:2px 4px 2px 0;border-radius:99px;font-size:12.5px;background:#FDECEA;color:#C1392B;font-weight:700;">⬜ ${escapeHtml(s.name)}</span>`).join('')
-      + (onlyNo ? '' : dd.map(s=>`<span style="display:inline-block;padding:2px 9px;margin:2px 4px 2px 0;border-radius:99px;font-size:12.5px;background:#E8F5EE;color:#1b7a45;font-weight:700;">✅ ${escapeHtml(s.name)}</span>`).join('')) + '</div>';
-  });
-  list.innerHTML = h || '<span class="hint">안 한 학생이 없어요. 🎉</span>';
-}
-document.getElementById('hwBoardLoad').addEventListener('click', loadHwBoard);
-document.getElementById('hwBoardFilter').addEventListener('input', renderHwBoard);
-document.getElementById('hwBoardOnlyNo').addEventListener('change', renderHwBoard);
-
 document.getElementById('progSort').addEventListener('change', renderProgressBoard);
 
 // ---------------- ⑦ 주간 시간표 이미지 ----------------

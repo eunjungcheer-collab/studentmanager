@@ -714,6 +714,12 @@
   <div class="record-actions">
   <button class="btn primary block-w" id="saveRecordBtn" style="padding:13px; font-size:14.5px;">오늘 수업기록 저장</button>
   <button class="btn block-w" id="shareBtn">카톡 / 문자로 공유할 내용 복사</button>
+  <label style="display:flex;gap:6px;align-items:center;font-size:12.5px;margin-top:6px;"><input type="checkbox" id="hwToApp" checked> 학생 앱 숙제란에도 올리고 알림 보내기 (채점 앱 비밀번호 필요)</label>
+  <div id="hwDueRow" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;margin-top:6px;">
+    <span>숙제 마감일 <input type="date" id="hwDue" style="padding:3px 6px;"></span>
+    <span>마감 알림 <input type="datetime-local" id="hwRemind" style="padding:3px 6px;"></span>
+    <span style="color:#6b7280;">알림은 기본 마감 전날 밤 10시 · 바꿔도 돼요 · 마감일을 비우면 알림 없음</span>
+  </div>
   </div>
 
 </section>
@@ -3050,6 +3056,22 @@ document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
   }catch(err){ toast('저장 실패: ' + err.message); }
 });
 
+// ---- 숙제 마감일/알림 기본값 (마감: 7일 뒤, 알림: 마감 전날 22:00 — 직접 바꾸면 그 값을 써요) ----
+(function(){
+  const due = document.getElementById('hwDue'), rem = document.getElementById('hwRemind');
+  if(!due || !rem) return;
+  const p2 = n => String(n).padStart(2,'0'), ymd = d => d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+  let remEdited = false;
+  function syncRemind(){
+    if(remEdited) return;
+    if(!due.value){ rem.value = ''; return; }
+    const d = new Date(due.value + 'T00:00:00'); d.setDate(d.getDate() - 1);
+    rem.value = ymd(d) + 'T22:00';
+  }
+  const d0 = new Date(); d0.setDate(d0.getDate() + 7); due.value = ymd(d0); syncRemind();
+  due.addEventListener('change', syncRemind);
+  rem.addEventListener('input', ()=>{ remEdited = true; });
+})();
 document.getElementById('shareBtn').addEventListener('click', async ()=>{
   if(!form.student){ toast('학생을 먼저 선택해주세요'); return; }
   const lessonName = form.lesson ? form.lesson.lesson : lessonSearch.value.trim();
@@ -3069,6 +3091,35 @@ document.getElementById('shareBtn').addEventListener('click', async ()=>{
   if(makeD || makeT) lines.push(`보강일정: ${makeD}${timeRangeText(makeT, document.getElementById('makeupEndTime').value)}${mct ? ` (수업 ${mct}~${document.getElementById('makeupClassEndTime').value}, 나머지 테스트)` : ''}`);
   const text = lines.join('\n');
   await copyText(text);
+  const hwDueIso = ()=>{ const v = (document.getElementById('hwDue')||{}).value; return v ? new Date(v + 'T23:59:00+09:00').toISOString() : ''; };
+  const hwRemindIso = ()=>{ const v = (document.getElementById('hwRemind')||{}).value; return v ? new Date(v + ':00+09:00').toISOString() : ''; };
+  const hwChk = document.getElementById('hwToApp');
+  if(hwChk && hwChk.checked){
+    if(!hw){ toast('복사됨 · 오늘 과제가 비어 있어서 학생 앱 숙제란에는 올리지 않았어요'); return; }
+    const GURL = 'https://script.google.com/macros/s/AKfycbxZXQVyOPSNgg0K2uBG28r_vy9RaxnbQkbbWuNiaoiS_x-AX6qVk4NKLnXrHetgn8Nc/exec';
+    let pw = ''; try{ pw = sessionStorage.getItem('graderPwTab') || ''; }catch(e){}
+    if(!pw){
+      pw = prompt('학생 앱 숙제란에 올리려면 채점 앱 선생님 비밀번호가 필요해요. 입력해 주세요') || '';
+      if(!pw){ toast('복사됨 · 비밀번호가 없어 학생 앱에는 못 올렸어요'); return; }
+      try{ sessionStorage.setItem('graderPwTab', pw); }catch(e){}
+    }
+    toast('학생 앱 숙제란에 올리는 중...');
+    try{
+      const resp = await fetch(GURL, { method:'POST', body: JSON.stringify({ action:'addHomework', password: pw, studentName: form.student.이름, bookLesson: bl, homework: hw, text, dueAt: hwDueIso(), remindAt: hwRemindIso() }) });
+      let r = null; try{ r = JSON.parse(await resp.text()); }catch(e){ r = null; }
+      if(!r){ alert('복사는 됐어요.\n\n학생 앱 숙제란 등록 실패: 채점 앱 서버 응답이 이상해요. Apps Script를 새 버전으로 다시 배포했는지 확인해 주세요.'); return; }
+      if(!r.ok){
+        const er = String(r.error||'');
+        if(/비밀번호|로그인/.test(er)){ try{ sessionStorage.removeItem('graderPwTab'); }catch(e){} alert('복사는 됐어요.\n\n학생 앱 숙제란 등록 실패: 채점 앱 비밀번호가 틀렸어요. 다시 눌러서 올바른 비밀번호를 넣어 주세요.'); }
+        else if(/unknown/i.test(er)) alert('복사는 됐어요.\n\n학생 앱 숙제란 등록 실패: 채점 앱 Apps Script가 예전 버전이에요. 새 버전으로 다시 배포해 주세요.');
+        else alert('복사는 됐어요.\n\n학생 앱 숙제란 등록 실패: ' + er);
+        return;
+      }
+      if(r.skipped) return;
+      if(!r.registered) alert('복사는 됐어요.\n\n숙제는 저장됐지만 「' + form.student.이름 + '」 이름으로 가입한 학생이 없어요. 학생 앱 가입 이름과 알림장 이름이 똑같아야 해요.');
+      else toast(r.pushed ? '복사됨 · 학생 앱 숙제 등록 + 알림 전송 ✅' : '복사됨 · 학생 앱 숙제 등록 ✅ (이 학생은 알림이 꺼져 있어 푸시는 못 보냈어요)');
+    }catch(e){ alert('복사는 됐어요.\n\n학생 앱 숙제란 등록 실패(연결 오류): ' + (e && e.message || e)); }
+  }
 });
 
 // ---------------- 결석/보강 일정 캘린더 연동 ----------------

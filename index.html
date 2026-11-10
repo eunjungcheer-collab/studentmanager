@@ -126,7 +126,7 @@
 
   label{display:block; font-size:12px; color:var(--ink-soft); margin:10px 0 4px;}
   label:first-child{margin-top:0;}
-  input[type=text], input[type=number], input[type=date], input[type=time], textarea, select{
+  input[type=text], input[type=number], input[type=date], input[type=time], input[type=datetime-local], textarea, select{
     width:100%;
     padding:10px 11px;
     border:1px solid var(--line-strong);
@@ -717,10 +717,14 @@
   <button class="btn primary block-w" id="saveRecordBtn" style="padding:13px; font-size:14.5px;">오늘 수업기록 저장</button>
   <button class="btn block-w" id="shareBtn">카톡 / 문자로 공유할 내용 복사</button>
   <label style="display:flex;gap:6px;align-items:center;font-size:12.5px;margin-top:6px;"><input type="checkbox" id="hwToApp" checked> 학생 앱 숙제란에도 올리고 알림 보내기 (채점 앱 비밀번호 필요)</label>
-  <div id="hwDueRow" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;margin-top:6px;">
-    <span>숙제 마감일 <input type="date" id="hwDue" style="padding:3px 6px;"></span>
-    <span>마감 알림 <input type="datetime-local" id="hwRemind" style="padding:3px 6px;"></span>
-    <span style="color:#6b7280;">알림은 기본 마감 전날 밤 10시 · 바꿔도 돼요 · 마감일을 비우면 알림 없음</span>
+  <div id="hwDueRow" style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px; margin-top:8px;">
+    <label style="margin:0; font-size:12.5px; font-weight:600;">숙제 마감일
+      <input type="date" id="hwDue" style="display:block; width:100%; box-sizing:border-box; height:38px; margin:4px 0 0; padding:0 8px; font-size:13.5px;">
+    </label>
+    <label style="margin:0; font-size:12.5px; font-weight:600;">마감 알림
+      <input type="datetime-local" id="hwRemind" style="display:block; width:100%; box-sizing:border-box; height:38px; margin:4px 0 0; padding:0 8px; font-size:13.5px;">
+    </label>
+    <span style="grid-column:1 / -1; color:#6b7280; font-size:12px;">알림은 기본 마감 전날 밤 10시 · 바꿔도 돼요 · 마감일을 비우면 알림 없음</span>
   </div>
   </div>
 

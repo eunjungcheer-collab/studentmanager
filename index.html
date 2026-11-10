@@ -464,6 +464,21 @@
   /* ---- 업그레이드: 오늘 수업 / 과제 확인 / 템플릿 / 현황판 ---- */
   .mk-alert{display:flex; align-items:center; gap:8px; padding:10px 12px; margin-bottom:10px; border-radius:10px; background:#FDEDEA; border:1px solid #F0B4A8; font-size:13.5px; cursor:pointer;}
   .mk-alert b{color:var(--coral);}
+  .td-head{display:flex; font-size:11.5px; font-weight:700; color:var(--ink-soft); margin-bottom:4px;}
+  .td-head span{text-align:center;}
+  .td-wrap{position:relative; display:flex;}
+  .td-axis{position:relative; width:38px; flex:none;}
+  .td-hr{position:absolute; left:0; font-size:11px; color:var(--ink-soft); transform:translateY(-50%);}
+  .td-area{position:relative; flex:1; border-left:1px solid var(--line);}
+  .td-line{position:absolute; left:0; right:0; border-top:1px dashed #E2D6D2;}
+  .td-split{position:absolute; top:0; bottom:0; border-left:1px solid #E2D6D2;}
+  .td-ev{position:absolute; box-sizing:border-box; border-radius:8px; padding:3px 5px; overflow:hidden; background:#CFE2F6; border:1.5px solid #4A82C0;}
+  .td-ev.test, .td-ev.addtest, .td-ev.makeuptest{background:#F3F1F8; border:1px solid #D3CEE0;}
+  .td-ev.makeup{background:#DFEDE8; border:1px solid #8DB8AA;}
+  .td-ev.other{background:#F6EBD8; border:1px solid #D8B97E;}
+  .td-t{font-size:11px; font-weight:700; color:#33415C; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .td-ev .today-name{padding:1px 7px; margin:2px 3px 0 0; font-size:12.5px; white-space:nowrap;}
+  .td-ev.test .today-name{font-size:12px; padding:0 6px;}
   .today-row{display:flex; gap:10px; align-items:flex-start; padding:7px 0; border-bottom:1px dashed var(--line);}
   .today-row:last-child{border-bottom:none;}
   .today-time{flex:none; width:92px; font-size:12.5px; font-weight:700; color:var(--ink-soft);}
@@ -528,7 +543,7 @@
 
   <div id="mkAlert"></div>
   <div class="block" id="todayBlock" style="display:none;">
-    <div class="block-title"><span class="n c-cobalt">🕑</span>오늘 수업 순서 <span id="todayLabel" style="font-weight:400; font-size:12.5px; opacity:.75;"></span></div>
+    <div class="block-title"><span class="n c-cobalt">🕑</span>오늘 시간표 <span id="todayLabel" style="font-weight:400; font-size:12.5px; opacity:.75;"></span></div>
     <div id="todayList"></div>
     <p class="hint" style="margin:6px 0 0;">이름을 누르면 아래에 그 학생 수업기록을 바로 씁니다. 초록색은 오늘 기록을 이미 저장한 학생입니다.</p>
   </div>
@@ -5334,28 +5349,54 @@ async function renderRecordHome(){
   const rows = [];
   items.forEach(it=>{
     const names = it.kind === 'other' ? [] : namesIn(it.label);
-    let row = rows.find(r => r.start === it.start && r.end === it.end && r.kind === it.kind);
-    if(!row){ row = { start:it.start, end:it.end, kind:it.kind, names:[], labels:[] }; rows.push(row); }
+    // 테스트(시간표 TEST·추가 테스트·테스트 보강)는 같은 시간끼리 한 칸으로
+    const kind = (it.kind === 'addtest' || it.kind === 'makeuptest') ? 'test' : it.kind;
+    let row = rows.find(r => r.start === it.start && r.end === it.end && r.kind === kind);
+    if(!row){ row = { start:it.start, end:it.end, kind, names:[], labels:[] }; rows.push(row); }
     names.forEach(n => { if(!row.names.includes(n)) row.names.push(n); });
     if(!names.length) row.labels.push(it.label);
   });
-  // 시간 없는 결석도 보여주기
+  // 하루 시간표 모양: 왼쪽 시간 눈금, 가운데 수업·보강, 오른쪽 문제풀이·테스트 (길이 = 수업 시간)
   const KIND = { class:'수업', test:'테스트', addtest:'테스트', makeup:'보강', makeuptest:'테스트 보강', other:'일정' };
   const list = document.getElementById('todayList');
+  const chip = n => {
+    const done = !!findTodayRecord(n), ab = absentNames.has(n);
+    return `<span class="today-name${ab ? ' absent' : done ? ' done' : ''}" data-today-name="${escapeHtml(n)}">${done ? '✓ ' : ''}${escapeHtml(n)}${ab ? ' (결석)' : ''}</span>`;
+  };
   if(!rows.length && !absentNames.size){
     list.innerHTML = '<p class="hint" style="margin:0;">오늘은 수업이 없습니다</p>';
   }else{
-    list.innerHTML = rows.map(r=>`<div class="today-row">
-        <div class="today-time">${minToHm(r.start)}~${minToHm(r.end)}</div>
-        <div style="flex:1;"><span class="today-kind">${KIND[r.kind] || ''}</span>${
-          r.names.map(n=>{
-            const done = !!findTodayRecord(n), ab = absentNames.has(n);
-            return `<span class="today-name${ab ? ' absent' : done ? ' done' : ''}" data-today-name="${escapeHtml(n)}">${done ? '✓ ' : ''}${escapeHtml(n)}${ab ? ' (결석)' : ''}</span>`;
-          }).join('')}${r.labels.map(l=>`<span style="font-size:12.5px; opacity:.8;">${escapeHtml(l)}</span>`).join(' ')}</div></div>`).join('') +
-      (absentNames.size ? `<div class="today-row"><div class="today-time">결석</div><div style="flex:1;">${[...absentNames].map(n=>`<span class="today-name absent">${escapeHtml(n)}</span>`).join('')}</div></div>` : '');
-    const doneCnt = rows.reduce((n,r)=> n + r.names.filter(x => findTodayRecord(x)).length, 0);
-    const allCnt = rows.reduce((n,r)=> n + r.names.filter(x => !absentNames.has(x)).length, 0);
-    if(allCnt) list.innerHTML += `<div style="font-size:12.5px; margin-top:6px; opacity:.8;">기록 저장 ${doneCnt} / ${allCnt}명</div>`;
+    let html = '';
+    if(rows.length){
+      const isT = r => r.kind === 'test' || r.kind === 'addtest' || r.kind === 'makeuptest';
+      const L = layoutLanes(rows.filter(r => !isT(r))), R = layoutLanes(rows.filter(isT));
+      const h0 = Math.floor(Math.min(...rows.map(r=>r.start)) / 60), h1 = Math.ceil(Math.max(...rows.map(r=>r.end)) / 60);
+      const PX = 60 / 60; // 1분 = 1px → 1시간 60px
+      // 나란히 놓인 칸 수에 맞춰 수업·테스트 폭 나누기 (수업 칸을 조금 더 넓게)
+      const lanes = a => a.length ? Math.max(...a.map(r=>r._lanes)) : 0;
+      const lw = lanes(L) * 1.3, rw = lanes(R);
+      const split = (L.length && R.length) ? Math.min(70, Math.max(40, 100 * lw / (lw + rw))) : (L.length ? 100 : 0);
+      const hm = m => `${Math.floor(m/60)}${m % 60 ? ':' + String(m % 60).padStart(2,'0') : ''}`;
+      const pos = (r, x0, w) => { const lw = w / r._lanes; return `top:${(r.start - h0*60)*PX + 1}px; height:${(r.end - r.start)*PX - 3}px; left:calc(${x0 + lw*r._lane}% + 2px); width:calc(${lw}% - 4px);`; };
+      const blk = (r, x0, w) => `<div class="td-ev ${r.kind}" style="${pos(r, x0, w)}">
+          <div class="td-t">${hm(r.start)}~${hm(r.end)}시${r.kind === 'test' ? '' : ' · ' + (KIND[r.kind] || '')}</div>
+          <div>${r.names.map(chip).join('')}${r.labels.map(l=>`<span style="font-size:12px; opacity:.8;">${escapeHtml(l)}</span>`).join(' ')}</div></div>`;
+      let lines = '', marks = '';
+      for(let h = h0; h <= h1; h++){
+        lines += `<div class="td-line" style="top:${(h - h0)*60*PX}px;"></div>`;
+        marks += `<div class="td-hr" style="top:${(h - h0)*60*PX}px;">${h}시</div>`;
+      }
+      html += `<div class="td-head"><span style="width:38px;"></span>${L.length ? `<span style="flex:${split};">수업·보강</span>` : ''}${R.length ? `<span style="flex:${100 - split};">문제풀이·테스트</span>` : ''}</div>
+        <div class="td-wrap" style="height:${(h1 - h0)*60*PX + 2}px;">
+          <div class="td-axis">${marks}</div>
+          <div class="td-area">${lines}${split && R.length ? `<div class="td-split" style="left:${split}%;"></div>` : ''}${L.map(r=>blk(r, 0, split)).join('')}${R.map(r=>blk(r, split, 100 - split)).join('')}</div>
+        </div>`;
+    }
+    if(absentNames.size) html += `<div style="margin-top:8px; font-size:12.5px;"><b>결석</b> ${[...absentNames].map(n=>`<span class="today-name absent">${escapeHtml(n)}</span>`).join('')}</div>`;
+    const allNames = new Set(); rows.forEach(r => r.names.forEach(n => { if(!absentNames.has(n)) allNames.add(n); }));
+    const doneCnt = [...allNames].filter(n => findTodayRecord(n)).length;
+    if(allNames.size) html += `<div style="font-size:12.5px; margin-top:6px; opacity:.8;">기록 저장 ${doneCnt} / ${allNames.size}명</div>`;
+    list.innerHTML = html;
   }
   list.querySelectorAll('[data-today-name]').forEach(el=>{
     if(el.classList.contains('absent')) return;

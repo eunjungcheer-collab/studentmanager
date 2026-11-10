@@ -714,12 +714,6 @@
   <div class="record-actions">
   <button class="btn primary block-w" id="saveRecordBtn" style="padding:13px; font-size:14.5px;">오늘 수업기록 저장</button>
   <button class="btn block-w" id="shareBtn">카톡 / 문자로 공유할 내용 복사</button>
-  <label style="display:flex;gap:6px;align-items:center;font-size:12.5px;margin-top:6px;"><input type="checkbox" id="hwToApp" checked> 학생 앱 숙제란에도 올리고 알림 보내기 (채점 앱 비밀번호 필요)</label>
-  <div id="hwDueRow" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;margin-top:6px;">
-    <span>숙제 마감일 <input type="date" id="hwDue" style="padding:3px 6px;"></span>
-    <span>마감 알림 <input type="datetime-local" id="hwRemind" style="padding:3px 6px;"></span>
-    <span style="color:#6b7280;">알림은 기본 마감 전날 밤 10시 · 바꿔도 돼요 · 마감일을 비우면 알림 없음</span>
-  </div>
   </div>
 
 </section>
@@ -841,7 +835,8 @@
     </details>
     <div class="row" style="gap:6px; margin-bottom:8px;">
       <button class="btn primary sm" id="wkAddBtn">＋ 학생 추가</button>
-      <button class="btn sm" id="wkImageBtn">🖼 이미지로 저장·공유</button>
+      <button class="btn sm" id="wkImageBtn">🖼 이미지 복사</button>
+      <button class="btn sm" id="wkImageSaveBtn" title="이미지 파일로 저장">⬇ 파일로 저장</button>
     </div>
     <div id="wkNotice"></div>
     <div class="wk-wrap"><div id="wkGrid"></div></div>
@@ -3056,22 +3051,6 @@ document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
   }catch(err){ toast('저장 실패: ' + err.message); }
 });
 
-// ---- 숙제 마감일/알림 기본값 (마감: 7일 뒤, 알림: 마감 전날 22:00 — 직접 바꾸면 그 값을 써요) ----
-(function(){
-  const due = document.getElementById('hwDue'), rem = document.getElementById('hwRemind');
-  if(!due || !rem) return;
-  const p2 = n => String(n).padStart(2,'0'), ymd = d => d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
-  let remEdited = false;
-  function syncRemind(){
-    if(remEdited) return;
-    if(!due.value){ rem.value = ''; return; }
-    const d = new Date(due.value + 'T00:00:00'); d.setDate(d.getDate() - 1);
-    rem.value = ymd(d) + 'T22:00';
-  }
-  const d0 = new Date(); d0.setDate(d0.getDate() + 7); due.value = ymd(d0); syncRemind();
-  due.addEventListener('change', syncRemind);
-  rem.addEventListener('input', ()=>{ remEdited = true; });
-})();
 document.getElementById('shareBtn').addEventListener('click', async ()=>{
   if(!form.student){ toast('학생을 먼저 선택해주세요'); return; }
   const lessonName = form.lesson ? form.lesson.lesson : lessonSearch.value.trim();
@@ -3091,35 +3070,6 @@ document.getElementById('shareBtn').addEventListener('click', async ()=>{
   if(makeD || makeT) lines.push(`보강일정: ${makeD}${timeRangeText(makeT, document.getElementById('makeupEndTime').value)}${mct ? ` (수업 ${mct}~${document.getElementById('makeupClassEndTime').value}, 나머지 테스트)` : ''}`);
   const text = lines.join('\n');
   await copyText(text);
-  const hwDueIso = ()=>{ const v = (document.getElementById('hwDue')||{}).value; return v ? new Date(v + 'T23:59:00+09:00').toISOString() : ''; };
-  const hwRemindIso = ()=>{ const v = (document.getElementById('hwRemind')||{}).value; return v ? new Date(v + ':00+09:00').toISOString() : ''; };
-  const hwChk = document.getElementById('hwToApp');
-  if(hwChk && hwChk.checked){
-    if(!hw){ toast('복사됨 · 오늘 과제가 비어 있어서 학생 앱 숙제란에는 올리지 않았어요'); return; }
-    const GURL = 'https://script.google.com/macros/s/AKfycbxZXQVyOPSNgg0K2uBG28r_vy9RaxnbQkbbWuNiaoiS_x-AX6qVk4NKLnXrHetgn8Nc/exec';
-    let pw = ''; try{ pw = sessionStorage.getItem('graderPwTab') || ''; }catch(e){}
-    if(!pw){
-      pw = prompt('학생 앱 숙제란에 올리려면 채점 앱 선생님 비밀번호가 필요해요. 입력해 주세요') || '';
-      if(!pw){ toast('복사됨 · 비밀번호가 없어 학생 앱에는 못 올렸어요'); return; }
-      try{ sessionStorage.setItem('graderPwTab', pw); }catch(e){}
-    }
-    toast('학생 앱 숙제란에 올리는 중...');
-    try{
-      const resp = await fetch(GURL, { method:'POST', body: JSON.stringify({ action:'addHomework', password: pw, studentName: form.student.이름, bookLesson: bl, homework: hw, text, dueAt: hwDueIso(), remindAt: hwRemindIso() }) });
-      let r = null; try{ r = JSON.parse(await resp.text()); }catch(e){ r = null; }
-      if(!r){ alert('복사는 됐어요.\n\n학생 앱 숙제란 등록 실패: 채점 앱 서버 응답이 이상해요. Apps Script를 새 버전으로 다시 배포했는지 확인해 주세요.'); return; }
-      if(!r.ok){
-        const er = String(r.error||'');
-        if(/비밀번호|로그인/.test(er)){ try{ sessionStorage.removeItem('graderPwTab'); }catch(e){} alert('복사는 됐어요.\n\n학생 앱 숙제란 등록 실패: 채점 앱 비밀번호가 틀렸어요. 다시 눌러서 올바른 비밀번호를 넣어 주세요.'); }
-        else if(/unknown/i.test(er)) alert('복사는 됐어요.\n\n학생 앱 숙제란 등록 실패: 채점 앱 Apps Script가 예전 버전이에요. 새 버전으로 다시 배포해 주세요.');
-        else alert('복사는 됐어요.\n\n학생 앱 숙제란 등록 실패: ' + er);
-        return;
-      }
-      if(r.skipped) return;
-      if(!r.registered) alert('복사는 됐어요.\n\n숙제는 저장됐지만 「' + form.student.이름 + '」 이름으로 가입한 학생이 없어요. 학생 앱 가입 이름과 알림장 이름이 똑같아야 해요.');
-      else toast(r.pushed ? '복사됨 · 학생 앱 숙제 등록 + 알림 전송 ✅' : '복사됨 · 학생 앱 숙제 등록 ✅ (이 학생은 알림이 꺼져 있어 푸시는 못 보냈어요)');
-    }catch(e){ alert('복사는 됐어요.\n\n학생 앱 숙제란 등록 실패(연결 오류): ' + (e && e.message || e)); }
-  }
 });
 
 // ---------------- 결석/보강 일정 캘린더 연동 ----------------
@@ -5578,38 +5528,67 @@ function loadHtml2Canvas(){
   });
   return h2cLoading;
 }
-document.getElementById('wkImageBtn').addEventListener('click', async ()=>{
-  const btn = document.getElementById('wkImageBtn');
-  btn.disabled = true; const old = btn.textContent; btn.textContent = '이미지 만드는 중…';
+// 주간 시간표 전체를 PNG로 만들기 (가로 스크롤에 가려진 부분까지)
+async function makeWeekImage(){
+  await loadHtml2Canvas();
+  const grid = document.getElementById('wkGrid');
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:fixed; left:-10000px; top:0; background:#fff; padding:14px;';
+  const w = Math.max(grid.scrollWidth, 760);
+  holder.style.width = (w + 28) + 'px';
+  const title = document.createElement('div');
+  title.textContent = '주간 시간표 · ' + document.getElementById('wkLabel').textContent;
+  title.style.cssText = 'font:700 16px sans-serif; margin:0 0 10px; color:#2E3A4F;';
+  const clone = grid.cloneNode(true); clone.id = 'wkGridClone'; clone.style.width = w + 'px';
+  holder.appendChild(title); holder.appendChild(clone);
+  document.body.appendChild(holder);
   try{
-    await loadHtml2Canvas();
-    const grid = document.getElementById('wkGrid');
-    // 가로 스크롤에 가려진 부분까지 전체를 찍기 위해 복사본을 화면 밖에 펼쳐 놓고 찍음
-    const holder = document.createElement('div');
-    holder.style.cssText = 'position:fixed; left:-10000px; top:0; background:#fff; padding:14px;';
-    const w = Math.max(grid.scrollWidth, 760);
-    holder.style.width = (w + 28) + 'px';
-    const title = document.createElement('div');
-    title.textContent = '주간 시간표 · ' + document.getElementById('wkLabel').textContent;
-    title.style.cssText = 'font:700 16px sans-serif; margin:0 0 10px; color:#2E3A4F;';
-    const clone = grid.cloneNode(true); clone.id = 'wkGridClone'; clone.style.width = w + 'px';
-    holder.appendChild(title); holder.appendChild(clone);
-    document.body.appendChild(holder);
     const canvas = await html2canvas(holder, { backgroundColor:'#ffffff', scale: 2, useCORS:true, logging:false });
-    holder.remove();
-    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
-    const fname = '주간시간표_' + dateKeyOf(wkStart) + '.png';
-    const file = new File([blob], fname, { type:'image/png' });
+    return await new Promise(r => canvas.toBlob(r, 'image/png'));
+  }finally{ holder.remove(); }
+}
+function weekImageName(){ return '주간시간표_' + dateKeyOf(wkStart) + '.png'; }
+function downloadBlob(blob, fname){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(a.href), 4000);
+}
+const IS_MOBILE = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+function setWkImgBusy(on){
+  ['wkImageBtn','wkImageSaveBtn'].forEach(id=>{ const b = document.getElementById(id); if(b) b.disabled = on; });
+  document.getElementById('wkImageBtn').textContent = on ? '이미지 만드는 중…' : (IS_MOBILE ? '🖼 이미지 공유' : '🖼 이미지 복사 (카톡에 붙여넣기)');
+}
+// 복사(PC) / 공유(휴대폰)
+document.getElementById('wkImageBtn').addEventListener('click', ()=>{
+  setWkImgBusy(true);
+  const blobP = makeWeekImage();
+  if(!IS_MOBILE && navigator.clipboard && window.ClipboardItem){
+    // 클릭한 순간에 복사를 시작해야 브라우저가 허락하므로, 이미지가 완성되기 전 약속(Promise)을 그대로 넘김
+    navigator.clipboard.write([new ClipboardItem({ 'image/png': blobP })])
+      .then(()=> toast('시간표 이미지를 복사했습니다. 카톡 대화창에서 Ctrl+V로 붙여넣으세요'))
+      .catch(async e=>{
+        try{ const blob = await blobP; downloadBlob(blob, weekImageName()); toast('복사가 안 되어 이미지 파일로 저장했습니다. 카톡에 파일을 끌어다 놓으세요'); }
+        catch(err){ toast('이미지 만들기 실패: ' + err.message); }
+      })
+      .finally(()=> setWkImgBusy(false));
+    return;
+  }
+  blobP.then(async blob=>{
+    const file = new File([blob], weekImageName(), { type:'image/png' });
     if(navigator.canShare && navigator.canShare({ files:[file] })){
-      try{ await navigator.share({ files:[file], title:'주간 시간표' }); toast('공유 창을 열었습니다'); return; }catch(e){ if(e.name === 'AbortError') return; }
+      try{ await navigator.share({ files:[file], title:'주간 시간표' }); return; }catch(e){ if(e.name === 'AbortError') return; }
     }
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=> URL.revokeObjectURL(a.href), 4000);
-    toast('시간표 이미지를 저장했습니다');
-  }catch(e){ toast('이미지 만들기 실패: ' + e.message); }
-  finally{ btn.disabled = false; btn.textContent = old; }
+    downloadBlob(blob, weekImageName()); toast('시간표 이미지를 저장했습니다');
+  }).catch(e=> toast('이미지 만들기 실패: ' + e.message)).finally(()=> setWkImgBusy(false));
 });
+// 파일로 저장
+document.getElementById('wkImageSaveBtn').addEventListener('click', async ()=>{
+  setWkImgBusy(true);
+  try{ downloadBlob(await makeWeekImage(), weekImageName()); toast('시간표 이미지를 파일로 저장했습니다'); }
+  catch(e){ toast('이미지 만들기 실패: ' + e.message); }
+  finally{ setWkImgBusy(false); }
+});
+setWkImgBusy(false);
 
 // ---------------- ⑩ 구글 시트 백업 ----------------
 function renderBackupInfo(){

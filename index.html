@@ -369,18 +369,18 @@
   .clock-display-part.active{background:var(--cobalt-soft); color:var(--cobalt-dark);}
   .cal-dot{width:6px; height:6px; border-radius:50%;}
   .wk-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
-  .wk-grid{display:grid; grid-template-columns:34px repeat(7, minmax(96px,1fr)); min-width:700px; font-size:11px;}
+  .wk-grid{display:grid; grid-template-columns:40px repeat(7, minmax(110px,1fr)); min-width:780px; font-size:13px;}
   .wk-head{text-align:center; padding:6px 2px; font-weight:700; border-bottom:1px solid #d9dee8; cursor:pointer; line-height:1.3;}
   .wk-head.today{color:var(--cobalt);}
   .wk-head.sun, .wk-head.hol{color:var(--coral);}
   .wk-head small{display:block; font-weight:400; font-size:10px; opacity:.75;}
   .wk-allday{border-bottom:1px solid #d9dee8; border-left:1px solid #eef0f4; padding:2px; min-height:18px; cursor:pointer;}
-  .wk-chip{display:block; font-size:10px; padding:1px 4px; border-radius:4px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .wk-chip{display:block; font-size:12px; padding:1px 4px; border-radius:4px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .wk-chip.absent{background:var(--coral-soft);}
   .wk-chip.other{background:var(--gold-soft);}
   .wk-chip.hol{background:transparent; color:var(--coral);}
   .wk-times{position:relative;}
-  .wk-times span{position:absolute; right:4px; transform:translateY(-50%); font-size:10px; opacity:.65;}
+  .wk-times span{position:absolute; right:5px; transform:translateY(-50%); font-size:12.5px; opacity:.7;}
   .wk-col{position:relative; border-left:1px solid #eef0f4; cursor:pointer;
     background-image:linear-gradient(#eef0f4 1px, transparent 1px); background-size:100% var(--wk-hour);}
   .wk-col.today{background-color:rgba(102,144,196,.06);}
@@ -389,9 +389,9 @@
   .wk-grid > .day:nth-last-child(-n+1){border-right:2px solid #8FA3BF;}
   .wk-head.alt, .wk-allday.alt, .wk-col.alt{background-color:rgba(255,255,255,.55);}
   .wk-col.alt.today, .wk-col.today{background-color:rgba(102,144,196,.10);}
-  .wk-ev{position:absolute; border-radius:5px; padding:2px 3px; overflow:hidden; font-size:10px; line-height:1.25; box-sizing:border-box; border:1px solid rgba(0,0,0,.08);}
-  .wk-ev b{display:block; font-weight:700; font-size:9.5px; opacity:.8; white-space:nowrap;}
-  .wk-ev .wk-name{display:block; white-space:normal; word-break:keep-all; overflow-wrap:normal; font-size:11px; font-weight:600; line-height:1.2; overflow:hidden;}
+  .wk-ev{position:absolute; border-radius:6px; padding:3px 4px; overflow:hidden; font-size:12px; line-height:1.25; box-sizing:border-box; border:1px solid rgba(0,0,0,.08);}
+  .wk-ev b{display:block; font-weight:700; font-size:11.5px; opacity:.8; white-space:nowrap;}
+  .wk-ev .wk-name{display:block; white-space:normal; word-break:keep-all; overflow-wrap:normal; font-size:14px; font-weight:600; line-height:1.2; overflow:hidden;}
   .wk-ev.class{background:#CFE2F6; border:1.5px solid #4A82C0; color:#153A63;}
   .wk-ev.makeup{background:#DFEDE8; border:1px solid #8DB8AA; color:#2C5247;}
   .wk-ev.other{background:var(--gold-soft); border-color:var(--gold);}
@@ -415,7 +415,7 @@
   .wk-ev.changed{border:2px dashed var(--violet);}
   .wk-ev.absent{background:var(--coral-soft); border:1px dashed var(--coral);}
   .wk-ev.clash{border:2px solid var(--coral); box-shadow:0 0 0 1px #fff inset;}
-  .wk-legend{display:flex; gap:10px; flex-wrap:wrap; font-size:11px; margin-top:8px; opacity:.85;}
+  .wk-legend{display:flex; gap:10px; flex-wrap:wrap; font-size:12.5px; margin-top:8px; opacity:.85;}
   .wk-legend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:3px; vertical-align:-1px;}
   .cal-dot.absent{background:var(--coral);}
   .cal-dot.makeup{background:var(--cobalt);}
@@ -468,7 +468,7 @@
   .td-head span{text-align:center;}
   .td-wrap{position:relative; display:flex;}
   .td-axis{position:relative; width:38px; flex:none;}
-  .td-hr{position:absolute; left:0; font-size:11px; color:var(--ink-soft); transform:translateY(-50%);}
+  .td-hr{position:absolute; left:0; font-size:12.5px; color:var(--ink-soft); transform:translateY(-50%);}
   .td-area{position:relative; flex:1; border-left:1px solid var(--line);}
   .td-line{position:absolute; left:0; right:0; border-top:1px dashed #E2D6D2;}
   .td-split{position:absolute; top:0; bottom:0; border-left:1px solid #E2D6D2;}
@@ -476,9 +476,9 @@
   .td-ev.test, .td-ev.addtest, .td-ev.makeuptest{background:#F3F1F8; border:1px solid #D3CEE0;}
   .td-ev.makeup{background:#DFEDE8; border:1px solid #8DB8AA;}
   .td-ev.other{background:#F6EBD8; border:1px solid #D8B97E;}
-  .td-t{font-size:11px; font-weight:700; color:#33415C; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .td-ev .today-name{padding:1px 7px; margin:2px 3px 0 0; font-size:12.5px; white-space:nowrap;}
-  .td-ev.test .today-name{font-size:12px; padding:0 6px;}
+  .td-t{font-size:12.5px; font-weight:700; color:#33415C; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .td-ev .today-name{padding:1px 8px; margin:2px 3px 0 0; font-size:14px; white-space:nowrap;}
+  .td-ev.test .today-name{font-size:13px; padding:0 6px; margin-top:1px; line-height:1.35;}
   .today-row{display:flex; gap:10px; align-items:flex-start; padding:7px 0; border-bottom:1px dashed var(--line);}
   .today-row:last-child{border-bottom:none;}
   .today-time{flex:none; width:92px; font-size:12.5px; font-weight:700; color:var(--ink-soft);}
@@ -3384,6 +3384,9 @@ function collectCalEvents(){
 // ---------------- 주간 일정표 ----------------
 let wkStart = (function(){ const d = new Date(); d.setHours(0,0,0,0); const k = (d.getDay()+6)%7; d.setDate(d.getDate()-k); return d; })();
 function dateKeyOf(d){ const pad=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+// 오후 시간도 2시·3시처럼 (14시 → 2시)
+function hr12(h){ return ((h + 11) % 12) + 1; }
+function tm12(m){ return `${hr12(Math.floor(m/60))}:${String(m % 60).padStart(2,'0')}`; }
 function layoutLanes(items){
   // 겹치는 일정끼리 나란히 놓이도록 칸(lane) 배정
   const sorted = items.slice().sort((a,b)=> a.start-b.start || b.end-a.end);
@@ -3414,11 +3417,11 @@ function fitWeekLabels(grid){
     const name = ev.querySelector('.wk-name'), time = ev.querySelector('b');
     if(!name) return;
     const over = ()=> ev.scrollHeight > ev.clientHeight + 1 || name.scrollWidth > name.clientWidth + 1;
-    let size = 11;
-    while(size > 7 && over()){
+    let size = 14;
+    while(size > 9.5 && over()){
       size -= 0.5;
       name.style.fontSize = size + 'px';
-      if(time) time.style.fontSize = Math.min(9.5, size) + 'px';
+      if(time) time.style.fontSize = Math.min(11.5, size) + 'px';
     }
     if(name.scrollWidth > name.clientWidth + 1){ name.style.overflowWrap = 'anywhere'; } // 아주 긴 한 단어만 예외로 줄바꿈
     if(ev.scrollHeight > ev.clientHeight + 1){
@@ -3519,28 +3522,28 @@ function renderWeekView(){
     const leftLanes = left.length ? Math.max(...left.map(x=>x._lanes)) : 0;
     const rightLanes = right.length ? Math.max(...right.map(x=>x._lanes)) : 0;
     // 요일 칸 너비: 나란히 놓인 블록 하나당 수업 56px · 테스트 60px만큼만 (테스트가 많아도 칸이 과하게 넓어지지 않게)
-    const LW = 56, RW = 60;
+    const LW = 70, RW = 76;
     const need = leftLanes*LW + rightLanes*RW;
     const split = (leftLanes && rightLanes) ? 100 * leftLanes*LW / need : (rightLanes ? 0 : 100);
     left.forEach(it=>{ const w = split / it._lanes; it._x = w*it._lane; it._w = w; });
     right.forEach(it=>{ const w = (100 - split) / it._lanes; it._x = split + w*it._lane; it._w = w; });
-    const minW = Math.max(96, need);
+    const minW = Math.max(110, need);
     return { d, key, timed: left.concat(right), allDay, hol, lanesTotal: leftLanes + rightLanes, minW };
   });
 
   // 보여줄 시간 범위 (기본 13~22시, 일정에 맞춰 늘어남)
   let minH = 13, maxH = 22;
   perDay.forEach(pd=>pd.timed.forEach(it=>{ minH = Math.min(minH, Math.floor(it.start/60)); maxH = Math.max(maxH, Math.ceil(it.end/60)); }));
-  const HOUR = 46, pxPerMin = HOUR/60, height = (maxH-minH)*HOUR;
+  const HOUR = 58, pxPerMin = HOUR/60, height = (maxH-minH)*HOUR;
 
   // 나란히 놓인 블록이 많은 날은 그만큼 더 넓게 (블록 하나당 최소 52px)
   const colDefs = perDay.map(pd => {
     if(!pd.timed.length) return pd.allDay.length ? [60,'0.45fr'] : [38,'0.25fr'];
     const lanes = Math.max(1, pd.lanesTotal || 1);
-    return [pd.minW || 96, '1fr'];
+    return [pd.minW || 110, '1fr'];
   });
-  const gridCols = '34px ' + colDefs.map(([mn,fr]) => `minmax(${mn}px,${fr})`).join(' ');
-  const gridMin = 34 + colDefs.reduce((a,[mn]) => a + mn, 0);
+  const gridCols = '40px ' + colDefs.map(([mn,fr]) => `minmax(${mn}px,${fr})`).join(' ');
+  const gridMin = 40 + colDefs.reduce((a,[mn]) => a + mn, 0);
   let html = `<div class="wk-grid" style="--wk-hour:${HOUR}px; grid-template-columns:${gridCols}; min-width:${gridMin}px;">`;
   html += '<div></div>';
   perDay.forEach((pd,pi)=>{
@@ -3553,7 +3556,7 @@ function renderWeekView(){
     html += `<div class="wk-allday day${pi%2?' alt':''}" data-date="${pd.key}">` + pd.allDay.map(a=>`<span class="wk-chip ${a.cls}" title="${escapeHtml(a.text)}">${escapeHtml(a.text)}</span>`).join('') + '</div>';
   });
   html += `<div class="wk-times" style="height:${height}px;">`;
-  for(let h=minH+1; h<maxH; h++) html += `<span style="top:${(h-minH)*HOUR}px;">${h}시</span>`;
+  for(let h=minH+1; h<maxH; h++) html += `<span style="top:${(h-minH)*HOUR}px;">${hr12(h)}시</span>`;
   html += '</div>';
   perDay.forEach((pd,pi)=>{
     html += `<div class="wk-col day${pi%2?' alt':''}${pd.key===todayKey?' today':''}" data-date="${pd.key}" style="height:${height}px;">`;
@@ -3567,7 +3570,7 @@ function renderWeekView(){
       const timeAttr = ` data-start="${it.start}" data-end="${it.end}" data-label="${escapeHtml(it.label + joinedLabel).replace(/"/g,'&quot;')}"` +
         ((it.joined||[]).length ? ` data-joined="${escapeHtml(JSON.stringify(it.joined)).replace(/"/g,'&quot;')}"` : '');
       html += `<div class="wk-ev ${it.kind}${it.added?' added':''}${it.changed?' changed':''}${it.clash?' clash':''}" data-date="${pd.key}"${ttAttr}${timeAttr} style="top:${top}px; height:${h}px; left:calc(${it._x}% + 3px); width:calc(${it._w}% - 5px);" title="${it.testGroup ? escapeHtml(it.members.map(m=>`${minToHm(m.start)}~${minToHm(m.end)} ${m.name}`).join(' / ')) : minToHm(it.start)+'~'+minToHm(it.end)+' '+escapeHtml(it.label)}${it.clash?' (시간 겹침)':''}">
-        <b>${minToHm(it.start)}${it.changed?' ↪':''}${it.clash?' ⚠':''}</b><span class="wk-name">${escapeHtml(wkShortLabel(it.label))}${(it.joined||[]).map(j=>` <span class="wk-joined">+ ${escapeHtml(j.name)}</span>`).join('')}</span></div>`;
+        <b>${tm12(it.start)}${it.changed?' ↪':''}${it.clash?' ⚠':''}</b><span class="wk-name">${escapeHtml(wkShortLabel(it.label))}${(it.joined||[]).map(j=>` <span class="wk-joined">+ ${escapeHtml(j.name)}</span>`).join('')}</span></div>`;
     });
     html += '</div>';
   });
@@ -5371,12 +5374,12 @@ async function renderRecordHome(){
       const isT = r => r.kind === 'test' || r.kind === 'addtest' || r.kind === 'makeuptest';
       const L = layoutLanes(rows.filter(r => !isT(r))), R = layoutLanes(rows.filter(isT));
       const h0 = Math.floor(Math.min(...rows.map(r=>r.start)) / 60), h1 = Math.ceil(Math.max(...rows.map(r=>r.end)) / 60);
-      const PX = 60 / 60; // 1분 = 1px → 1시간 60px
+      const PX = 78 / 60; // 1시간 78px
       // 나란히 놓인 칸 수에 맞춰 수업·테스트 폭 나누기 (수업 칸을 조금 더 넓게)
       const lanes = a => a.length ? Math.max(...a.map(r=>r._lanes)) : 0;
       const lw = lanes(L) * 1.3, rw = lanes(R);
       const split = (L.length && R.length) ? Math.min(70, Math.max(40, 100 * lw / (lw + rw))) : (L.length ? 100 : 0);
-      const hm = m => `${Math.floor(m/60)}${m % 60 ? ':' + String(m % 60).padStart(2,'0') : ''}`;
+      const hm = m => `${hr12(Math.floor(m/60))}${m % 60 ? ':' + String(m % 60).padStart(2,'0') : ''}`;
       const pos = (r, x0, w) => { const lw = w / r._lanes; return `top:${(r.start - h0*60)*PX + 1}px; height:${(r.end - r.start)*PX - 3}px; left:calc(${x0 + lw*r._lane}% + 2px); width:calc(${lw}% - 4px);`; };
       const blk = (r, x0, w) => `<div class="td-ev ${r.kind}" style="${pos(r, x0, w)}">
           <div class="td-t">${hm(r.start)}~${hm(r.end)}시${r.kind === 'test' ? '' : ' · ' + (KIND[r.kind] || '')}</div>
@@ -5384,7 +5387,7 @@ async function renderRecordHome(){
       let lines = '', marks = '';
       for(let h = h0; h <= h1; h++){
         lines += `<div class="td-line" style="top:${(h - h0)*60*PX}px;"></div>`;
-        marks += `<div class="td-hr" style="top:${(h - h0)*60*PX}px;">${h}시</div>`;
+        marks += `<div class="td-hr" style="top:${(h - h0)*60*PX}px;">${hr12(h)}시</div>`;
       }
       html += `<div class="td-head"><span style="width:38px;"></span>${L.length ? `<span style="flex:${split};">수업·보강</span>` : ''}${R.length ? `<span style="flex:${100 - split};">문제풀이·테스트</span>` : ''}</div>
         <div class="td-wrap" style="height:${(h1 - h0)*60*PX + 2}px;">

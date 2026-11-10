@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>은정의 수업노트</title>
+<meta name="theme-color" content="#6690C4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="은정의 수업노트">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
@@ -455,6 +459,38 @@
     .record-actions .btn{ width:auto; flex:1; }
     .record-actions .btn + .btn{ margin-top:0; }
   }
+  /* ---- 업그레이드: 오늘 수업 / 과제 확인 / 템플릿 / 현황판 ---- */
+  .mk-alert{display:flex; align-items:center; gap:8px; padding:10px 12px; margin-bottom:10px; border-radius:10px; background:#FDEDEA; border:1px solid #F0B4A8; font-size:13.5px; cursor:pointer;}
+  .mk-alert b{color:var(--coral);}
+  .today-row{display:flex; gap:10px; align-items:flex-start; padding:7px 0; border-bottom:1px dashed var(--line);}
+  .today-row:last-child{border-bottom:none;}
+  .today-time{flex:none; width:92px; font-size:12.5px; font-weight:700; color:var(--ink-soft);}
+  .today-kind{font-size:11px; padding:1px 6px; border-radius:6px; margin-right:4px; background:#E8EEF8;}
+  .today-name{display:inline-flex; align-items:center; gap:3px; margin:2px 4px 2px 0; padding:3px 9px; border-radius:14px; border:1px solid #A9C3E6; background:#fff; font-size:13px; cursor:pointer;}
+  .today-name.done{background:#E6F4EA; border-color:#8FCB9F;}
+  .today-name.absent{background:#F6F6F6; border-color:#ddd; color:#999; text-decoration:line-through; cursor:default;}
+  .hw-check{display:flex; gap:6px; margin-top:6px;}
+  .hw-check button{flex:1; padding:7px 0; border-radius:8px; border:1px solid var(--line); background:#fff; font-size:13px; cursor:pointer;}
+  .hw-check button.on[data-hw="○"]{background:#E6F4EA; border-color:#5DAE73; font-weight:700;}
+  .hw-check button.on[data-hw="△"]{background:#FFF4D6; border-color:#D9A93A; font-weight:700;}
+  .hw-check button.on[data-hw="✕"]{background:#FDEDEA; border-color:var(--coral); font-weight:700;}
+  .hw-badge{display:inline-block; min-width:18px; text-align:center; font-size:11.5px; padding:0 5px; border-radius:6px; margin-left:4px;}
+  .hw-badge.o{background:#E6F4EA;} .hw-badge.t{background:#FFF4D6;} .hw-badge.x{background:#FDEDEA; color:var(--coral);}
+  .tpl-chips{display:flex; flex-wrap:wrap; gap:5px; margin-top:6px;}
+  .tpl-chip{padding:4px 9px; border-radius:14px; border:1px solid #C9BEE3; background:#F6F2FC; font-size:12px; cursor:pointer; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .extra-chip{display:inline-flex; align-items:center; gap:4px; margin:3px 4px 0 0; padding:3px 6px 3px 10px; border-radius:14px; background:#E8EEF8; font-size:13px;}
+  .extra-chip button{border:none; background:none; cursor:pointer; color:var(--ink-soft);}
+  .prog-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  .prog-table th{position:sticky; top:0; background:var(--panel); text-align:left; font-weight:700; padding:6px 4px; border-bottom:2px solid var(--line); white-space:nowrap; cursor:pointer;}
+  .prog-table td{padding:6px 4px; border-bottom:1px solid var(--line); vertical-align:top;}
+  .prog-table tr.late td{background:#FBE4DF;}
+  .prog-table tr.none td{opacity:.6;}
+  .prog-table .nm{font-weight:700; cursor:pointer; color:#2F5E9E; white-space:nowrap;}
+  .hist-filter{display:flex; gap:5px; flex-wrap:wrap; margin:6px 0 8px;}
+  .hist-filter button{padding:4px 10px; border-radius:14px; border:1px solid var(--line); background:#fff; font-size:12px; cursor:pointer;}
+  .hist-filter button.on{background:#2F5E9E; color:#fff; border-color:#2F5E9E;}
+  .hist-sum{font-size:12.5px; line-height:1.7; padding:8px 10px; border-radius:8px; background:#F3F6FB; margin-bottom:6px;}
+  .slot-chip{display:inline-block; margin:3px 4px 0 0; padding:4px 9px; border-radius:14px; border:1px solid #8DB8AA; background:#EAF6EE; font-size:12.5px; cursor:pointer;}
 </style>
 </head>
 <body>
@@ -487,6 +523,13 @@
 
 <!-- ============ 오늘 수업기록 ============ -->
 <section class="view active" id="view-record">
+
+  <div id="mkAlert"></div>
+  <div class="block" id="todayBlock" style="display:none;">
+    <div class="block-title"><span class="n c-cobalt">🕑</span>오늘 수업 순서 <span id="todayLabel" style="font-weight:400; font-size:12.5px; opacity:.75;"></span></div>
+    <div id="todayList"></div>
+    <p class="hint" style="margin:6px 0 0;">이름을 누르면 아래에 그 학생 수업기록을 바로 씁니다. 초록색은 오늘 기록을 이미 저장한 학생입니다.</p>
+  </div>
 
   <button class="btn ghost sm" id="clearAllBtn" style="margin-bottom:10px; color:var(--coral); border-color:var(--coral);">전체 지우고 새로 입력하기</button>
 
@@ -553,6 +596,14 @@
 
   <div class="block">
     <div class="block-title"><span class="n c-cobalt">3</span>오늘 과제</div>
+    <div id="hwCheckBox" style="display:none; margin-bottom:12px; padding:9px 10px; border-radius:8px; background:#F3F6FB;">
+      <div style="font-size:12.5px; line-height:1.5;" id="hwPrev"></div>
+      <div class="hw-check">
+        <button type="button" data-hw="○">○ 해옴</button>
+        <button type="button" data-hw="△">△ 일부</button>
+        <button type="button" data-hw="✕">✕ 안 해옴</button>
+      </div>
+    </div>
     <textarea id="homeworkText" placeholder="선택한 진도의 과제가 자동으로 채워집니다. 직접 수정 가능"></textarea>
     <button class="btn teal sm" id="updateHomeworkBtn" style="display:none; margin-top:10px;">과제 시트에 저장</button>
   </div>
@@ -563,6 +614,7 @@
     <textarea id="commonNoticeText" style="min-height:110px;" placeholder="교재·진도를 선택하면 공통알림장이 채워집니다"></textarea>
     <label>학생 개별 문구 (선택)</label>
     <textarea id="personalNoteText" style="min-height:90px;" placeholder="이 학생에게만 전달할 내용이 있으면 적어주세요"></textarea>
+    <div class="tpl-chips" id="noticeTplChips"></div>
     <p class="hint">%%학생 표기는 그대로 두시면 아카2000에서 학생 이름으로 자동 치환됩니다.</p>
     <button class="btn teal sm" id="updateNoticeBtn" style="display:none; margin-top:10px;">공통알림장 시트에 저장</button>
     <button class="btn primary sm" id="updateAllCurriBtn" style="display:none; margin-top:8px;">진도·과제·알림장 모두 저장</button>
@@ -626,6 +678,16 @@
   </div>
 
   <div class="block">
+    <div class="block-title"><span class="n c-cobalt">👥</span>같은 내용으로 다른 학생도 저장 <span style="font-weight:400; font-size:12px; opacity:.7;">(선택)</span></div>
+    <div class="search-wrap">
+      <input type="text" id="extraSearch" placeholder="함께 저장할 학생 이름 검색 (같은 반 학생)" autocomplete="off">
+      <div class="dropdown" id="extraDropdown" style="display:none;"></div>
+    </div>
+    <div id="extraChips"></div>
+    <p class="hint" style="margin:6px 0 0;">여기 고른 학생들에게도 교재·진도·과제·공통알림장이 같이 저장됩니다. 개별 문구·시험 점수·과제 확인·결석·보강은 위 학생에게만 저장되니, 다른 학생 것은 따로 고쳐주세요. 오늘 기록이 이미 있는 학생은 건너뜁니다.</p>
+  </div>
+
+  <div class="block">
     <div class="block-title"><span class="n c-teal">6</span>결석 &amp; 보강</div>
     <label>결석일자</label>
     <button type="button" class="btn" id="absentDatePicker" style="width:100%; justify-content:flex-start; background:#fff; font-weight:400;">결석일자 선택 (달력)</button>
@@ -678,6 +740,21 @@
         <button class="btn primary sm" id="ns_save">학생DB에 저장</button>
       </div>
     </div>
+  </div>
+
+  <div class="block">
+    <div class="block-title"><span class="n c-teal">📊</span>학생별 진도·과제 현황</div>
+    <div class="row" style="gap:6px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+      <input type="text" id="progFilter" placeholder="이름·교재로 거르기" style="flex:1; min-width:140px; margin:0;">
+      <select id="progSort" style="width:auto; margin:0;">
+        <option value="old">수업 오래된 순</option>
+        <option value="name">이름순</option>
+        <option value="hw">과제 안 해온 순</option>
+        <option value="book">교재순</option>
+      </select>
+    </div>
+    <div style="max-height:420px; overflow:auto;"><table class="prog-table" id="progTable"></table></div>
+    <p class="hint" style="margin:6px 0 0;">마지막 수업이 14일 넘은 학생은 붉게 표시됩니다. 과제는 최근 30일 과제 확인(○△✕) 기준이고, 이름을 누르면 학생 이력을 엽니다.</p>
   </div>
 
   <div class="block">
@@ -735,7 +812,7 @@
     </div>
 
     <hr class="divider">
-    <div class="block-title" id="recentTitle"><span class="n c-coral">≡</span>최근 수업 기록</div>
+    <div class="block-title" id="recentTitle"><span class="n c-coral">≡</span>수업 이력</div>
     <div id="md_records"></div>
     <button class="btn ghost sm" id="md_loadAll" style="display:none; margin-top:8px;">180일보다 이전 기록까지 불러오기</button>
   </div>
@@ -756,7 +833,10 @@
       <div id="makeupNeeded" style="margin-top:6px;"></div>
       <p class="hint" style="margin:6px 0 0;">보강을 입력할 때 고른 결석은 그 보강으로 채워지고(여러 개 고르면 한 번에), 따로 고르지 않은 보강은 날짜순으로 결석 하나씩 채웁니다. 최근 180일 기록 기준입니다.</p>
     </details>
-    <button class="btn primary sm" id="wkAddBtn" style="margin-bottom:8px;">＋ 학생 추가</button>
+    <div class="row" style="gap:6px; margin-bottom:8px;">
+      <button class="btn primary sm" id="wkAddBtn">＋ 학생 추가</button>
+      <button class="btn sm" id="wkImageBtn">🖼 이미지로 저장·공유</button>
+    </div>
     <div id="wkNotice"></div>
     <div class="wk-wrap"><div id="wkGrid"></div></div>
     <div class="wk-legend">
@@ -843,6 +923,23 @@
     <button class="btn primary" id="pw_save" style="margin-top:10px;">비밀번호 변경</button>
     <p class="hint">비밀번호는 구글 시트(Apps Script)에서도 확인합니다. 그래서 웹앱 주소를 아는 사람도 비밀번호 없이는 학생 기록을 볼 수 없습니다. 새 버전을 배포한 뒤 처음 입력한 비밀번호가 서버 비밀번호가 되고, 여기서 바꾸면 모든 기기에 적용됩니다. 한 번 맞게 입력하면 로그아웃하기 전까지 이 기기에서는 다시 묻지 않습니다.</p>
     <button class="btn ghost" id="logoutBtn" style="margin-top:10px;">로그아웃</button>
+  </div>
+  <div class="block">
+    <div class="block-title"><span class="n c-violet">💬</span>알림장 자주 쓰는 문구</div>
+    <p class="hint" style="margin:0 0 6px;">한 줄에 문구 하나씩 적으세요. 오늘 수업기록의 "학생 개별 문구" 아래 버튼으로 나오고, 누르면 문구가 들어갑니다. %%학생 표기도 쓸 수 있어요.</p>
+    <textarea id="tplEditor" style="min-height:130px;"></textarea>
+    <button class="btn primary sm" id="tplSave" style="margin-top:8px;">문구 저장 (모든 기기에 적용)</button>
+  </div>
+  <div class="block">
+    <div class="block-title"><span class="n c-teal">💾</span>구글 시트 백업</div>
+    <p class="hint" style="margin:0 0 6px;">구글 드라이브의 <b>수업노트 백업</b> 폴더에 시트 사본을 만들고, 최근 8개만 남깁니다. 매주 자동으로 하려면 Apps Script 편집기에서 <b>주간백업설정</b>을 한 번 실행해주세요 (매주 일요일 새벽 3시).</p>
+    <div id="backupInfo" style="font-size:13px; margin-bottom:6px;"></div>
+    <button class="btn sm" id="backupNowBtn">지금 백업하기</button>
+  </div>
+  <div class="block">
+    <div class="block-title"><span class="n c-cobalt">📱</span>홈 화면에 앱으로 설치</div>
+    <p class="hint" id="installHint" style="margin:0 0 6px;"></p>
+    <button class="btn primary sm" id="installBtn" style="display:none;">홈 화면에 설치</button>
   </div>
   <div class="block">
     <div class="block-title"><span class="n c-teal">✓</span>앱 점검</div>
@@ -2177,7 +2274,9 @@ document.getElementById('saveTimetableUrl').addEventListener('click', async ()=>
 });
 
 function currentSettings(){
-  return { timetableSheetId: CONFIG.timetableSheetId || '', ttTeacherName: ttTeacherName || '', ttExcludeWords: ttExcludeWords || '' };
+  const o = { timetableSheetId: CONFIG.timetableSheetId || '', ttTeacherName: ttTeacherName || '', ttExcludeWords: ttExcludeWords || '' };
+  if(typeof noticeTemplates !== 'undefined' && noticeTemplatesFromServer) o.noticeTemplates = JSON.stringify(noticeTemplates);
+  return o;
 }
 // 구글 시트에 저장된 설정을 이 기기에 적용 (없으면 이 기기 설정을 시트에 올림)
 async function applyServerSettings(){
@@ -2219,14 +2318,27 @@ async function loadData(){
     const data = await apiGet();
     if(data.error) throw new Error(data.error);
     DATA = data;
+    // 인터넷이 끊겼을 때 보여줄 수 있게 마지막 자료를 이 기기에 보관
+    try{ localStorage.setItem('lastData', JSON.stringify(data)); localStorage.setItem('lastDataAt', new Date().toLocaleString('ko-KR')); }catch(e){}
     if(status) status.innerHTML = '<span class="status-dot ok"></span>연결됨 · 학생 ' + DATA.students.length + '명, 교재 ' + Object.keys(DATA.curriculum).length + '종' +
       (DATA.recordsLimited ? ` · 수업기록은 최근 180일(${DATA.recordsCutoff} 이후)만 불러왔습니다` : '') +
       (DATA.version ? '' : ' · <b style="color:var(--coral);">Apps Script를 새 버전으로 배포해주세요</b>');
     await applyServerSettings();
     renderCalendar();
     setSearchEnabled(true);
+    if(typeof afterDataLoaded === 'function') try{ afterDataLoaded(); }catch(e){ console.error(e); }
   }catch(err){
     if(status) status.innerHTML = '<span class="status-dot no"></span>연결 실패: ' + err.message;
+    // 오프라인: 마지막으로 불러온 자료로 화면만 보여줌 (저장은 인터넷이 연결된 뒤에)
+    let cached = null;
+    try{ cached = JSON.parse(localStorage.getItem('lastData') || 'null'); }catch(e){}
+    if(cached && cached.students && (!DATA.students || !DATA.students.length)){
+      DATA = cached;
+      if(status) status.innerHTML = '<span class="status-dot no"></span>인터넷 연결 안 됨 · ' + (localStorage.getItem('lastDataAt') || '') + '에 불러온 자료를 보여줍니다 (저장은 연결된 뒤에 해주세요)';
+      try{ renderCalendar(); }catch(e){}
+      setSearchEnabled(true);
+      if(typeof afterDataLoaded === 'function') try{ afterDataLoaded(); }catch(e){}
+    }
   }
 }
 function setSearchEnabled(enabled){
@@ -2241,6 +2353,8 @@ function activateTab(view){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id === 'view-' + view));
   if(view === 'timetable') loadTimetable();
+  if(view === 'record' && typeof renderRecordHome === 'function') renderRecordHome();
+  if(view === 'manage' && typeof renderProgressBoard === 'function') renderProgressBoard();
 }
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>activateTab(btn.dataset.view));
@@ -2324,6 +2438,9 @@ function resetRecordForm(){
   ['absentDate','absentTime','absentEndTime','makeupDate','makeupTime','makeupEndTime','makeupClassTime','makeupClassEndTime'].forEach(id=>document.getElementById(id).value='');
   updateDateDisplay('absent');
   updateDateDisplay('makeup');
+  hwCheck = '';
+  if(typeof renderHwCheck === 'function') renderHwCheck();
+  if(typeof clearExtras === 'function') clearExtras();
 }
 document.getElementById('clearAllBtn').addEventListener('click', ()=>{
   const ok = confirm('현재 입력한 내용을 전부 지우고 새로 시작할까요?');
@@ -2345,6 +2462,8 @@ function selectStudent(name){
   resetRecordForm();
 
   const existing = findTodayRecord(s.이름);
+  hwCheck = existing ? String(existing['과제확인'] || '') : '';
+  if(typeof renderHwCheck === 'function') renderHwCheck();
   if(existing){
     if(existing['교재명'] && DATA.curriculum[existing['교재명']]){
       selectBook(existing['교재명']);
@@ -2824,6 +2943,7 @@ document.querySelectorAll('[data-copy]').forEach(btn=>{
 
 // ---------------- 개념암기 토글 ----------------
 let conceptResult = '';
+let hwCheck = ''; // 지난 과제 확인: ○ / △ / ✕
 document.getElementById('concept_pass').addEventListener('click', ()=>{
   conceptResult = conceptResult==='PASS' ? '' : 'PASS';
   renderConceptToggle();
@@ -2899,7 +3019,8 @@ document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
     makeupClassEndTime: document.getElementById('makeupClassEndTime').value,
     absentTime: document.getElementById('absentTime').value,
     absentEndTime: document.getElementById('absentEndTime').value,
-    memo: document.getElementById('personalNoteText').value.trim()
+    memo: document.getElementById('personalNoteText').value.trim(),
+    hwCheck
   };
   const existing = findTodayRecord(form.student.이름);
   let action = 'addRecord';
@@ -2922,7 +3043,9 @@ document.getElementById('saveRecordBtn').addEventListener('click', async ()=>{
         if(!r2.error) curriNote = ' · 이 진도의 과제를 과제DB에도 저장했습니다';
       }catch(e){}
     }
-    toast((action === 'updateRecord' ? '기존 수업기록을 수정했습니다' : '오늘 수업기록을 저장했습니다') + calNote(res) + curriNote);
+    let extraNote = '';
+    if(typeof saveExtras === 'function') extraNote = await saveExtras(payload);
+    toast((action === 'updateRecord' ? '기존 수업기록을 수정했습니다' : '오늘 수업기록을 저장했습니다') + calNote(res) + curriNote + extraNote);
     await loadData();
   }catch(err){ toast('저장 실패: ' + err.message); }
 });
@@ -4659,13 +4782,20 @@ function renderMakeupNeeded(){
   if(!list.length){ box.innerHTML = '<p class="hint" style="margin:0;">보강이 남은 학생이 없습니다</p>'; return; }
   box.innerHTML = list.map(x=>`<div class="cal-event-row" style="align-items:center;">
       <span style="flex:1;"><b>${escapeHtml(x.name)}</b> · 보강 ${x.st.remaining.length}회 남음<br>${x.st.remaining.map(d=>absChip(x.name, d)).join('')}</span>
-      <button class="btn sm" data-mk-name="${escapeHtml(x.name)}">보강 잡기</button></div>`).join('') +
+      <span style="display:flex; flex-direction:column; gap:4px;"><button class="btn sm" data-mk-name="${escapeHtml(x.name)}">보강 잡기</button>
+      <button class="btn sm" data-mk-suggest="${escapeHtml(x.name)}">빈 시간 추천</button></span></div>
+      <div data-mk-slots="${escapeHtml(x.name)}"></div>`).join('') +
     '<p class="hint" style="margin:4px 0 0;">결석 날짜 옆 ✕를 누르면 그 결석은 보강 남음에서 빠집니다 (보강 안 함).</p>';
   bindWaiveButtons(box);
   box.querySelectorAll('[data-mk-name]').forEach(b=>b.addEventListener('click', ()=>{
     openDayDetail(todayStr());
     setDayMakeupStudent(b.dataset.mkName);
     toast('날짜를 바꾸려면 창을 닫고 주간표의 요일 머리글을 눌러주세요');
+  }));
+  box.querySelectorAll('[data-mk-suggest]').forEach(b=>b.addEventListener('click', ()=>{
+    const name = b.dataset.mkSuggest;
+    const out = [...box.querySelectorAll('[data-mk-slots]')].find(x => x.dataset.mkSlots === name);
+    if(out && typeof renderMakeupSlots === 'function') renderMakeupSlots(name, out);
   }));
 }
 function renderCompactInfo(s){
@@ -4715,42 +4845,7 @@ function openManageDetail(name){
   renderCompactInfo(s);
   showCompactView();
 
-  const recs = DATA.records.filter(r => r['학생이름']===name && !isScheduleOnly(r))
-    .sort((a,b)=> new Date(b['작성일시']) - new Date(a['작성일시'])).slice(0,5);
-  const box = document.getElementById('md_records');
-  if(recs.length===0){
-    box.innerHTML = '<p class="hint">아직 기록이 없습니다</p>';
-  }else{
-    box.innerHTML = recs.map((r,idx)=>`
-      <div class="record-row">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-          <div>
-            <b>${fmtDT(r['작성일시'])}</b> · 진도 ${r['오늘진도']||'-'}<br>
-            과제: ${r['오늘과제']||'-'}<br>
-            ${r['알림장내용'] ? '알림장: ' + r['알림장내용'] + '<br>' : ''}
-            개념암기 ${r['개념암기결과']||'-'} / 객관식 ${r['객관식점수']||'-'}점
-            ${r['결석일자'] ? '<br>결석: ' + fmtDT(r['결석일자']) : ''}
-            ${r['보강일자'] ? ' / 보강: ' + fmtDT(r['보강일자']) + (r['보강시간'] ? ' ' + fmtDT(r['보강시간']) : '') : ''}
-          </div>
-          <button class="btn sm" data-del-record="${idx}" style="flex:none; color:var(--coral); border-color:var(--coral);">삭제</button>
-        </div>
-      </div>
-    `).join('');
-    box.querySelectorAll('[data-del-record]').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        const r = recs[parseInt(btn.dataset.delRecord)];
-        const ok = confirm(`${fmtDT(r['작성일시'])} · 진도 ${r['오늘진도']||'-'} 기록을 삭제할까요?\n삭제하면 되돌릴 수 없습니다.`);
-        if(!ok) return;
-        try{
-          const res = await apiPost('deleteRecord', { rowNum: r._rowNum, studentName: r['학생이름'] });
-          if(res.error){ toast(res.error); return; }
-          toast('기록을 삭제했습니다' + calNote(res));
-          await loadData();
-          openManageDetail(name);
-        }catch(err){ toast('삭제 실패: ' + err.message); }
-      });
-    });
-  }
+  renderStudentHistory(name);
   document.getElementById('md_loadAll').style.display = (DATA.recordsLimited && !LOAD_ALL_RECORDS) ? '' : 'none';
   document.getElementById('md_loadAll').onclick = async ()=>{
     LOAD_ALL_RECORDS = true;
@@ -5053,6 +5148,455 @@ document.getElementById('selfCheckBtn').addEventListener('click', runSelfCheck);
     loadCalendarInfo();
   }
 })();
+</script>
+<script>
+// =====================================================================
+// 업그레이드 기능 모음 (2026-11)
+//  ① 학생별 수업 이력  ② 과제 확인  ③ 알림장 문구 템플릿  ④ 여러 학생 한 번에 저장
+//  ⑤ 보강 남은 결석 알림  ⑥ 보강 빈 시간 추천  ⑦ 주간 시간표 이미지  ⑧ 오늘 수업 순서
+//  ⑨ 진도·과제 현황판  ⑩ 구글 시트 백업  ⑪ 홈 화면 설치(PWA)
+// =====================================================================
+function afterDataLoaded(){
+  renderRecordHome();
+  if(document.getElementById('view-manage').classList.contains('active')) renderProgressBoard();
+  loadNoticeTemplatesFromServer();
+  renderBackupInfo();
+}
+const nameMatchCache = { src:null, list:[] };
+// 글에서 학생 이름 찾기 (긴 이름 먼저: '김도경'이 '김도'보다 우선)
+function namesIn(text){
+  if(nameMatchCache.src !== DATA.students){
+    nameMatchCache.src = DATA.students;
+    nameMatchCache.list = (DATA.students || []).map(s => s.이름).filter(Boolean).sort((a,b)=> b.length - a.length);
+  }
+  let t = String(text || '');
+  const out = [];
+  nameMatchCache.list.forEach(n=>{ if(t.includes(n)){ out.push({ name:n, pos:t.indexOf(n) }); t = t.split(n).join('\u0000'.repeat(n.length)); } });
+  return out.sort((a,b)=> a.pos - b.pos).map(x => x.name);
+}
+function recDate(r){ return String(r['작성일시'] || '').slice(0,10); }
+function daysAgo(k){ return Math.round((new Date(todayStr() + 'T00:00:00') - new Date(k + 'T00:00:00')) / 864e5); }
+
+// ---------------- ⑤ 보강 남은 결석 알림 + ⑧ 오늘 수업 순서 ----------------
+async function renderRecordHome(){
+  // 보강 알림
+  const alertBox = document.getElementById('mkAlert');
+  const need = studentsNeedingMakeup();
+  const total = need.reduce((n,x)=> n + x.st.remaining.length, 0);
+  alertBox.innerHTML = total ? `<div class="mk-alert" id="mkAlertBtn">🔁 <span>보강이 안 잡힌 결석 <b>${total}건</b> (${need.length}명) · ${need.slice(0,4).map(x=>escapeHtml(x.name)).join(', ')}${need.length > 4 ? ' 외' : ''}</span><span style="margin-left:auto; font-size:12.5px; white-space:nowrap;">보강 잡기 ›</span></div>` : '';
+  const ab = document.getElementById('mkAlertBtn');
+  if(ab) ab.onclick = ()=>{
+    activateTab('timetable');
+    const d = document.getElementById('makeupNeededBox'); d.open = true;
+    setTimeout(()=> d.scrollIntoView({ behavior:'smooth', block:'start' }), 300);
+  };
+  // 오늘 수업 순서
+  const block = document.getElementById('todayBlock');
+  if(!CONFIG.timetableSheetId && !(DATA.ttAdds||[]).length){ block.style.display = 'none'; return; }
+  try{ await ensureTimetableLoaded(); }catch(e){}
+  const today = todayStr();
+  const d = new Date(today + 'T00:00:00');
+  document.getElementById('todayLabel').textContent = `${d.getMonth()+1}/${d.getDate()} (${DOW_CHARS[d.getDay()]})`;
+  const ev = collectCalEvents()[today] || { absent:[], makeup:[], other:[] };
+  const absentNames = new Set(ev.absent.map(a => a.name));
+  const items = getDaySchedule(today).filter(it => it.kind !== 'absent' && it.kind !== 'moved');
+  // 같은 시간대(시작~끝)끼리 묶기
+  const rows = [];
+  items.forEach(it=>{
+    const names = it.kind === 'other' ? [] : namesIn(it.label);
+    let row = rows.find(r => r.start === it.start && r.end === it.end && r.kind === it.kind);
+    if(!row){ row = { start:it.start, end:it.end, kind:it.kind, names:[], labels:[] }; rows.push(row); }
+    names.forEach(n => { if(!row.names.includes(n)) row.names.push(n); });
+    if(!names.length) row.labels.push(it.label);
+  });
+  // 시간 없는 결석도 보여주기
+  const KIND = { class:'수업', test:'테스트', addtest:'테스트', makeup:'보강', makeuptest:'테스트 보강', other:'일정' };
+  const list = document.getElementById('todayList');
+  if(!rows.length && !absentNames.size){
+    list.innerHTML = '<p class="hint" style="margin:0;">오늘은 수업이 없습니다</p>';
+  }else{
+    list.innerHTML = rows.map(r=>`<div class="today-row">
+        <div class="today-time">${minToHm(r.start)}~${minToHm(r.end)}</div>
+        <div style="flex:1;"><span class="today-kind">${KIND[r.kind] || ''}</span>${
+          r.names.map(n=>{
+            const done = !!findTodayRecord(n), ab = absentNames.has(n);
+            return `<span class="today-name${ab ? ' absent' : done ? ' done' : ''}" data-today-name="${escapeHtml(n)}">${done ? '✓ ' : ''}${escapeHtml(n)}${ab ? ' (결석)' : ''}</span>`;
+          }).join('')}${r.labels.map(l=>`<span style="font-size:12.5px; opacity:.8;">${escapeHtml(l)}</span>`).join(' ')}</div></div>`).join('') +
+      (absentNames.size ? `<div class="today-row"><div class="today-time">결석</div><div style="flex:1;">${[...absentNames].map(n=>`<span class="today-name absent">${escapeHtml(n)}</span>`).join('')}</div></div>` : '');
+    const doneCnt = rows.reduce((n,r)=> n + r.names.filter(x => findTodayRecord(x)).length, 0);
+    const allCnt = rows.reduce((n,r)=> n + r.names.filter(x => !absentNames.has(x)).length, 0);
+    if(allCnt) list.innerHTML += `<div style="font-size:12.5px; margin-top:6px; opacity:.8;">기록 저장 ${doneCnt} / ${allCnt}명</div>`;
+  }
+  list.querySelectorAll('[data-today-name]').forEach(el=>{
+    if(el.classList.contains('absent')) return;
+    el.addEventListener('click', ()=>{
+      selectStudent(el.dataset.todayName);
+      document.getElementById('studentChip').scrollIntoView({ behavior:'smooth', block:'center' });
+    });
+  });
+  block.style.display = '';
+}
+
+// ---------------- ② 과제 확인 ----------------
+function lastHomeworkOf(name){
+  const today = todayStr();
+  return (DATA.records || []).filter(r => r['학생이름'] === name && !isScheduleOnly(r) && recDate(r) < today && String(r['오늘과제']||'').trim())
+    .sort((a,b)=> recDate(b).localeCompare(recDate(a)))[0] || null;
+}
+function renderHwCheck(){
+  const box = document.getElementById('hwCheckBox');
+  if(!box) return;
+  if(!form.student){ box.style.display = 'none'; return; }
+  const last = lastHomeworkOf(form.student.이름);
+  document.getElementById('hwPrev').innerHTML = last
+    ? `<b>지난 과제 확인</b> · ${shortDate(recDate(last))} ${escapeHtml(last['교재명']||'')}<br><span style="opacity:.85;">${escapeHtml(last['오늘과제'])}</span>`
+    : '<b>지난 과제 확인</b> · <span style="opacity:.7;">지난 과제 기록이 없습니다</span>';
+  box.querySelectorAll('[data-hw]').forEach(b => b.classList.toggle('on', b.dataset.hw === hwCheck));
+  box.style.display = '';
+}
+document.querySelectorAll('#hwCheckBox [data-hw]').forEach(b=>b.addEventListener('click', ()=>{
+  hwCheck = hwCheck === b.dataset.hw ? '' : b.dataset.hw;
+  renderHwCheck();
+}));
+function hwStats(name, days){
+  const from = days ? dateKeyOf(new Date(Date.now() - days*864e5)) : '';
+  const o = { '○':0, '△':0, '✕':0 };
+  (DATA.records || []).forEach(r=>{
+    if(r['학생이름'] !== name || (from && recDate(r) < from)) return;
+    const v = String(r['과제확인'] || '').trim();
+    if(o[v] !== undefined) o[v]++;
+  });
+  return o;
+}
+function hwBadges(o){
+  return `<span class="hw-badge o">○${o['○']}</span><span class="hw-badge t">△${o['△']}</span><span class="hw-badge x">✕${o['✕']}</span>`;
+}
+
+// ---------------- ③ 알림장 문구 템플릿 ----------------
+var DEFAULT_TEMPLATES = [
+  '다음 시간에 단원평가가 있습니다. 오늘 배운 내용을 꼭 복습해 오세요.',
+  '다음 시간에 교재를 꼭 챙겨 오세요.',
+  '오늘 수업 태도가 아주 좋았습니다.',
+  '과제를 해 오지 않아 다음 시간까지 함께 해 오도록 했습니다.',
+  '오늘 개념 암기 재시험이 있었습니다. 다음 시간에 다시 확인하겠습니다.'
+];
+var noticeTemplates = DEFAULT_TEMPLATES.slice();
+var noticeTemplatesFromServer = false;
+function loadNoticeTemplatesFromServer(){
+  const raw = DATA.settings && DATA.settings.noticeTemplates;
+  if(raw){
+    try{ const a = JSON.parse(raw); if(Array.isArray(a)){ noticeTemplates = a.map(String).filter(x=>x.trim()); noticeTemplatesFromServer = true; } }catch(e){}
+  }
+  renderTemplateChips();
+  const ed = document.getElementById('tplEditor');
+  if(ed && document.activeElement !== ed) ed.value = noticeTemplates.join('\n');
+}
+function renderTemplateChips(){
+  const box = document.getElementById('noticeTplChips');
+  if(!box) return;
+  box.innerHTML = noticeTemplates.map((t,i)=>`<button type="button" class="tpl-chip" data-tpl="${i}" title="${escapeHtml(t)}">＋ ${escapeHtml(t.length > 22 ? t.slice(0,22) + '…' : t)}</button>`).join('') +
+    `<button type="button" class="tpl-chip" id="tplManage" style="background:#fff;">✎ 문구 관리</button>`;
+  box.querySelectorAll('[data-tpl]').forEach(b=>b.addEventListener('click', ()=>{
+    const ta = document.getElementById('personalNoteText');
+    const t = noticeTemplates[+b.dataset.tpl];
+    ta.value = ta.value.trim() ? ta.value.replace(/\s+$/,'') + '\n' + t : t;
+    updateCopyPreview();
+  }));
+  document.getElementById('tplManage').onclick = ()=>{
+    activateTab('settings');
+    setTimeout(()=> document.getElementById('tplEditor').scrollIntoView({ behavior:'smooth', block:'center' }), 200);
+  };
+}
+document.getElementById('tplSave').addEventListener('click', async ()=>{
+  const list = document.getElementById('tplEditor').value.split('\n').map(x=>x.trim()).filter(Boolean);
+  noticeTemplates = list;
+  renderTemplateChips();
+  if(!(DATA.version && DATA.version >= '2026-11-11')){ toast('이 기기 화면에만 적용했습니다. 모든 기기에 저장하려면 Apps Script를 새 버전으로 배포해주세요'); return; }
+  noticeTemplatesFromServer = true;
+  try{
+    const res = await apiPost('saveSettings', { settings: JSON.stringify({ noticeTemplates: JSON.stringify(list) }) });
+    if(res.error){ toast(res.error); return; }
+    DATA.settings = DATA.settings || {}; DATA.settings.noticeTemplates = JSON.stringify(list);
+    toast(`문구 ${list.length}개를 저장했습니다 (모든 기기에 적용)`);
+  }catch(e){ toast('저장 실패: ' + e.message); }
+});
+
+// ---------------- ④ 여러 학생 한 번에 저장 ----------------
+let extraStudents = [];
+function clearExtras(){ extraStudents = []; renderExtras(); }
+function renderExtras(){
+  const box = document.getElementById('extraChips');
+  box.innerHTML = extraStudents.map((n,i)=>`<span class="extra-chip">${escapeHtml(n)}${findTodayRecord(n) ? ' <span style="font-size:11px; opacity:.7;">(오늘 기록 있음)</span>' : ''}<button type="button" data-x="${i}">✕</button></span>`).join('');
+  box.querySelectorAll('[data-x]').forEach(b=>b.addEventListener('click', ()=>{ extraStudents.splice(+b.dataset.x, 1); renderExtras(); }));
+}
+const extraSearch = document.getElementById('extraSearch'), extraDropdown = document.getElementById('extraDropdown');
+function renderExtraDropdown(){
+  const q = extraSearch.value.trim();
+  const pool = DATA.students.filter(s => (!form.student || s.이름 !== form.student.이름) && !extraStudents.includes(s.이름));
+  const results = fuzzySearch(q, pool, s=>s.이름 + ' ' + (s.학교학년||'')).slice(0,8);
+  extraDropdown.innerHTML = results.length ? results.map(s=>`<div class="opt" data-name="${escapeHtml(s.이름)}">${escapeHtml(s.이름)}<div class="sub">${escapeHtml(s.학교학년||'')}</div></div>`).join('') : '<div class="empty">일치하는 학생이 없습니다</div>';
+  extraDropdown.style.display = 'block';
+  extraDropdown.querySelectorAll('.opt').forEach(el=>el.addEventListener('mousedown', ev=>{
+    ev.preventDefault();
+    extraStudents.push(el.dataset.name); extraSearch.value = ''; extraDropdown.style.display = 'none'; renderExtras();
+  }));
+}
+extraSearch.addEventListener('input', renderExtraDropdown);
+extraSearch.addEventListener('focus', renderExtraDropdown);
+extraSearch.addEventListener('blur', ()=> setTimeout(()=>{ extraDropdown.style.display = 'none'; }, 150));
+async function saveExtras(base){
+  if(!extraStudents.length) return '';
+  const common = document.getElementById('commonNoticeText').value.trim();
+  const saved = [], skipped = [], failed = [];
+  for(const n of extraStudents){
+    if(findTodayRecord(n)){ skipped.push(n); continue; }
+    const p = { studentName:n, textbook:base.textbook, progress:base.progress, homework:base.homework, noticeContent:common,
+      conceptResult:'', quizScore:'', absentDate:'', makeupDate:'', makeupTime:'', makeupEndTime:'', makeupClassTime:'', makeupClassEndTime:'',
+      absentTime:'', absentEndTime:'', memo:'', hwCheck:'' };
+    try{ const r = await apiPost('addRecord', p); if(r.error) failed.push(n); else saved.push(n); }catch(e){ failed.push(n); }
+  }
+  clearExtras();
+  return (saved.length ? ` · 함께 저장: ${saved.join(', ')}` : '') + (skipped.length ? ` · 오늘 기록이 있어 건너뜀: ${skipped.join(', ')}` : '') + (failed.length ? ` · 저장 실패: ${failed.join(', ')}` : '');
+}
+
+// ---------------- ⑥ 보강 빈 시간 추천 ----------------
+// 앞으로 14일 동안, 내 수업·보강·일정과 겹치지 않고 그 학생의 수업·테스트와도 겹치지 않는 1시간
+function suggestMakeupSlots(name, maxCount){
+  const mine = getMyClasses();
+  let open = 14*60, close = 22*60;
+  if(mine.length){ open = Math.min(...mine.map(c=>c.start)); close = Math.max(...mine.map(c=>c.end)); }
+  const now = new Date(), nowMin = now.getHours()*60 + now.getMinutes();
+  const out = [];
+  for(let i = 0; i < 14 && out.length < (maxCount || 8); i++){
+    const k = dateKeyOf(new Date(Date.now() + i*864e5));
+    const dow = new Date(k + 'T00:00:00').getDay();
+    if(dow === 0 || getHolidayName(k)) continue;
+    const items = getDaySchedule(k);
+    // 이 날 수업이 있는 시간대 안에서만 (학원이 여는 시간)
+    const dayClasses = mine.filter(c => c.dow === dow);
+    const dOpen = dayClasses.length ? Math.min(open, ...dayClasses.map(c=>c.start)) : open;
+    const dClose = dayClasses.length ? Math.max(...dayClasses.map(c=>c.end), close) : close;
+    let perDay = 0; // 하루에 3개까지만 (여러 날짜를 고를 수 있게)
+    for(let t = Math.ceil(dOpen/60)*60; t + 60 <= dClose && out.length < (maxCount || 8) && perDay < 3; t += 60){
+      if(i === 0 && t <= nowMin + 30) continue;
+      const busyMe = items.some(it => !NO_CLASH[it.kind] && it.start < t+60 && t < it.end);
+      const busyStu = items.some(it => it.kind !== 'absent' && namesIn(it.label).includes(name) && it.start < t+60 && t < it.end);
+      if(!busyMe && !busyStu){ out.push({ date:k, start:t, end:t+60 }); perDay++; }
+    }
+  }
+  return out;
+}
+function renderMakeupSlots(name, box){
+  if(!getMyClasses().length && CONFIG.timetableSheetId){ box.innerHTML = '<p class="hint">시간표를 불러오는 중입니다. 잠시 뒤 다시 눌러주세요</p>'; ensureTimetableLoaded(); return; }
+  const slots = suggestMakeupSlots(name, 8);
+  if(!slots.length){ box.innerHTML = '<p class="hint" style="margin:4px 0;">앞으로 2주 안에 겹치지 않는 1시간을 찾지 못했습니다</p>'; return; }
+  box.innerHTML = '<div style="font-size:12px; margin:2px 0 2px; opacity:.8;">겹치지 않는 1시간 (누르면 보강 입력 창이 열립니다)</div>' +
+    slots.map((s,i)=>{ const d = new Date(s.date + 'T00:00:00'); return `<span class="slot-chip" data-slot="${i}">${d.getMonth()+1}/${d.getDate()}(${DOW_CHARS[d.getDay()]}) ${minToHm(s.start)}~${minToHm(s.end)}</span>`; }).join('');
+  box.querySelectorAll('[data-slot]').forEach(el=>el.addEventListener('click', ()=>{
+    const s = slots[+el.dataset.slot];
+    openDayDetail(s.date);
+    setDayMakeupStudent(name);
+    document.getElementById('dayMakeupTime').value = minToHm(s.start);
+    document.getElementById('dayMakeupEndTime').value = minToHm(s.end);
+    refreshDayMakeupTime(); dayMakeupPick = 0; checkMakeupConflict();
+    const t = document.getElementById('dayMakeupTime'); if(t && t.closest('.block, .modal-box')) try{ document.getElementById('dayMakeupTimeTrigger').scrollIntoView({ block:'center' }); }catch(e){}
+  }));
+}
+
+// ---------------- ① 학생별 수업 이력 ----------------
+let histFilter = 'all', histShow = 10;
+function renderStudentHistory(name, keep){
+  if(!keep){ histFilter = 'all'; histShow = 10; }
+  const box = document.getElementById('md_records');
+  const all = DATA.records.filter(r => r['학생이름'] === name)
+    .sort((a,b)=> String(b['작성일시']).localeCompare(String(a['작성일시'])));
+  const lessons = all.filter(r => !isScheduleOnly(r) && (r['오늘진도'] || r['오늘과제'] || r['객관식점수'] || r['개념암기결과']));
+  const scores = lessons.map(r => parseFloat(r['객관식점수'])).filter(x => !isNaN(x));
+  const pass = lessons.filter(r => r['개념암기결과'] === 'PASS').length, fail = lessons.filter(r => r['개념암기결과'] === 'FAIL').length;
+  const hw = hwStats(name, 0);
+  const st = makeupStatus(name);
+  const sum = `<div class="hist-sum">수업 <b>${lessons.length}회</b>${lessons.length ? ` · 마지막 ${shortDate(recDate(lessons[0]))} (${daysAgo(recDate(lessons[0]))}일 전)` : ''}<br>
+    객관식 평균 <b>${scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) + '점' : '-'}</b>${scores.length ? ` (최근 ${scores.slice(0,5).join(' · ')})` : ''} · 개념암기 PASS ${pass} / FAIL ${fail}<br>
+    과제 확인 ${hwBadges(hw)} · 결석 ${st.absences.length}회 · 보강 ${st.makeups.length}회${st.remaining.length ? ` · <b style="color:var(--coral);">보강 ${st.remaining.length}회 남음</b>` : ''}</div>`;
+  const F = {
+    all: r => true,
+    lesson: r => !isScheduleOnly(r) && (r['오늘진도'] || r['오늘과제']),
+    test: r => r['객관식점수'] || r['개념암기결과'],
+    absent: r => r['결석일자'] || r['보강일자'],
+    hw: r => String(r['과제확인']||'').trim(),
+    memo: r => String(r['선생님전달사항']||'').trim()
+  };
+  const shown = all.filter(F[histFilter]);
+  const filt = `<div class="hist-filter">${[['all','전체'],['lesson','진도·과제'],['test','시험'],['absent','결석·보강'],['hw','과제 확인'],['memo','개별 문구']].map(([k,t])=>`<button type="button" data-hf="${k}" class="${histFilter===k?'on':''}">${t}</button>`).join('')}</div>`;
+  const hwMark = v => v === '○' ? '<span class="hw-badge o">과제 ○</span>' : v === '△' ? '<span class="hw-badge t">과제 △</span>' : v === '✕' ? '<span class="hw-badge x">과제 ✕</span>' : '';
+  const rows = shown.slice(0, histShow).map((r,idx)=>`
+      <div class="record-row">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+          <div style="min-width:0;">
+            <b>${fmtDT(r['작성일시'])}</b>${r['교재명'] ? ' · ' + escapeHtml(r['교재명']) : ''}${r['오늘진도'] ? ' · ' + escapeHtml(r['오늘진도']) : ''} ${hwMark(String(r['과제확인']||'').trim())}<br>
+            ${r['오늘과제'] ? '과제: ' + escapeHtml(r['오늘과제']) + '<br>' : ''}
+            ${r['알림장내용'] ? '<span style="opacity:.85;">알림장: ' + escapeHtml(r['알림장내용']) + '</span><br>' : ''}
+            ${r['선생님전달사항'] ? '<span style="color:#6B4FA0;">개별 문구: ' + escapeHtml(r['선생님전달사항']) + '</span><br>' : ''}
+            ${(r['개념암기결과'] || r['객관식점수']) ? `개념암기 ${r['개념암기결과']||'-'} / 객관식 ${r['객관식점수']||'-'}점` : ''}
+            ${r['결석일자'] ? '<br>결석: ' + fmtDT(r['결석일자']) : ''}
+            ${r['보강일자'] ? ' / 보강: ' + fmtDT(r['보강일자']) + (r['보강시간'] ? ' ' + fmtDT(r['보강시간']) : '') : ''}
+          </div>
+          <button class="btn sm" data-del-record="${idx}" style="flex:none; color:var(--coral); border-color:var(--coral);">삭제</button>
+        </div>
+      </div>`).join('');
+  box.innerHTML = sum + filt + (shown.length ? rows : '<p class="hint">해당하는 기록이 없습니다</p>') +
+    (shown.length > histShow ? `<button class="btn ghost sm" id="histMore" style="margin-top:6px;">더 보기 (${shown.length - histShow}개 더)</button>` : '');
+  box.querySelectorAll('[data-hf]').forEach(b=>b.addEventListener('click', ()=>{ histFilter = b.dataset.hf; histShow = 10; renderStudentHistory(name, true); }));
+  const more = document.getElementById('histMore');
+  if(more) more.onclick = ()=>{ histShow += 20; renderStudentHistory(name, true); };
+  box.querySelectorAll('[data-del-record]').forEach(btn=>btn.addEventListener('click', async ()=>{
+    const r = shown[+btn.dataset.delRecord];
+    if(!confirm(`${fmtDT(r['작성일시'])} · 진도 ${r['오늘진도']||'-'} 기록을 삭제할까요?\n삭제하면 되돌릴 수 없습니다.`)) return;
+    try{
+      const res = await apiPost('deleteRecord', { rowNum: r._rowNum, studentName: r['학생이름'] });
+      if(res.error){ toast(res.error); return; }
+      toast('기록을 삭제했습니다' + calNote(res));
+      await loadData();
+      openManageDetail(name);
+    }catch(err){ toast('삭제 실패: ' + err.message); }
+  }));
+}
+
+// ---------------- ⑨ 진도·과제 현황판 ----------------
+function renderProgressBoard(){
+  const table = document.getElementById('progTable');
+  if(!table) return;
+  const q = document.getElementById('progFilter').value.trim().toLowerCase();
+  const sort = document.getElementById('progSort').value;
+  const byName = {};
+  (DATA.records || []).forEach(r=>{
+    if(isScheduleOnly(r) || !(r['오늘진도'] || r['교재명'])) return;
+    const n = r['학생이름'];
+    if(!byName[n] || String(r['작성일시']) > String(byName[n]['작성일시'])) byName[n] = r;
+  });
+  let rows = (DATA.students || []).map(s=>{
+    const r = byName[s.이름];
+    const hw = hwStats(s.이름, 30);
+    return { name:s.이름, school:s.학교학년||'', book: r ? (r['교재명']||'') : '', lesson: r ? (r['오늘진도']||'') : '', date: r ? recDate(r) : '',
+      hw, miss: hw['✕'] + hw['△']*0.5, left: makeupStatus(s.이름).remaining.length };
+  });
+  if(q) rows = rows.filter(r => (r.name + ' ' + r.book + ' ' + r.lesson + ' ' + r.school).toLowerCase().includes(q));
+  const cmp = {
+    old: (a,b)=> (!a.date) - (!b.date) || (a.date || '').localeCompare(b.date || ''), // 기록 없는 학생은 맨 아래
+    name: (a,b)=> a.name.localeCompare(b.name, 'ko'),
+    hw: (a,b)=> b.miss - a.miss || a.name.localeCompare(b.name, 'ko'),
+    book: (a,b)=> a.book.localeCompare(b.book, 'ko') || a.lesson.localeCompare(b.lesson, 'ko', { numeric:true })
+  }[sort];
+  rows.sort(cmp);
+  table.innerHTML = `<thead><tr><th>이름</th><th>교재 · 최근 진도</th><th>마지막 수업</th><th>과제(30일)</th><th>보강</th></tr></thead><tbody>` +
+    rows.map(r=>{
+      const ago = r.date ? daysAgo(r.date) : null;
+      return `<tr class="${ago === null ? 'none' : ago >= 14 ? 'late' : ''}">
+        <td class="nm" data-prog-name="${escapeHtml(r.name)}">${escapeHtml(r.name)}<div style="font-weight:400; font-size:11px; color:var(--ink-soft);">${escapeHtml(r.school)}</div></td>
+        <td>${r.book ? escapeHtml(r.book) + '<br>' : ''}<span style="opacity:.85;">${escapeHtml(r.lesson) || '<span style="opacity:.5;">기록 없음</span>'}</span></td>
+        <td style="white-space:nowrap;">${r.date ? `${shortDate(r.date)}<br><span style="font-size:11px; opacity:.75;">${ago}일 전</span>` : '-'}</td>
+        <td style="white-space:nowrap;">${r.hw['○'] + r.hw['△'] + r.hw['✕'] ? hwBadges(r.hw) : '<span style="opacity:.5;">-</span>'}</td>
+        <td style="white-space:nowrap;">${r.left ? `<b style="color:var(--coral);">${r.left}회</b>` : '-'}</td></tr>`;
+    }).join('') + '</tbody>';
+  table.querySelectorAll('[data-prog-name]').forEach(td=>td.addEventListener('click', ()=> openManageDetail(td.dataset.progName)));
+}
+document.getElementById('progFilter').addEventListener('input', renderProgressBoard);
+document.getElementById('progSort').addEventListener('change', renderProgressBoard);
+
+// ---------------- ⑦ 주간 시간표 이미지 ----------------
+let h2cLoading = null;
+function loadHtml2Canvas(){
+  if(window.html2canvas) return Promise.resolve();
+  if(!h2cLoading) h2cLoading = new Promise((ok, no)=>{
+    const sc = document.createElement('script');
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    sc.onload = ok; sc.onerror = ()=>{ h2cLoading = null; no(new Error('이미지 도구를 불러오지 못했습니다 (인터넷 연결 확인)')); };
+    document.head.appendChild(sc);
+  });
+  return h2cLoading;
+}
+document.getElementById('wkImageBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('wkImageBtn');
+  btn.disabled = true; const old = btn.textContent; btn.textContent = '이미지 만드는 중…';
+  try{
+    await loadHtml2Canvas();
+    const grid = document.getElementById('wkGrid');
+    // 가로 스크롤에 가려진 부분까지 전체를 찍기 위해 복사본을 화면 밖에 펼쳐 놓고 찍음
+    const holder = document.createElement('div');
+    holder.style.cssText = 'position:fixed; left:-10000px; top:0; background:#fff; padding:14px;';
+    const w = Math.max(grid.scrollWidth, 760);
+    holder.style.width = (w + 28) + 'px';
+    const title = document.createElement('div');
+    title.textContent = '주간 시간표 · ' + document.getElementById('wkLabel').textContent;
+    title.style.cssText = 'font:700 16px sans-serif; margin:0 0 10px; color:#2E3A4F;';
+    const clone = grid.cloneNode(true); clone.id = 'wkGridClone'; clone.style.width = w + 'px';
+    holder.appendChild(title); holder.appendChild(clone);
+    document.body.appendChild(holder);
+    const canvas = await html2canvas(holder, { backgroundColor:'#ffffff', scale: 2, useCORS:true, logging:false });
+    holder.remove();
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    const fname = '주간시간표_' + dateKeyOf(wkStart) + '.png';
+    const file = new File([blob], fname, { type:'image/png' });
+    if(navigator.canShare && navigator.canShare({ files:[file] })){
+      try{ await navigator.share({ files:[file], title:'주간 시간표' }); toast('공유 창을 열었습니다'); return; }catch(e){ if(e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=> URL.revokeObjectURL(a.href), 4000);
+    toast('시간표 이미지를 저장했습니다');
+  }catch(e){ toast('이미지 만들기 실패: ' + e.message); }
+  finally{ btn.disabled = false; btn.textContent = old; }
+});
+
+// ---------------- ⑩ 구글 시트 백업 ----------------
+function renderBackupInfo(){
+  const el = document.getElementById('backupInfo');
+  if(!el) return;
+  if(!(DATA.version && DATA.version >= '2026-11-11')){ el.innerHTML = '<span style="color:var(--coral);">Apps Script를 새 버전으로 배포하면 사용할 수 있습니다</span>'; return; }
+  el.innerHTML = DATA.lastBackup ? `마지막 백업: <b>${escapeHtml(DATA.lastBackup)}</b>` : '아직 백업한 적이 없습니다';
+}
+document.getElementById('backupNowBtn').addEventListener('click', async ()=>{
+  if(!(DATA.version && DATA.version >= '2026-11-11')){ toast('Apps Script를 새 버전으로 배포해주세요'); return; }
+  const b = document.getElementById('backupNowBtn'); b.disabled = true; b.textContent = '백업 중…';
+  try{
+    const res = await apiPost('backupNow', {});
+    if(res.error){ toast(res.error); return; }
+    DATA.lastBackup = dateKeyOf(new Date()) + ' ' + new Date().toTimeString().slice(0,5);
+    renderBackupInfo();
+    document.getElementById('backupInfo').innerHTML += ` · <a href="${res.folderUrl}" target="_blank" rel="noopener">백업 폴더 열기</a>`;
+    toast('백업했습니다: ' + res.name);
+  }catch(e){ toast('백업 실패: ' + e.message); }
+  finally{ b.disabled = false; b.textContent = '지금 백업하기'; }
+});
+
+// ---------------- ⑪ 홈 화면 설치 (PWA) ----------------
+let installEvt = null;
+function renderInstallHint(){
+  const hint = document.getElementById('installHint'), btn = document.getElementById('installBtn');
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(standalone){ hint.textContent = '지금 홈 화면 앱으로 실행 중입니다 ✓'; btn.style.display = 'none'; return; }
+  if(installEvt){ hint.textContent = '버튼을 누르면 휴대폰 홈 화면(또는 PC 바탕화면)에 앱 아이콘이 생깁니다. 인터넷이 잠깐 끊겨도 화면은 열립니다.'; btn.style.display = ''; return; }
+  btn.style.display = 'none';
+  hint.innerHTML = ios
+    ? '아이폰: Safari 아래 <b>공유(□↑)</b> → <b>홈 화면에 추가</b>를 누르세요.'
+    : '갤럭시·크롬: 주소창 오른쪽 <b>⋮ 메뉴</b> → <b>홈 화면에 추가</b>(또는 <b>앱 설치</b>)를 누르세요.';
+}
+window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); installEvt = e; renderInstallHint(); });
+window.addEventListener('appinstalled', ()=>{ installEvt = null; toast('홈 화면에 설치했습니다'); renderInstallHint(); });
+document.getElementById('installBtn').addEventListener('click', async ()=>{
+  if(!installEvt) return;
+  installEvt.prompt();
+  try{ await installEvt.userChoice; }catch(e){}
+  installEvt = null; renderInstallHint();
+});
+if('serviceWorker' in navigator && location.protocol === 'https:'){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+renderInstallHint();
+renderTemplateChips();
+// 자료가 이 스크립트보다 먼저 불러와졌으면 지금 화면 채우기
+if(DATA && DATA.students && DATA.students.length) try{ afterDataLoaded(); }catch(e){ console.error(e); }
 </script>
 </body>
 </html>

@@ -758,6 +758,17 @@
   </div>
 
   <div class="block">
+    <div class="block-title"><span class="n c-teal">📲</span>학생 앱 숙제 현황 (했어요 확인)</div>
+    <div class="row" style="gap:6px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+      <button class="btn primary sm" id="hwBoardLoad" style="margin:0;">불러오기</button>
+      <input type="text" id="hwBoardFilter" placeholder="이름으로 거르기" style="flex:1; min-width:120px; margin:0;">
+      <label style="font-size:12.5px;display:flex;gap:4px;align-items:center;"><input type="checkbox" id="hwBoardOnlyNo"> 안 한 학생만</label>
+    </div>
+    <div id="hwBoardSum" class="hint" style="margin:0 0 6px;"></div>
+    <div id="hwBoardList" style="max-height:420px; overflow:auto;"><span class="hint">「불러오기」를 누르면 학생 앱에 올린 숙제와 학생이 눌러 둔 「했어요」 현황이 보여요 (채점 앱 비밀번호 필요).</span></div>
+  </div>
+
+  <div class="block">
     <div class="block-title"><span class="n c-violet">📅</span>결석·보강 달력</div>
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
       <button class="btn sm" id="calPrevMonth">‹ 이전달</button>
@@ -5528,6 +5539,46 @@ function renderProgressBoard(){
   table.querySelectorAll('[data-prog-name]').forEach(td=>td.addEventListener('click', ()=> openManageDetail(td.dataset.progName)));
 }
 document.getElementById('progFilter').addEventListener('input', renderProgressBoard);
+// ---------------- 학생 앱 숙제 현황 (채점 앱의 Homework 시트) ----------------
+let HWB = [];
+async function loadHwBoard(){
+  const list = document.getElementById('hwBoardList'), sum = document.getElementById('hwBoardSum');
+  let pw = ''; try{ pw = sessionStorage.getItem('graderPwTab') || ''; }catch(e){}
+  if(!pw){ pw = prompt('채점 앱 선생님 비밀번호를 입력해 주세요') || ''; if(!pw) return; try{ sessionStorage.setItem('graderPwTab', pw); }catch(e){} }
+  list.innerHTML = '<span class="hint">불러오는 중...</span>';
+  try{
+    const resp = await fetch('https://script.google.com/macros/s/AKfycbxZXQVyOPSNgg0K2uBG28r_vy9RaxnbQkbbWuNiaoiS_x-AX6qVk4NKLnXrHetgn8Nc/exec', { method:'POST', body: JSON.stringify({ action:'listHomework', password: pw }) });
+    const r = JSON.parse(await resp.text());
+    if(!r.ok){ if(/로그인|비밀번호/.test(r.error||'')){ try{ sessionStorage.removeItem('graderPwTab'); }catch(e){} } throw new Error(r.error || '불러오지 못했어요'); }
+    HWB = r.items || []; renderHwBoard();
+  }catch(e){ list.innerHTML = '<span style="color:#C1392B;">' + escapeHtml(e.message || String(e)) + (/unknown/i.test(e.message||'') ? ' (채점 앱 Apps Script를 새 버전으로 배포했는지 확인하세요)' : '') + '</span>'; sum.textContent = ''; }
+}
+function renderHwBoard(){
+  const list = document.getElementById('hwBoardList'), sum = document.getElementById('hwBoardSum');
+  const q = document.getElementById('hwBoardFilter').value.trim().toLowerCase(), onlyNo = document.getElementById('hwBoardOnlyNo').checked;
+  let items = HWB.filter(x => !q || String(x.name).toLowerCase().includes(q));
+  if(!items.length){ list.innerHTML = '<span class="hint">올린 숙제가 없어요.</span>'; sum.textContent = ''; return; }
+  const dueTxt = d => d ? String(d).slice(5,10).replace('-','/') : '';
+  const groups = {};
+  items.forEach(x => { const k = x.date + '|' + x.bookLesson + '|' + x.homework; (groups[k] = groups[k] || { date:x.date, bl:x.bookLesson, hw:x.homework, due:x.dueAt, st:[] }).st.push(x); });
+  const gl = Object.keys(groups).map(k => groups[k]).sort((a,b)=> a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
+  const top = gl.filter(g => g.date === gl[0].date), tot = top.reduce((n,g)=>n+g.st.length,0), dn = top.reduce((n,g)=>n+g.st.filter(s=>s.doneAt).length,0);
+  sum.innerHTML = `<b>${escapeHtml(gl[0].date)}</b> 숙제 · ${tot}명 중 <b style="color:#1b7a45;">${dn}명 했어요</b>, <b style="color:#C1392B;">${tot-dn}명 아직</b>`;
+  let h = '', last = '';
+  gl.forEach(g => {
+    const nd = g.st.filter(s => !s.doneAt), dd = g.st.filter(s => s.doneAt);
+    if(onlyNo && !nd.length) return;
+    if(g.date !== last){ h += `<div style="font-weight:800;margin:10px 0 2px;color:var(--ink-soft);">${escapeHtml(g.date)}</div>`; last = g.date; }
+    h += `<div style="border:1px solid var(--line,#e5e7eb);border-radius:10px;padding:8px 10px;margin:6px 0;"><div style="font-size:12px;opacity:.7;">${escapeHtml(g.bl||'')}${g.due ? ' · <b style="color:#C1392B;">마감 ' + dueTxt(g.due) + '</b>' : ''}</div><div style="white-space:pre-wrap;margin:3px 0 6px;">${escapeHtml(g.hw)}</div>`
+      + nd.map(s=>`<span style="display:inline-block;padding:2px 9px;margin:2px 4px 2px 0;border-radius:99px;font-size:12.5px;background:#FDECEA;color:#C1392B;font-weight:700;">⬜ ${escapeHtml(s.name)}</span>`).join('')
+      + (onlyNo ? '' : dd.map(s=>`<span style="display:inline-block;padding:2px 9px;margin:2px 4px 2px 0;border-radius:99px;font-size:12.5px;background:#E8F5EE;color:#1b7a45;font-weight:700;">✅ ${escapeHtml(s.name)}</span>`).join('')) + '</div>';
+  });
+  list.innerHTML = h || '<span class="hint">안 한 학생이 없어요. 🎉</span>';
+}
+document.getElementById('hwBoardLoad').addEventListener('click', loadHwBoard);
+document.getElementById('hwBoardFilter').addEventListener('input', renderHwBoard);
+document.getElementById('hwBoardOnlyNo').addEventListener('change', renderHwBoard);
+
 document.getElementById('progSort').addEventListener('change', renderProgressBoard);
 
 // ---------------- ⑦ 주간 시간표 이미지 ----------------

@@ -1982,7 +1982,8 @@ function timetableWarnings(){
   const weekAgo = dateKeyOf(new Date(Date.now() - 7*864e5));
   const recentOrphans = overridesByClass().orphans.filter(o => o.date >= weekAgo || (o.repeat && (!o.repeatTo || o.repeatTo >= weekAgo)));
   if(recentOrphans.length){
-    out.push(`앱에서 바꾼 수업 ${recentOrphans.length}개가 시간표의 어떤 수업인지 찾지 못해 적용되지 않았습니다 (시간표 칸이 바뀌었을 수 있어요). 시간표 탭 아래에서 확인·삭제할 수 있습니다.`);
+    const what = recentOrphans.map(o => `${shortDate(o.date)} ${escapeHtml(wkShortLabel(o.label || o.key.split('|').slice(3).join('|')))}`).join(', ');
+    out.push(`앱에서 바꾼 수업 ${recentOrphans.length}개(${what})가 지금 시간표에서 찾을 수 없어 적용되지 않았습니다. 시간표 칸이 바뀐 예전 변경이라 지워도 됩니다. <button type="button" class="btn sm" data-del-orphans style="margin-left:4px; padding:2px 10px;">지우기</button>`);
   }
   return out;
 }
@@ -3343,7 +3344,20 @@ function renderWeekView(){
   const notice = document.getElementById('wkNotice');
   if(!CONFIG.timetableSheetId) notice.innerHTML = '<p class="hint" style="margin:0 0 8px;">설정에서 시간표 시트를 연결하면 정규 수업도 함께 보입니다.</p>';
   else if(!timetableData) notice.innerHTML = '<p class="hint" style="margin:0 0 8px;">시간표 불러오는 중…</p>';
-  else notice.innerHTML = timetableWarnings().map(w=>`<div class="tt-warn">⚠ ${w}</div>`).join('');
+  else{
+    notice.innerHTML = timetableWarnings().map(w=>`<div class="tt-warn">⚠ ${w}</div>`).join('');
+    const delBtn = notice.querySelector('[data-del-orphans]');
+    if(delBtn) delBtn.onclick = async ()=>{
+      const weekAgo = dateKeyOf(new Date(Date.now() - 7*864e5));
+      const list = overridesByClass().orphans.filter(o => o.date >= weekAgo || (o.repeat && (!o.repeatTo || o.repeatTo >= weekAgo)));
+      delBtn.disabled = true; delBtn.textContent = '지우는 중…';
+      try{
+        for(const o of list){ const r = await apiPost('deleteTtOverride', { key: o.key, date: o.date }); if(r.error){ toast(r.error); return; } }
+        toast(`찾을 수 없던 수업 변경 ${list.length}개를 지웠습니다`);
+        await loadData(); renderWeekView(); renderMyClassesList();
+      }catch(e){ toast('지우기 실패: ' + e.message); delBtn.disabled = false; delBtn.textContent = '지우기'; }
+    };
+  }
 
   const events = collectCalEvents();
   const todayKey = todayStr();
@@ -5088,7 +5102,7 @@ async function runSelfCheck(){
       add(mine.length > 0, `공유 시간표: 전체 ${ (ttClassesCache||[]).length }개 수업 중 "${escapeHtml(ttTeacherName||'전체')}" 수업 ${mine.length}개를 읽었습니다`);
       const byDay = [1,2,3,4,5,6,0].map(d=>{ const c = mine.filter(x=>x.dow===d).sort((a,b)=>a.start-b.start); return c.length ? `${DOW_CHARS[d]} ${c.map(x=>minToHm(x.start)+'~'+minToHm(x.end)).join(', ')}` : ''; }).filter(Boolean);
       if(byDay.length) add(null, '읽은 시간: ' + byDay.join(' / ') + ' — 실제 시간표와 맞는지 확인해주세요');
-      timetableWarnings().forEach(w => add(false, w));
+      timetableWarnings().forEach(w => add(false, w.replace(/<button[\s\S]*?<\/button>/g, '')));
       renderMyClassesList(); renderWeekView();
     }
   }

@@ -464,6 +464,11 @@
   /* ---- 업그레이드: 오늘 수업 / 과제 확인 / 템플릿 / 현황판 ---- */
   .mk-alert{display:flex; align-items:center; gap:8px; padding:10px 12px; margin-bottom:10px; border-radius:10px; background:#FDEDEA; border:1px solid #F0B4A8; font-size:13.5px; cursor:pointer;}
   .mk-alert b{color:var(--coral);}
+  details.drawer > summary{cursor:pointer; list-style:none; margin:0; user-select:none;}
+  details.drawer > summary::-webkit-details-marker{display:none;}
+  details.drawer > summary::after{content:'▸ 열기'; margin-left:auto; font-size:12px; font-weight:600; color:var(--ink-soft);}
+  details.drawer[open] > summary::after{content:'▾ 접기';}
+  details.drawer[open] > summary{margin-bottom:12px;}
   .td-head{display:flex; font-size:11.5px; font-weight:700; color:var(--ink-soft); margin-bottom:4px;}
   .td-head span{text-align:center;}
   .td-wrap{position:relative; display:flex;}
@@ -773,17 +778,18 @@
     </div>
   </div>
 
-  <div class="block" id="hwBoardBlock">
-    <div class="block-title"><span class="n c-teal">📲</span>학생 앱 숙제 현황 (했어요 확인)</div>
+  <details class="block drawer" id="hwBoardBlock">
+    <summary class="block-title"><span class="n c-teal">📲</span>학생 앱 숙제 현황 (했어요 확인)</summary>
     <div class="row" style="gap:6px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
       <button class="btn primary sm" id="hwBoardLoad" style="margin:0;">불러오기</button>
       <input type="text" id="hwBoardFilter" placeholder="이름으로 거르기" style="flex:1; min-width:120px; margin:0;">
       <label style="font-size:12.5px;display:flex;gap:4px;align-items:center;"><input type="checkbox" id="hwBoardOnlyNo"> 안 한 학생만</label>
-      <label style="font-size:12.5px;display:flex;gap:4px;align-items:center;" title="내 컴퓨터·휴대폰에서만 켜세요. 켜 두면 학생 관리 탭을 열 때 자동으로 불러옵니다."><input type="checkbox" id="hwBoardRemember"> 이 기기에서 비밀번호 기억</label>
+      <label style="font-size:12.5px;display:flex;gap:4px;align-items:center;" title="내 컴퓨터·휴대폰에서만 켜세요. 켜 두면 서랍을 열 때 자동으로 불러옵니다."><input type="checkbox" id="hwBoardRemember"> 이 기기에서 비밀번호 기억</label>
+      <button class="btn sm" id="hwBoardPurge" style="margin:0 0 0 auto; color:var(--coral); border-color:var(--coral);">🗑 최근 1주일만 남기고 삭제</button>
     </div>
     <div id="hwBoardSum" class="hint" style="margin:0 0 6px;"></div>
-    <div id="hwBoardList" style="max-height:420px; overflow:auto;"><span class="hint">「불러오기」를 누르면 학생 앱에 올린 숙제와 학생이 눌러 둔 「했어요」 현황이 보여요 (채점 앱 비밀번호 필요). 비밀번호를 한 번 넣은 뒤에는 이 탭을 열 때마다 자동으로 불러오고, 「이 기기에서 비밀번호 기억」을 켜 두면 앱을 다시 열어도 자동으로 불러와요.</span></div>
-  </div>
+    <div id="hwBoardList" style="max-height:420px; overflow:auto;"><span class="hint">「불러오기」를 누르면 학생 앱에 올린 숙제와 학생이 눌러 둔 「했어요」 현황이 보여요 (채점 앱 비밀번호 필요). 비밀번호를 한 번 넣은 뒤에는 이 서랍을 열 때마다 자동으로 불러오고, 「이 기기에서 비밀번호 기억」을 켜 두면 앱을 다시 열어도 자동으로 불러와요. 숙제 기록은 30일이 지나면 자동으로 지워져요.</span></div>
+  </details>
 
   <div id="manageResults"></div>
 
@@ -833,8 +839,8 @@
     <div id="md_records"></div>
     <button class="btn ghost sm" id="md_loadAll" style="display:none; margin-top:8px;">180일보다 이전 기록까지 불러오기</button>
   </div>
-  <div class="block" id="progBlock">
-    <div class="block-title"><span class="n c-teal">📊</span>학생별 진도·과제 현황</div>
+  <details class="block drawer" id="progBlock">
+    <summary class="block-title"><span class="n c-teal">📊</span>학생별 진도·과제 현황</summary>
     <div class="row" style="gap:6px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
       <input type="text" id="progFilter" placeholder="이름·교재로 거르기" style="flex:1; min-width:140px; margin:0;">
       <select id="progSort" style="width:auto; margin:0;">
@@ -843,10 +849,11 @@
         <option value="hw">과제 안 해온 순</option>
         <option value="book">교재순</option>
       </select>
+      <button class="btn sm" id="progPurge" style="margin:0 0 0 auto; color:var(--coral); border-color:var(--coral);">🗑 최근 1주일만 남기고 삭제</button>
     </div>
     <div style="max-height:420px; overflow:auto;"><table class="prog-table" id="progTable"></table></div>
-    <p class="hint" style="margin:6px 0 0;">마지막 수업이 14일 넘은 학생은 붉게 표시됩니다. 과제는 최근 30일 과제 확인(○△✕) 기준이고, 이름을 누르면 학생 이력을 엽니다.</p>
-  </div>
+    <p class="hint" style="margin:6px 0 0;">마지막 수업이 14일 넘은 학생은 붉게 표시됩니다. 과제는 최근 30일 과제 확인(○△✕) 기준이고, 이름을 누르면 학생 이력을 엽니다. 수업기록은 한 달이 지나면 자동으로 정리되고(결석·보강 기록은 60일까지 남김), 지운 기록은 구글 시트의 「수업기록 보관」 탭으로 옮겨집니다.</p>
+  </details>
 
   <div class="block" id="calBlock">
     <div class="block-title"><span class="n c-violet">📅</span>결석·보강 달력</div>
@@ -2400,7 +2407,6 @@ function activateTab(view){
   if(view === 'timetable') loadTimetable();
   if(view === 'record' && typeof renderRecordHome === 'function') renderRecordHome();
   if(view === 'manage' && typeof renderProgressBoard === 'function') renderProgressBoard();
-  if(view === 'manage' && typeof autoLoadHwBoard === 'function') autoLoadHwBoard();
 }
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>activateTab(btn.dataset.view));
@@ -5675,6 +5681,41 @@ function renderProgressBoard(){
   table.querySelectorAll('[data-prog-name]').forEach(td=>td.addEventListener('click', ()=> openManageDetail(td.dataset.progName)));
 }
 document.getElementById('progFilter').addEventListener('input', renderProgressBoard);
+// ---------------- 서랍: 열 때만 불러오기·그리기 ----------------
+document.getElementById('hwBoardBlock').addEventListener('toggle', e=>{ if(e.target.open && typeof autoLoadHwBoard === 'function') autoLoadHwBoard(); });
+document.getElementById('progBlock').addEventListener('toggle', e=>{ if(e.target.open) renderProgressBoard(); });
+// 최근 1주일만 남기고 숙제 기록 삭제 (채점 앱 시트)
+document.getElementById('hwBoardPurge').addEventListener('click', async ()=>{
+  if(!confirm('학생 앱 숙제 기록 중 최근 1주일 것만 남기고 모두 삭제할까요?\n(학생 앱 숙제란에서도 사라지고, 되돌릴 수 없어요)')) return;
+  let pw = ''; try{ pw = sessionStorage.getItem('graderPwTab') || localStorage.getItem('graderPwSaved') || ''; }catch(e){}
+  if(!pw){ pw = prompt('채점 앱 선생님 비밀번호를 입력해 주세요') || ''; if(!pw) return; try{ sessionStorage.setItem('graderPwTab', pw); }catch(e){} }
+  const b = document.getElementById('hwBoardPurge'); b.disabled = true;
+  try{
+    const resp = await fetch('https://script.google.com/macros/s/AKfycbxZXQVyOPSNgg0K2uBG28r_vy9RaxnbQkbbWuNiaoiS_x-AX6qVk4NKLnXrHetgn8Nc/exec', { method:'POST', body: JSON.stringify({ action:'purgeHomework', password: pw, keepDays: 7 }) });
+    const r = JSON.parse(await resp.text());
+    if(!r.ok){
+      const er = String(r.error || '');
+      if(/로그인|비밀번호/.test(er)){ try{ sessionStorage.removeItem('graderPwTab'); localStorage.removeItem('graderPwSaved'); }catch(e){} }
+      toast(/unknown/i.test(er) ? '채점 앱 Apps Script를 새 버전으로 배포해야 삭제할 수 있어요' : ('삭제 실패: ' + er)); return;
+    }
+    toast(r.removed ? `숙제 기록 ${r.removed}개를 지웠습니다 (최근 1주일만 남김)` : '지울 숙제 기록이 없습니다 (모두 1주일 이내)');
+    loadHwBoard(false);
+  }catch(e){ toast('삭제 실패: ' + (e.message || e)); }
+  finally{ b.disabled = false; }
+});
+// 최근 1주일만 남기고 수업기록 정리 (지운 줄은 「수업기록 보관」 시트로)
+document.getElementById('progPurge').addEventListener('click', async ()=>{
+  if(!(DATA.version && DATA.version >= '2026-11-17')){ toast('알림장 Apps Script를 새 버전으로 배포해주세요'); return; }
+  if(!confirm('수업기록 중 최근 1주일 것만 남기고 모두 정리할까요?\n\n· 지운 기록은 구글 시트 「수업기록 보관」 탭으로 옮겨집니다 (앱에서는 안 보임)\n· 결석·보강이 적힌 기록은 보강 계산을 위해 60일까지 남깁니다\n· 학생별 수업 이력·과제 통계도 최근 것만 남습니다')) return;
+  const b = document.getElementById('progPurge'); b.disabled = true;
+  try{
+    const res = await apiPost('purgeRecords', { keepDays: 7 });
+    if(res.error){ toast(res.error); return; }
+    toast(res.removed ? `수업기록 ${res.removed}줄을 「수업기록 보관」으로 옮겼습니다 (남은 기록 ${res.kept}줄)` : '정리할 기록이 없습니다');
+    await loadData(); renderProgressBoard();
+  }catch(e){ toast('정리 실패: ' + e.message); }
+  finally{ b.disabled = false; }
+});
 // ---------------- 학생 앱 숙제 현황 (채점 앱의 Homework 시트) ----------------
 let HWB = [];
 async function loadHwBoard(auto){

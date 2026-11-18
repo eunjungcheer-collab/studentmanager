@@ -5554,11 +5554,13 @@ function renderHwCheck(){
   box.style.display = '';
 }
 // 지난 과제 확인 결과를 알림장 내용에 문장으로 넣는다 (다시 누르면 바뀐 문장으로 교체, 해제하면 지운다)
-const HW_SENT = { '○':'과제를 잘 해왔습니다.', '△':'과제를 일부 못해와 다음주에 해오도록 했습니다.', '✕':'과제를 거의 못해와 다음주에 해오도록 했습니다.' };
+const HW_SENT = { '○':'%%학생은 과제를 잘 해왔습니다.', '△':'%%학생은 과제를 일부 못해와 다음주에 해오도록 했습니다.', '✕':'%%학생은 과제를 거의 못해와 다음주에 해오도록 했습니다.' };
+const HW_SENT_OLD = ['과제를 잘 해왔습니다.', '과제를 일부 못해와 다음주에 해오도록 했습니다.', '과제를 거의 못해와 다음주에 해오도록 했습니다.'];   // 예전 문장(이름 없음)이 이미 들어가 있으면 같이 지운다
 function applyHwSentence(){
   const ta = document.getElementById('commonNoticeText'); if(!ta) return;
   let t = ta.value;
   Object.keys(HW_SENT).forEach(k => { t = t.split(HW_SENT[k]).join(''); });
+  HW_SENT_OLD.forEach(x => { t = t.split(x).join(''); });
   t = t.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/^\s+|\s+$/g, '');
   if(hwCheck && HW_SENT[hwCheck]) t = t ? t + '\n' + HW_SENT[hwCheck] : HW_SENT[hwCheck];
   ta.value = t;

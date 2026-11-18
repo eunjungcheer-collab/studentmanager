@@ -5048,7 +5048,7 @@ function mrBuild(name, back, exam){
     if(lessons.length){
       t += `${label} 한 달 동안 ${lessons.length}회 수업`+T('을 했습니다.','을 했어요.');
       if(ab || mk) t += ` (결석 ${ab}회, 보강 ${mk}회)`;
-      if(prog.length) t += '\n- 진도: ' + prog.slice(-3).join(' / ');
+      if(prog.length) t += '\n- 진도: ' + (prog.length > 1 ? prog[0] + ' ~ ' + prog[prog.length-1] : prog[0]);
       t += '\n';
     }
     if(ex){ t += `- 시험: ${ex.n}회 응시, 평균 ${ex.avg}점, 최고 ${ex.best}점` + (ex.diff==null ? '' : ex.diff>0 ? ` (지난달보다 ${ex.diff}점 상승)` : ex.diff<0 ? ` (지난달보다 ${Math.abs(ex.diff)}점 하락)` : ' (지난달과 비슷)') + '\n'; }

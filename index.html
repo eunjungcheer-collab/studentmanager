@@ -5043,10 +5043,10 @@ function mrBuild(name, back, exam){
   }
   function build(P){
     const T = (x,y)=> P ? x : y;
-    if(!lessons.length && !ex) return P ? `[${fn} 학생 ${label} 학습 리포트]\n${label}에는 아직 기록된 수업·시험이 없습니다.` : `[${fn} ${label} 학습 리포트]\n${label}에는 아직 기록된 수업·시험이 없다.`;
+    if(!lessons.length && !ex) return P ? `[${fn} 학생 ${label} 학습 리포트]\n${label}에는 아직 기록된 수업·시험이 없습니다.` : `[${fn} ${label} 학습 리포트]\n${label}에는 아직 기록된 수업·시험이 없어요.`;
     let t = `[${fn}${P ? ' 학생 ' : ' '}${label} 학습 리포트]\n`;
     if(lessons.length){
-      t += `${label} 한 달 동안 ${lessons.length}회 수업`+T('을 했습니다.','을 했다.');
+      t += `${label} 한 달 동안 ${lessons.length}회 수업`+T('을 했습니다.','을 했어요.');
       if(ab || mk) t += ` (결석 ${ab}회, 보강 ${mk}회)`;
       if(prog.length) t += '\n- 진도: ' + prog.slice(-3).join(' / ');
       t += '\n';
@@ -5054,33 +5054,33 @@ function mrBuild(name, back, exam){
     if(ex){ t += `- 시험: ${ex.n}회 응시, 평균 ${ex.avg}점, 최고 ${ex.best}점` + (ex.diff==null ? '' : ex.diff>0 ? ` (지난달보다 ${ex.diff}점 상승)` : ex.diff<0 ? ` (지난달보다 ${Math.abs(ex.diff)}점 하락)` : ' (지난달과 비슷)') + '\n'; }
     t += '\n✅ 잘한 점\n';
     const g = [];
-    if(hwRate !== null && hwRate >= 80) g.push(`과제를 ${hwN}회 중 ${hw['○']}회 성실하게 `+T('해 왔습니다.','해 왔다.'));
-    if(scAvg !== null && scAvg >= 85) g.push(`수업 중 객관식 평균 ${scAvg}점으로 `+T('내용을 잘 이해하고 있습니다.','내용을 잘 이해하고 있다.'));
-    if(pass >= 2 && pass > fail) g.push(`개념 암기 확인을 ${pass}회 통과`+T('했습니다.','했다.'));
+    if(hwRate !== null && hwRate >= 80) g.push(`과제를 ${hwN}회 중 ${hw['○']}회 성실하게 `+T('해 왔습니다.','해 왔어요.'));
+    if(scAvg !== null && scAvg >= 85) g.push(`수업 중 객관식 평균 ${scAvg}점으로 `+T('내용을 잘 이해하고 있습니다.','내용을 잘 이해하고 있어요.'));
+    if(pass >= 2 && pass > fail) g.push(`개념 암기 확인을 ${pass}회 통과`+T('했습니다.','했어요.'));
     if(ex){
-      ex.good.forEach(x => g.push(`${x.u} 단원 평균 ${x.a}점으로 `+T('개념이 탄탄합니다.','개념이 탄탄하다.')));
-      if(ex.hi) g.push(`시험 ${ex.n}회 중 ${ex.hi}회에서 90점 이상을 `+T('받았습니다.','받았다.'));
-      if(ex.n >= 2 && ex.last - ex.first >= 8) g.push(`첫 시험(${ex.first}점)보다 최근 시험(${ex.last}점)이 ${ex.last-ex.first}점 올라 `+T('꾸준히 성장하고 있습니다.','성장하고 있다.'));
+      ex.good.forEach(x => g.push(`${x.u} 단원 평균 ${x.a}점으로 `+T('개념이 탄탄합니다.','개념이 탄탄해요.')));
+      if(ex.hi) g.push(`시험 ${ex.n}회 중 ${ex.hi}회에서 90점 이상을 `+T('받았습니다.','받았어요.'));
+      if(ex.n >= 2 && ex.last - ex.first >= 8) g.push(`첫 시험(${ex.first}점)보다 최근 시험(${ex.last}점)이 ${ex.last-ex.first}점 올라 `+T('꾸준히 성장하고 있습니다.','성장하고 있어요.'));
     }
-    if(lessons.length >= 6 && !ab) g.push(`한 달 동안 결석 없이 `+T('꾸준히 수업에 참여했습니다.','꾸준히 수업에 참여했다.'));
-    if(!g.length) g.push(T('수업에 꾸준히 참여하며 학습 습관을 만들어 가고 있습니다.','수업에 꾸준히 참여하며 학습 습관을 만들어 가고 있다.'));
+    if(lessons.length >= 6 && !ab) g.push(`한 달 동안 결석 없이 `+T('꾸준히 수업에 참여했습니다.','꾸준히 수업에 참여했어요.'));
+    if(!g.length) g.push(T('수업에 꾸준히 참여하며 학습 습관을 만들어 가고 있습니다.','수업에 꾸준히 참여하며 학습 습관을 만들어 가고 있어요.'));
     t += g.slice(0,5).map(x=>'- '+x).join('\n');
     t += '\n\n📌 보완할 점\n';
     const w = [];
-    if(hwRate !== null && hwRate < 80) w.push(`과제 확인 결과 ${hwN}회 중 ${hw['○']}회만 완성`+T('했습니다. 과제를 끝까지 해 오는 습관이 더 필요합니다.','했다. 과제를 끝까지 해 오는 습관이 필요하다.'));
-    if(scAvg !== null && scAvg < 70) w.push(`수업 중 객관식 평균이 ${scAvg}점으로 `+T('개념 복습이 더 필요합니다.','개념 복습이 더 필요하다.'));
-    if(fail >= 2 && fail >= pass) w.push(`개념 암기 확인에서 ${fail}회 `+T('재시험이 필요했습니다.','재시험이 필요했다.'));
+    if(hwRate !== null && hwRate < 80) w.push(`과제 확인 결과 ${hwN}회 중 ${hw['○']}회만 완성`+T('했습니다. 과제를 끝까지 해 오는 습관이 더 필요합니다.','했어요. 과제를 끝까지 해 오는 습관이 필요해요.'));
+    if(scAvg !== null && scAvg < 70) w.push(`수업 중 객관식 평균이 ${scAvg}점으로 `+T('개념 복습이 더 필요합니다.','개념 복습이 더 필요해요.'));
+    if(fail >= 2 && fail >= pass) w.push(`개념 암기 확인에서 ${fail}회 `+T('재시험이 필요했습니다.','재시험이 필요했어요.'));
     if(ex){
-      ex.low.forEach(x => w.push(`${x.u} 단원 평균 ${x.a}점으로 `+T('복습이 더 필요합니다.','복습이 더 필요하다.')));
-      ex.weak.forEach(x => { if(!ex.low.some(l => l.u === x.unit)) w.push(`${x.unit} 단원은 반복해서 정답률이 낮은 편(${x.avg}%)`+T('입니다.','이다.')); });
+      ex.low.forEach(x => w.push(`${x.u} 단원 평균 ${x.a}점으로 `+T('복습이 더 필요합니다.','복습이 더 필요해요.')));
+      ex.weak.forEach(x => { if(!ex.low.some(l => l.u === x.unit)) w.push(`${x.unit} 단원은 반복해서 정답률이 낮은 편(${x.avg}%)`+T('입니다.','이에요.')); });
       if(ex.rep.length) w.push('반복해서 틀린 문제: ' + ex.rep.map(q => ((q.title||q.examTitle||'').trim()+' '+q.n+'번').trim()).join(', '));
     }
-    if(!w.length) w.push(T('뚜렷하게 부족한 부분은 없으며, 지금의 학습 흐름을 유지하면 좋겠습니다.','뚜렷하게 부족한 부분은 없다. 지금의 흐름을 유지하자.'));
+    if(!w.length) w.push(T('뚜렷하게 부족한 부분은 없으며, 지금의 학습 흐름을 유지하면 좋겠습니다.','뚜렷하게 부족한 부분은 없어요. 지금처럼만 해요.'));
     t += w.slice(0,5).map(x=>'- '+x).join('\n');
     t += '\n\n💡 ' + T('다음 달 계획','다음 목표') + '\n';
     t += (ex && (ex.low.length || ex.weak.length || ex.rep.length)) || (hwRate !== null && hwRate < 80) || (scAvg !== null && scAvg < 70)
-      ? '- ' + T('보완이 필요한 부분은 오답노트와 다시풀기로 복습하고, 수업에서도 한 번 더 짚어 드리겠습니다.','오답노트와 다시풀기로 약한 부분을 복습하자.')
-      : '- ' + T('현재 수준을 유지하면서 심화·서술형 문항까지 도전해 보겠습니다.','심화·서술형 문항에도 도전해 보자.');
+      ? '- ' + T('보완이 필요한 부분은 오답노트와 다시풀기로 복습하고, 수업에서도 한 번 더 짚어 드리겠습니다.','오답노트와 다시풀기로 약한 부분을 복습해 봐요.')
+      : '- ' + T('현재 수준을 유지하면서 심화·서술형 문항까지 도전해 보겠습니다.','심화·서술형 문항에도 도전해 봐요.');
     return t;
   }
   return { parent: build(true), student: build(false), hasExam: !!ex };

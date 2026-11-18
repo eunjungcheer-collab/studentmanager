@@ -5012,7 +5012,7 @@ async function mrLoadExams(name){
     const [subs, wk] = await Promise.all([call('listSubmissions'), call('weakReport', { minRate:50, minTried:3 })]);
     if(!subs.ok){ if(/로그인|비밀번호/.test(subs.error||'')){ try{ sessionStorage.removeItem('graderPwTab'); }catch(e){} } return null; }
     const nk = x => String(x||'').replace(/\s+/g,''), key = nk(name);
-    const list = (subs.submissions||[]).filter(x => nk(x.studentName) === key && Number(x.total)).map(x => ({ s:Number(x.score100), t:new Date(x.submittedAt).getTime(), title:x.examTitle||'' })).filter(x => isFinite(x.s)).sort((a,b)=>a.t-b.t);
+    const list = (subs.submissions||[]).filter(x => nk(x.studentName) === key && Number(x.total) && !(x.pending > 0)).map(x => ({ s:Number(x.score100), t:new Date(x.submittedAt).getTime(), title:x.examTitle||'' })).filter(x => isFinite(x.s)).sort((a,b)=>a.t-b.t);
     const w = ((wk && wk.ok) ? wk.students : []).find(x => nk(x.name) === key) || { weakUnits:[], repeatQ:[] };
     return { list, w };
   }catch(e){ return null; }

@@ -2682,7 +2682,7 @@ function setOneOffLesson(lessonName, homework, notice){
   newCurriForm.style.display = 'none';
   renderLessonChip();
   if(homework !== undefined) document.getElementById('homeworkText').value = homework || '';
-  if(notice !== undefined) document.getElementById('commonNoticeText').value = notice || '';
+  if(notice !== undefined){ document.getElementById('commonNoticeText').value = notice || ''; if(hwCheck && typeof applyHwSentence === 'function') applyHwSentence(); }
   updateCopyPreview();
   updateCurriButtonVisibility();
 }
@@ -2717,6 +2717,7 @@ function selectLesson(idx){
   });
   document.getElementById('homeworkText').value = l.homework || '';
   document.getElementById('commonNoticeText').value = l.commonNotice || '';
+  if(hwCheck && typeof applyHwSentence === 'function') applyHwSentence();
   updateCopyPreview();
   updateCurriButtonVisibility();
 }
@@ -5552,9 +5553,21 @@ function renderHwCheck(){
   box.querySelectorAll('[data-hw]').forEach(b => b.classList.toggle('on', b.dataset.hw === hwCheck));
   box.style.display = '';
 }
+// 지난 과제 확인 결과를 알림장 내용에 문장으로 넣는다 (다시 누르면 바뀐 문장으로 교체, 해제하면 지운다)
+const HW_SENT = { '○':'과제를 잘 해왔습니다.', '△':'과제를 일부 못해와 다음주에 해오도록 했습니다.', '✕':'과제를 거의 못해와 다음주에 해오도록 했습니다.' };
+function applyHwSentence(){
+  const ta = document.getElementById('commonNoticeText'); if(!ta) return;
+  let t = ta.value;
+  Object.keys(HW_SENT).forEach(k => { t = t.split(HW_SENT[k]).join(''); });
+  t = t.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/^\s+|\s+$/g, '');
+  if(hwCheck && HW_SENT[hwCheck]) t = t ? t + '\n' + HW_SENT[hwCheck] : HW_SENT[hwCheck];
+  ta.value = t;
+  ta.dispatchEvent(new Event('input', { bubbles:true }));
+}
 document.querySelectorAll('#hwCheckBox [data-hw]').forEach(b=>b.addEventListener('click', ()=>{
   hwCheck = hwCheck === b.dataset.hw ? '' : b.dataset.hw;
   renderHwCheck();
+  applyHwSentence();
 }));
 function hwStats(name, days){
   const from = days ? dateKeyOf(new Date(Date.now() - days*864e5)) : '';

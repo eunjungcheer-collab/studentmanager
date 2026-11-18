@@ -5054,7 +5054,7 @@ function mrBuild(name, back, exam){
     if(ex){ t += `- 시험: ${ex.n}회 응시, 평균 ${ex.avg}점, 최고 ${ex.best}점` + (ex.diff==null ? '' : ex.diff>0 ? ` (지난달보다 ${ex.diff}점 상승)` : ex.diff<0 ? ` (지난달보다 ${Math.abs(ex.diff)}점 하락)` : ' (지난달과 비슷)') + '\n'; }
     t += '\n✅ 잘한 점\n';
     const g = [];
-    if(hwRate !== null && hwRate >= 80) g.push(`과제를 ${hwN}회 중 ${hw['○']}회 성실하게 `+T('해 왔습니다.','해 왔어요.'));
+    if(hwRate !== null && hwN >= 3 && hwRate >= 80) g.push(`과제를 ${hwN}회 중 ${hw['○']}회 성실하게 `+T('해 왔습니다.','해 왔어요.'));
     if(scAvg !== null && scAvg >= 85) g.push(`수업 중 객관식 평균 ${scAvg}점으로 `+T('내용을 잘 이해하고 있습니다.','내용을 잘 이해하고 있어요.'));
     if(pass >= 2 && pass > fail) g.push(`개념 암기 확인을 ${pass}회 통과`+T('했습니다.','했어요.'));
     if(ex){
@@ -5073,7 +5073,7 @@ function mrBuild(name, back, exam){
     if(ex){
       ex.low.forEach(x => w.push(`${x.u} 단원 평균 ${x.a}점으로 `+T('복습이 더 필요합니다.','복습이 더 필요해요.')));
       ex.weak.forEach(x => { if(!ex.low.some(l => l.u === x.unit)) w.push(`${x.unit} 단원은 반복해서 정답률이 낮은 편(${x.avg}%)`+T('입니다.','이에요.')); });
-      if(ex.rep.length) w.push('반복해서 틀린 문제: ' + ex.rep.map(q => ((q.title||q.examTitle||'').trim()+' '+q.n+'번').trim()).join(', '));
+      if(ex.rep.length){ const gq = {}; ex.rep.forEach(q => { const k = String(q.title||q.examTitle||'').trim(); (gq[k] = gq[k]||[]).push(q.n); }); w.push('반복해서 틀린 문제: ' + Object.keys(gq).map(k => (k ? k + ' ' : '') + gq[k].join('·') + '번').join(', ')); }
     }
     if(!w.length) w.push(T('뚜렷하게 부족한 부분은 없으며, 지금의 학습 흐름을 유지하면 좋겠습니다.','뚜렷하게 부족한 부분은 없어요. 지금처럼만 해요.'));
     t += w.slice(0,5).map(x=>'- '+x).join('\n');

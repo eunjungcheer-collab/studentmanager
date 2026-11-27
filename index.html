@@ -4798,19 +4798,24 @@ function renderManageList(){
     document.getElementById('manageAddNewBtn').addEventListener('click', ()=>openManageNewForm(q));
     return;
   }
+  // 이름이 딱 맞거나 한 명만 찾아지면 세부정보를 바로 보여줌
+  const exact = q && (DATA.students.find(s => s.이름 === q) || (results.length === 1 ? results[0] : null));
+  if(exact){ openManageDetail(exact.이름); return; }
   box.innerHTML = results.map(s=>`
-    <div class="student-card">
+    <div class="student-card" data-card="${s.이름}" style="cursor:pointer;">
       <h3>${s.이름}</h3>
       <div class="meta">${s.학교학년||'-'} · ${s.교과서||'교과서 미입력'}</div>
       <div class="meta">과학시험 ${fmtDT(s.시험날짜)||'-'} · 범위 ${s.시험범위||'-'}${s.시험기간 ? ' · 기간 ' + s.시험기간 : ''}</div>
       <div class="row" style="margin-top:8px;">
-        <button class="btn sm" data-detail="${s.이름}">상세 / 수정</button>
+        <button class="btn sm" data-detail="${s.이름}">세부정보</button>
         <button class="btn primary sm" data-pick="${s.이름}">오늘 수업기록 작성</button>
       </div>
     </div>
   `).join('');
-  box.querySelectorAll('button[data-detail]').forEach(b=>b.addEventListener('click', ()=>openManageDetail(b.dataset.detail)));
-  box.querySelectorAll('button[data-pick]').forEach(b=>b.addEventListener('click', ()=>pickStudentForToday(b.dataset.pick)));
+  box.querySelectorAll('button[data-detail]').forEach(b=>b.addEventListener('click', e=>{ e.stopPropagation(); openManageDetail(b.dataset.detail); }));
+  box.querySelectorAll('button[data-pick]').forEach(b=>b.addEventListener('click', e=>{ e.stopPropagation(); pickStudentForToday(b.dataset.pick); }));
+  // 카드 아무 곳이나 누르면 세부정보
+  box.querySelectorAll('[data-card]').forEach(c=>c.addEventListener('click', ()=>openManageDetail(c.dataset.card)));
 }
 
 function pickStudentForToday(name){
